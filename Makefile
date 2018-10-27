@@ -66,7 +66,7 @@ ifndef NO_VENV
 endif
 
 help/en/changelog.rst: help/changelog help/en/changelog.head.rst
-	$(PYTHON) scripts/genchangelog.py help/changelog | cat help/en/changelog.head.rst - > $@
+	$(PYTHON) support/genchangelog.py help/changelog | cat help/en/changelog.head.rst - > $@
 
 help/en/credits.rst: help/credits.rst help/en/credits.head.rst
 	cat help/en/credits.head.rst help/credits.rst > $@
@@ -98,7 +98,7 @@ normpo :
 	$(VENV_PYTHON) build.py --normpo
 
 srcpkg :
-	./scripts/srcpkg.sh
+	./support/srcpkg.sh
 
 install: all pyc
 	mkdir -p ${DESTDIR}${PREFIX}/share/moneyguru
