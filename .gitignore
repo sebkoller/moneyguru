@@ -6,6 +6,7 @@ env
 _build
 .tox
 /conf.json
+/run.py
 
 /qt/*_rc.py
 /qt/ui/*_ui.py

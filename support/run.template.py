@@ -1,7 +1,5 @@
-#!/usr/bin/env python3
-# Created By: Virgil Dupras
-# Created On: 2009-10-31
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+@SHEBANG@
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -24,10 +22,6 @@ from qtlib.preferences import adjust_after_deserialization
 import qt.mg_rc # noqa
 from qt.plat import BASE_PATH
 from qt.args import get_parser
-
-# We import this module below to force cx_freeze to include it because the currency plugins
-# need it.
-import urllib.request # noqa
 
 def main():
     parser = get_parser()

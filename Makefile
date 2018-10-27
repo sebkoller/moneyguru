@@ -8,7 +8,7 @@ NO_VENV ?=
 UBUNTU_VERSION ?= xenial
 
 ifdef NO_VENV
-	VENV_PYTHON = $(PYTHON)
+	VENV_PYTHON = $(shell $(PYTHON) -c "import sys; print(sys.executable)")
 else
 	VENV_PYTHON = ./env/bin/python
 endif
@@ -28,11 +28,11 @@ mofiles = $(patsubst %.po,%.mo,$(pofiles))
 vpath %.po $(localedirs)
 vpath %.mo $(localedirs)
 
-all : | env i18n modules qt/mg_rc.py
+all: qt/mg_rc.py run.py | env i18n modules 
 	@echo "Build complete! You can run moneyGuru with 'make run'"
 
 run:
-	$(VENV_PYTHON) run.py
+	./run.py
 
 pyc:
 	${PYTHON} -m compileall ${packages}
@@ -68,8 +68,8 @@ endif
 help/en/changelog.rst: help/changelog help/en/changelog.head.rst
 	$(PYTHON) support/genchangelog.py help/changelog | cat help/en/changelog.head.rst - > $@
 
-help/en/credits.rst: help/credits.rst help/en/credits.head.rst
-	cat help/en/credits.head.rst help/credits.rst > $@
+help/en/credits.rst: help/en/credits.head.rst help/credits.rst 
+	cat $+ > $@
 
 build/help : help/en/changelog.rst help/en/credits.rst | env
 ifndef NO_VENV
@@ -78,7 +78,11 @@ endif
 	$(VENV_PYTHON) -m sphinx help/en $@
 
 qt/mg_rc.py : qt/mg.qrc
-	pyrcc5 qt/mg.qrc > qt/mg_rc.py
+	pyrcc5 $< > $@
+
+run.py: support/run.template.py
+	sed -e 's|@SHEBANG@|#!$(VENV_PYTHON)|' $< > $@
+	chmod +x $@
 
 i18n: $(mofiles)
 
@@ -126,8 +130,9 @@ uninstall :
 	rm -f "${DESTDIR}${PREFIX}/share/pixmaps/moneyguru.png"
 
 clean:
-	-rm -rf build
+	-rm -rf build env
 	-rm locale/*/LC_MESSAGES/*.mo
 	-rm core/model/*.so
+	-rm run.py
 
 .PHONY : clean srcpkg normpo mergepot modules i18n reqs run pyc install uninstall all
