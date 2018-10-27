@@ -18,6 +18,7 @@ import os.path as op
 
 # for autodocs
 sys.path.insert(0, os.path.abspath(os.path.join('..', '..')))
+from core import __version__
 
 autodoc_member_order = 'bysource'
 todo_include_todos = True
@@ -48,30 +49,22 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'moneyGuru'
-copyright = u'2013, Hardcoded Software'
+copyright = u'2018, Virgil Dupras'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = '{version}'
+version = __version__
 # The full version, including alpha/beta/rc tags.
 release = version
-platform = '{platform}'
 
-if platform == 'osx':
-    REPLACEMENTS = {
-        'cmd': u'⌘',
-        'cmd_opt': u'⌘⌥',
-        'cmd_shift': u'⌘⇧',
-    }
-else:
-    REPLACEMENTS = {
-        'cmd': u'Ctrl+',
-        'cmd_opt': u'Ctrl+Alt+',
-        'cmd_shift': u'Ctrl+Shift+',
-    }
+REPLACEMENTS = {
+    'cmd': u'Ctrl+',
+    'cmd_opt': u'Ctrl+Alt+',
+    'cmd_shift': u'Ctrl+Shift+',
+}
 
 REPLACEMENT_STR = u'\n'.join([u'.. |%s| replace:: %s' % (key, value) for key, value in REPLACEMENTS.items()])
 

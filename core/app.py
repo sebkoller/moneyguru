@@ -19,6 +19,7 @@ from hscommon.util import nonone
 
 from .gui.date_widget import DateWidget
 
+from . import __version__
 from .const import DATE_FORMAT_FOR_PREFERENCES
 from .model import currency
 from .model.amount import parse_amount, format_amount
@@ -140,7 +141,7 @@ class Application(Broadcaster):
     APP_NAME = "moneyGuru"
     PROMPT_NAME = APP_NAME
     NAME = APP_NAME
-    VERSION = '2.11.0'
+    VERSION = __version__
 
     def __init__(
             self, view, date_format='dd/MM/yyyy', decimal_sep='.', grouping_sep='',

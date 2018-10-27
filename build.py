@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -88,9 +88,7 @@ def build_qt(dev):
 
 def build_help():
     print("Generating Help")
-    current_platform = 'win'
     current_path = op.abspath('.')
-    confpath = op.join(current_path, 'help', 'conf.tmpl')
     help_basepath = op.join(current_path, 'help', 'en')
     help_destpath = op.join(current_path, 'build', 'help')
     changelog_path = op.join(current_path, 'help', 'changelog')
@@ -98,16 +96,8 @@ def build_help():
     credits_tmpl = op.join(help_basepath, 'credits.tmpl')
     credits_out = op.join(help_basepath, 'credits.rst')
     filereplace(credits_tmpl, credits_out, credits=open(credits_path, 'rt', encoding='utf-8').read())
-    image_src = op.join(current_path, 'help', 'image_{}'.format(current_platform))
-    image_dst = op.join(current_path, 'help', 'en', 'image')
-    if not op.exists(image_dst):
-        try:
-            os.symlink(image_src, image_dst)
-        except (NotImplementedError, OSError): # Windows crappy symlink support
-            shutil.copytree(image_src, image_dst)
     tixurl = "https://github.com/hsoft/moneyguru/issues/{}"
-    confrepl = {'platform': current_platform}
-    sphinxgen.gen(help_basepath, help_destpath, changelog_path, tixurl, confrepl, confpath)
+    sphinxgen.gen(help_basepath, help_destpath, changelog_path, tixurl, None, None)
 
 def build_base_localizations():
     loc.compile_all_po('locale')
