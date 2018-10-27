@@ -100,10 +100,6 @@ normpo :
 srcpkg :
 	./scripts/srcpkg.sh
 
-debsrc:
-	./scripts/debian_changelog.py $(UBUNTU_VERSION)
-	dpkg-buildpackage -S
-	
 install: all pyc
 	mkdir -p ${DESTDIR}${PREFIX}/share/moneyguru
 	cp -rf ${packages} locale ${DESTDIR}${PREFIX}/share/moneyguru
@@ -112,7 +108,7 @@ install: all pyc
 	mkdir -p ${DESTDIR}${PREFIX}/bin
 	ln -sf ${PREFIX}/share/moneyguru/run.py ${DESTDIR}${PREFIX}/bin/moneyguru
 	mkdir -p ${DESTDIR}${PREFIX}/share/applications
-	cp -f debian/moneyguru.desktop ${DESTDIR}${PREFIX}/share/applications
+	cp -f share/moneyguru.desktop ${DESTDIR}${PREFIX}/share/applications
 	sed -i -e 's#^Icon=/usr/share/moneyguru/#Icon='${PREFIX}'/share/moneyguru/#' \
 		${DESTDIR}${PREFIX}/share/applications/moneyguru.desktop
 	mkdir -p ${DESTDIR}${PREFIX}/share/pixmaps

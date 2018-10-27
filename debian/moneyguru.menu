@@ -1,5 +1,0 @@
-?package(moneyguru):needs="x11" section="Applications/Office"    \
-        title="moneyGuru"                                        \
-        longtitle="moneyGuru"                                    \
-        command="moneyguru"                                      \
-        icon="/usr/share/moneyguru/logo_big.png"
