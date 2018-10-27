@@ -22,7 +22,7 @@ def slow_down(func):
 
     return wrapper
 
-def set_ratedb_for_tests(async=False, slow_down_provider=False, provider=None):
+def set_ratedb_for_tests(async_=False, slow_down_provider=False, provider=None):
     log = []
 
     # Returns a RatesDB that isn't async and that uses a fake provider
@@ -31,7 +31,7 @@ def set_ratedb_for_tests(async=False, slow_down_provider=False, provider=None):
         number_of_days = (end_date - start_date).days + 1
         return [(start_date + timedelta(i), 1.42 + (.01 * i)) for i in range(number_of_days)]
 
-    db = RatesDB(':memory:', async=async)
+    db = RatesDB(':memory:', async_=async_)
     if provider is None:
         provider = fake_provider
     if slow_down_provider:
@@ -48,7 +48,7 @@ def test_unknown_currency():
 def test_async_and_repeat():
     # If you make an ensure_rates() call and then the same call right after (before the first one
     # is finished, the server will not be hit twice.
-    db, log = set_ratedb_for_tests(async=True, slow_down_provider=True)
+    db, log = set_ratedb_for_tests(async_=True, slow_down_provider=True)
     lastweek = date.today() - timedelta(days=7)
     db.ensure_rates(lastweek, ['USD'])
     db.ensure_rates(lastweek, ['USD'])

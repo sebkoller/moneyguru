@@ -165,7 +165,7 @@ class RatesDB:
     The currencies are identified with ISO 4217 code (USD, CAD, EUR, etc.).
     The rates are represented as float and represent the value of the currency in CAD.
     """
-    def __init__(self, db_or_path=':memory:', async=True):
+    def __init__(self, db_or_path=':memory:', async_=True):
         self._cache = {} # {(date, currency): CAD value
         self.db_or_path = db_or_path
         if isinstance(db_or_path, str):
@@ -174,7 +174,7 @@ class RatesDB:
             self.con = db_or_path
         self._execute("select * from rates where 1=2")
         self._rate_providers = []
-        self.async = async
+        self.async_ = async_
         self._fetched_values = Queue()
         self._fetched_ranges = {} # a currency --> (start, end) map
 
@@ -392,7 +392,7 @@ class RatesDB:
                 currencies_and_range.append((currency, cur_start, cur_end))
                 cur_start = cur_end
             self._fetched_ranges[currency] = (start_date, date.today())
-        if self.async:
+        if self.async_:
             threading.Thread(target=do).start()
         else:
             do()

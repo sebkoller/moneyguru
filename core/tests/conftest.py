@@ -37,7 +37,7 @@ def pytest_collection_modifyitems(config, items):
 
 def pytest_configure(config):
     def fake_initialize_db(path):
-        ratesdb = RatesDB(':memory:', async=False)
+        ratesdb = RatesDB(':memory:', async_=False)
         ratesdb.register_rate_provider = lambda *a: None
         Currency.set_rates_db(ratesdb)
 

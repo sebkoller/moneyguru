@@ -324,7 +324,7 @@ def test_ensures_rates_async(app, monkeypatch):
     # the mocked get_CAD_values() to sleep for a little while, the next line after it in the test will
     # be executed first. If this test starts to fail randomly, we'll have to think about a better
     # way to test that (or increase the sleep time).
-    rates_db, log = set_ratedb_for_tests(async=True, slow_down_provider=True)
+    rates_db, log = set_ratedb_for_tests(async_=True, slow_down_provider=True)
     app.save_and_load()
     # This is a weird way to test that we don't have the rate yet. No need to import fallback
     # rates just for that.

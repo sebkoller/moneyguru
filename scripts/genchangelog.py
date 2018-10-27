@@ -50,7 +50,9 @@ def changelog_to_rst(changelogpath):
         # The format of the changelog descriptions is in markdown, but since we only use bulled list
         # and links, it's not worth depending on the markdown package. A simple regexp suffice.
         description = re.sub(r'\[(.*?)\]\((.*?)\)', '`\\1 <\\2>`__', description)
-        rendered = CHANGELOG_FORMAT.format(version=log['version'], date=log['date_str'],
+        rendered = CHANGELOG_FORMAT.format(
+            version=log['version'],
+            date=log['date_str'],
             description=description)
         print(rendered)
 
