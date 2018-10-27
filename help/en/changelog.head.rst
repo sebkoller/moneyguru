@@ -9,4 +9,3 @@ don't cause the application to quit. You simply get an error window that asks yo
 send the crash report to Hardcoded Software. Crashes that cause the application to quit are called
 "hard crashes" in this changelog.
 
-{changelog}

@@ -12,10 +12,9 @@ import platform
 
 from setuptools import setup, Extension
 
-from hscommon import sphinxgen
 from hscommon.plat import ISLINUX, ISWINDOWS
 from hscommon.build import (
-    print_and_do, move_all, copy, filereplace
+    print_and_do, move_all, copy
 )
 from hscommon import loc
 
@@ -84,20 +83,6 @@ def build_qt(dev):
     ret = print_and_do("pyrcc5 {} > {}".format(qrc_path, pyrc_path))
     if ret != 0:
         raise RuntimeError("pyrcc5 call failed with code {}. Aborting build".format(ret))
-    build_help()
-
-def build_help():
-    print("Generating Help")
-    current_path = op.abspath('.')
-    help_basepath = op.join(current_path, 'help', 'en')
-    help_destpath = op.join(current_path, 'build', 'help')
-    changelog_path = op.join(current_path, 'help', 'changelog')
-    credits_path = op.join(current_path, 'help', 'credits.rst')
-    credits_tmpl = op.join(help_basepath, 'credits.tmpl')
-    credits_out = op.join(help_basepath, 'credits.rst')
-    filereplace(credits_tmpl, credits_out, credits=open(credits_path, 'rt', encoding='utf-8').read())
-    tixurl = "https://github.com/hsoft/moneyguru/issues/{}"
-    sphinxgen.gen(help_basepath, help_destpath, changelog_path, tixurl, None, None)
 
 def build_base_localizations():
     loc.compile_all_po('locale')
@@ -185,9 +170,7 @@ def main():
         clean()
     if not op.exists('build'):
         os.mkdir('build')
-    if args.doc:
-        build_help()
-    elif args.loc:
+    if args.loc:
         build_localizations()
     elif args.updatepot:
         build_updatepot()

@@ -65,11 +65,17 @@ ifndef NO_VENV
 	${PYTHON} -m venv --upgrade --system-site-packages env
 endif
 
-build/help : | env
+help/en/changelog.rst: help/changelog help/en/changelog.head.rst
+	$(PYTHON) scripts/genchangelog.py help/changelog | cat help/en/changelog.head.rst - > $@
+
+help/en/credits.rst: help/credits.rst help/en/credits.head.rst
+	cat help/en/credits.head.rst help/credits.rst > $@
+
+build/help : help/en/changelog.rst help/en/credits.rst | env
 ifndef NO_VENV
 	$(VENV_PYTHON) -m pip install -r requirements-docs.txt
 endif
-	$(VENV_PYTHON) build.py --doc
+	$(VENV_PYTHON) -m sphinx help/en $@
 
 qt/mg_rc.py : qt/mg.qrc
 	pyrcc5 qt/mg.qrc > qt/mg_rc.py
