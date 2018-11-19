@@ -8,8 +8,8 @@
 #define DATE_LEN 8
 #define MAX_SQL_LEN 512
 
-static sqlite3 *g_db;
-static Currency **g_currencies;
+static sqlite3 *g_db = NULL;
+static Currency **g_currencies = NULL;
 static float g_fetched_rate;
 
 // Private
@@ -133,6 +133,10 @@ Currency*
 currency_get(char *code)
 {
     Currency **cur;
+
+    if (g_currencies == NULL) {
+        currency_global_init(":memory:");
+    }
 
     cur = g_currencies;
     while (*cur != NULL) {

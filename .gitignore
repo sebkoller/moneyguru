@@ -1,5 +1,6 @@
 *.so
 *.mo
+*.o
 __pycache__
 build
 env

@@ -28,7 +28,7 @@ mofiles = $(patsubst %.po,%.mo,$(pofiles))
 vpath %.po $(localedirs)
 vpath %.mo $(localedirs)
 
-all: qt/mg_rc.py run.py | env i18n modules 
+all: qt/mg_rc.py run.py | env i18n modules ccore
 	@echo "Build complete! You can run moneyGuru with 'make run'"
 
 run:
@@ -95,6 +95,9 @@ core/model/_amount.*.so : core/modules/amount.c | env
 
 modules : core/model/_amount.*.so
 
+ccore:
+	make -C ccore
+
 mergepot :
 	$(VENV_PYTHON) build.py --mergepot
 
@@ -135,4 +138,4 @@ clean:
 	-rm core/model/*.so
 	-rm run.py
 
-.PHONY : clean srcpkg normpo mergepot modules i18n reqs run pyc install uninstall all
+.PHONY : clean srcpkg normpo mergepot modules ccore i18n reqs run pyc install uninstall all
