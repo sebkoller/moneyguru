@@ -1,18 +1,23 @@
-#define Py_LIMITED_API
 #include <Python.h>
 #include "currency.h"
 
 PyType_Spec Amount_Type_Spec;
-static PyObject *Amount_Type;
+PyObject *Amount_Type;
 
 PyType_Spec Currency_Type_Spec;
-static PyObject *Currency_Type;
+PyObject *Currency_Type;
 PyObject* py_currency_global_init(PyObject *self, PyObject *args);
 PyObject* py_currency_register(PyObject *self, PyObject *args);
+PyObject* py_currency_getrate(PyObject *self, PyObject *args);
+PyObject* py_currency_set_CAD_value(PyObject *self, PyObject *args);
+PyObject* py_currency_daterange(PyObject *self, PyObject *args);
 
 static PyMethodDef module_methods[] = {
     {"currency_global_init",  py_currency_global_init, METH_VARARGS},
     {"currency_register",  py_currency_register, METH_VARARGS},
+    {"currency_getrate", py_currency_getrate, METH_VARARGS},
+    {"currency_set_CAD_value", py_currency_set_CAD_value, METH_VARARGS},
+    {"currency_daterange", py_currency_daterange, METH_VARARGS},
     {NULL}  /* Sentinel */
 };
 
@@ -33,7 +38,6 @@ PyInit__ccore(void)
 {
     PyObject *m;
 
-    /*currency_global_init(":memory:");*/
     Currency_Type = PyType_FromSpec(&Currency_Type_Spec);
     Amount_Type = PyType_FromSpec(&Amount_Type_Spec);
 

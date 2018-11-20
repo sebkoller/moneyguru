@@ -15,7 +15,7 @@ from .currency import Currency
 try:
     if os.environ.get('USE_PY_AMOUNT'):
         raise ImportError()
-    from ._amount import Amount
+    from ._ccore import Amount
 except ImportError:
     print("Using amount_ref")
     from ._amount_ref import Amount

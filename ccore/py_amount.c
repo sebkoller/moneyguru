@@ -1,4 +1,3 @@
-#define Py_LIMITED_API
 #include <Python.h>
 #include <math.h>
 #include "amount.h"
@@ -10,7 +9,8 @@ typedef struct {
     PyObject *rval; /* Real value, as a python float instance */
 } PyAmount;
 
-static PyObject *Amount_Type;
+PyObject *Amount_Type;
+PyObject* currency_unpack(PyObject *currency);
 
 #define Amount_Check(v) (Py_TYPE(v) == (PyTypeObject *)Amount_Type)
 
@@ -35,6 +35,10 @@ set_currency(PyAmount *amount, PyObject *currency)
 {
     PyObject *tmp;
 
+    currency = currency_unpack(currency);
+    if (currency == NULL) {
+        return false;
+    }
     tmp = amount->currency;
     amount->currency = currency;
     Py_XDECREF(tmp);
@@ -44,12 +48,14 @@ set_currency(PyAmount *amount, PyObject *currency)
         return false;
     }
     if (!PyCapsule_CheckExact(tmp)) {
+        PyErr_SetString(PyExc_TypeError, "not a capsule");
         Py_DECREF(tmp);
         return false;
     }
     amount->amount.currency = (Currency *)PyCapsule_GetPointer(tmp, NULL);
     Py_DECREF(tmp);
     if (amount->currency == NULL) {
+        PyErr_SetString(PyExc_TypeError, "invalid capsule");
         return false;
     }
     return true;
@@ -76,8 +82,8 @@ check_amount(PyObject *o)
     return PyLong_AS_LONG(o) == 0;
 }
 
-static int
-check_amounts(PyObject *a, PyObject *b, int seterr)
+static bool
+check_amounts(PyObject *a, PyObject *b, bool seterr)
 {
     /* Verify that a and b are amounts and compatible together and returns true or false.
        if seterr is true, an appropriate error is set.
@@ -86,17 +92,17 @@ check_amounts(PyObject *a, PyObject *b, int seterr)
         if (seterr) {
             PyErr_SetString(PyExc_TypeError, "Amounts can only be compared with other amounts or zero.");
         }
-        return 0;
+        return false;
     }
 
     if (!amounts_are_compatible(a, b)) {
         if (seterr) {
             PyErr_SetString(PyExc_ValueError, "Amounts of different currencies can't be compared.");
         }
-        return 0;
+        return false;
     }
 
-    return 1;
+    return true;
 }
 
 static PyObject *
@@ -160,6 +166,9 @@ PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
 
     static char *kwlist[] = {"amount", "currency", NULL};
 
+    self->currency = NULL;
+    self->rval = NULL;
+
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, &amount, &currency)) {
         return -1;
     }
@@ -168,7 +177,7 @@ PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
         return -1;
     }
     dtmp = PyFloat_AsDouble(amount);
-    if (dtmp == -1 && PyErr_Occurred()) {
+    if (PyErr_Occurred()) {
         return -1;
     }
     self->amount.val = round(dtmp * pow(10, self->amount.currency->exponent));
@@ -215,8 +224,8 @@ PyAmount_repr(PyAmount *self)
     PyObject *r, *fmt, *args;
 
     args = Py_BuildValue(
-        "(iOO)", self->amount.currency->exponent, self->rval, self->currency);
-    fmt = PyUnicode_FromString("Amount(%.*f, %r)");
+        "(iOO)", self->amount.val, self->rval, self->currency);
+    fmt = PyUnicode_FromString("Amount(%r, %r, %r)");
     r = PyUnicode_Format(fmt, args);
     Py_DECREF(fmt);
     Py_DECREF(args);
@@ -313,7 +322,7 @@ PyAmount_add(PyObject *a, PyObject *b)
     int64_t aval, bval;
     PyObject *currency;
 
-    if (!check_amounts(a, b, 1)) {
+    if (!check_amounts(a, b, true)) {
         return NULL;
     }
     aval = get_amount(a)->val;

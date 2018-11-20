@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,15 +8,13 @@
 easily figure out their exchange value.
 """
 
-import os
-from datetime import datetime, date, timedelta
+from datetime import date, timedelta
 import logging
-import sqlite3 as sqlite
 import threading
 from queue import Queue, Empty
 from operator import attrgetter
 
-from hscommon.util import iterdaterange
+from . import _ccore
 
 class CurrencyNotSupportedException(Exception):
     """The current exchange rate provider doesn't support the requested currency."""
@@ -72,6 +70,17 @@ class Currency:
     def __repr__(self):
         return '<Currency %s>' % self.code
 
+    def __eq__(self, other):
+        if isinstance(other, Currency):
+            other = other._inner
+        if isinstance(other, _ccore.Currency):
+            return self._inner == other
+        else:
+            return NotImplemented
+
+    def __hash__(self):
+        return hash(self._inner)
+
     @staticmethod
     def register(
             code, name, exponent=2, start_date=None, start_rate=1, stop_date=None, latest_rate=1,
@@ -85,13 +94,10 @@ class Currency:
             return Currency.by_code[code]
         assert name not in Currency.by_name
         currency = object.__new__(Currency)
-        currency.code = code
+        _ccore.currency_register(
+            code, exponent, start_date, start_rate, stop_date, latest_rate)
+        currency._inner = _ccore.Currency(code)
         currency.name = name
-        currency.exponent = exponent
-        currency.start_date = start_date
-        currency.start_rate = start_rate
-        currency.stop_date = stop_date
-        currency.latest_rate = latest_rate
         currency.priority = priority
         Currency.by_code[code] = currency
         Currency.by_name[name] = currency
@@ -133,16 +139,23 @@ class Currency:
 
     def value_in(self, currency, date):
         """Returns the value of this currency in terms of the other currency on the given date."""
-        if self.start_date is not None and date < self.start_date:
-            return self.start_rate
-        elif self.stop_date is not None and date > self.stop_date:
-            return self.latest_rate
-        else:
-            return self.get_rates_db().get_rate(date, self.code, currency.code)
+        return self.get_rates_db().get_rate(date, self.code, currency.code)
 
     def set_CAD_value(self, value, date):
         """Sets the currency's value in CAD on the given date."""
         self.get_rates_db().set_CAD_value(date, self.code, value)
+
+    @property
+    def code(self):
+        return self._inner.code
+
+    @property
+    def exponent(self):
+        return self._inner.exponent
+
+    @property
+    def latest_rate(self):
+        return self._inner.latest_rate
 
 
 # For legacy purpose, we create USD, EUR and CAD in here, but all other currencies are app-defined.
@@ -156,87 +169,19 @@ EUR = Currency.register(
 )
 CAD = Currency.register('CAD', 'Canadian dollar', latest_rate=1)
 
-def date2str(date):
-    return '%d%02d%02d' % (date.year, date.month, date.day)
-
 class RatesDB:
     """Stores exchange rates for currencies.
 
     The currencies are identified with ISO 4217 code (USD, CAD, EUR, etc.).
     The rates are represented as float and represent the value of the currency in CAD.
     """
-    def __init__(self, db_or_path=':memory:', async_=True):
+    def __init__(self, path=':memory:', async_=True):
         self._cache = {} # {(date, currency): CAD value
-        self.db_or_path = db_or_path
-        if isinstance(db_or_path, str):
-            self.con = sqlite.connect(str(db_or_path))
-        else:
-            self.con = db_or_path
-        self._execute("select * from rates where 1=2")
+        _ccore.currency_global_init(path)
         self._rate_providers = []
         self.async_ = async_
         self._fetched_values = Queue()
         self._fetched_ranges = {} # a currency --> (start, end) map
-
-    def _execute(self, *args, **kwargs):
-        def create_tables():
-            # date is stored as a TEXT YYYYMMDD
-            sql = "create table rates(date TEXT, currency TEXT, rate REAL NOT NULL)"
-            self.con.execute(sql)
-            sql = "create unique index idx_rate on rates (date, currency)"
-            self.con.execute(sql)
-
-        try:
-            return self.con.execute(*args, **kwargs)
-        except sqlite.OperationalError: # new db, or other problems
-            try:
-                create_tables()
-            except Exception:
-                logging.warning("Messy problems with the currency db, starting anew with a memory db")
-                self.con = sqlite.connect(':memory:')
-                create_tables()
-        except sqlite.DatabaseError: # corrupt db
-            logging.warning("Corrupt currency database at {0}. Starting over.".format(repr(self.db_or_path)))
-            if isinstance(self.db_or_path, str) and self.db_or_path != ':memory:':
-                self.con.close()
-                os.remove(str(self.db_or_path))
-                self.con = sqlite.connect(str(self.db_or_path))
-            else:
-                self.con = sqlite.connect(':memory:')
-            create_tables()
-        return self.con.execute(*args, **kwargs) # try again
-
-    def _seek_value_in_CAD(self, str_date, currency_code):
-        if currency_code == 'CAD':
-            return 1
-
-        def seek(date_op, desc):
-            sql = "select rate from rates where date %s ? and currency = ? order by date %s limit 1" % (date_op, desc)
-            cur = self._execute(sql, [str_date, currency_code])
-            row = cur.fetchone()
-            if row:
-                return row[0]
-
-        return seek('<=', 'desc') or seek('>=', '') or Currency(currency_code).latest_rate
-
-    def _ensure_filled(self, date_start, date_end, currency_code):
-        """Make sure that the cache contains *something* for each of the dates in the range.
-
-        Sometimes, our provider doesn't return us the range we sought. When it does, it usually
-        means that it never will and to avoid repeatedly querying those ranges forever, we have to
-        fill them. We use the closest rate for this.
-        """
-        # We don't want to fill today, because we want to repeatedly fetch that one until the
-        # provider gives it to us.
-        if date_end >= date.today():
-            date_end = date.today() - timedelta(1)
-        sql = "select rate from rates where date = ? and currency = ?"
-        for curdate in iterdaterange(date_start, date_end):
-            cur = self._execute(sql, [date2str(curdate), currency_code])
-            if cur.fetchone() is None:
-                nearby_rate = self._seek_value_in_CAD(date2str(curdate), currency_code)
-                self.set_CAD_value(curdate, currency_code, nearby_rate)
-                logging.debug("Filled currency void for %s at %s (value: %2.2f)", currency_code, curdate, nearby_rate)
 
     def _save_fetched_rates(self):
         while True:
@@ -249,7 +194,6 @@ class RatesDB:
                         continue
                     logging.debug("Saving rate %2.2f for %s", rate, rate_date)
                     self.set_CAD_value(rate_date, currency, rate)
-                self._ensure_filled(fetch_start, fetch_end, currency)
                 logging.debug("Finished saving rates for currency %s", currency)
             except Empty:
                 break
@@ -264,14 +208,7 @@ class RatesDB:
         currency ``currency_code``. If there are gaps, they are not accounted for (subclasses that
         automatically update themselves are not supposed to introduce gaps in the db).
         """
-        sql = "select min(date), max(date) from rates where currency = '%s'" % currency_code
-        cur = self._execute(sql)
-        start, end = cur.fetchone()
-        if start and end:
-            convert = lambda s: datetime.strptime(s, '%Y%m%d').date()
-            return convert(start), convert(end)
-        else:
-            return None
+        return _ccore.currency_daterange(currency_code)
 
     def get_rate(self, date, currency1_code, currency2_code):
         """Returns the exchange rate between currency1 and currency2 for date.
@@ -283,36 +220,20 @@ class RatesDB:
         # We want to check self._fetched_values for rates to add.
         if not self._fetched_values.empty():
             self._save_fetched_rates()
-        # This method is a bottleneck and has been optimized for speed.
-        value1 = None
-        value2 = None
-        if currency1_code == 'CAD':
-            value1 = 1
-        else:
-            value1 = self._cache.get((date, currency1_code))
-        if currency2_code == 'CAD':
-            value2 = 1
-        else:
-            value2 = self._cache.get((date, currency2_code))
-        if value1 is None or value2 is None:
-            str_date = date2str(date)
-            if value1 is None:
-                value1 = self._seek_value_in_CAD(str_date, currency1_code)
-                self._cache[(date, currency1_code)] = value1
-            if value2 is None:
-                value2 = self._seek_value_in_CAD(str_date, currency2_code)
-                self._cache[(date, currency2_code)] = value2
-        return value1 / value2
+        result = _ccore.currency_getrate(date, currency1_code, currency2_code)
+        if result is None:
+            # todo: either push "latest_rate" into ccore or get rid of this
+            # concept.
+            result = 1
+        return result
+
 
     def set_CAD_value(self, date, currency_code, value):
         """Sets the daily value in CAD for currency at date"""
         # we must clear the whole cache because there might be other dates affected by this change
         # (dates when the currency server has no rates).
         self.clear_cache()
-        str_date = date2str(date)
-        sql = "replace into rates(date, currency, rate) values(?, ?, ?)"
-        self._execute(sql, [str_date, currency_code, value])
-        self.con.commit()
+        _ccore.currency_set_CAD_value(date, currency_code, value)
 
     def register_rate_provider(self, rate_provider):
         """Adds `rate_provider` to the list of providers supported by this DB.

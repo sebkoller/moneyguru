@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <time.h>
 
 #define CURRENCY_CODE_MAXLEN 4
@@ -5,6 +6,10 @@
 typedef struct {
     char code[CURRENCY_CODE_MAXLEN+1];
     unsigned int exponent;
+    time_t start_date;
+    double start_rate;
+    time_t stop_date;
+    double latest_rate;
 } Currency;
 
 typedef enum {
@@ -20,13 +25,22 @@ void
 currency_global_deinit();
 
 Currency*
-currency_register(char *code, unsigned int exponent);
+currency_register(
+    char *code,
+    unsigned int exponent,
+    time_t start_date,
+    double start_rate,
+    time_t stop_date,
+    double latest_rate);
 
 Currency*
-currency_get(char *code);
+currency_get(const char *code);
 
 CurrencyResult
-currency_getrate(struct tm *date, Currency *c1, Currency *c2, float *result);
+currency_getrate(struct tm *date, Currency *c1, Currency *c2, double *result);
 
 void
-currency_set_CAD_value(struct tm *date, Currency *currency, float value);
+currency_set_CAD_value(struct tm *date, Currency *currency, double value);
+
+bool
+currency_daterange(Currency *currency, struct tm *start, struct tm *stop);
