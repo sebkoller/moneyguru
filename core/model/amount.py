@@ -4,19 +4,12 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import os
 import re
 from itertools import groupby
 
 from .currency import Currencies
+from ._ccore import Amount
 
-try:
-    if os.environ.get('USE_PY_AMOUNT'):
-        raise ImportError()
-    from ._ccore import Amount
-except ImportError:
-    print("Using amount_ref")
-    from ._amount_ref import Amount
 
 class UnsupportedCurrencyError(ValueError):
     """We're trying to parse an amount specifying an unsupported currency."""

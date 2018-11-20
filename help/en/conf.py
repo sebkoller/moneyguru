@@ -23,9 +23,6 @@ from core import __version__
 autodoc_member_order = 'bysource'
 todo_include_todos = True
 
-# Docstrings are in the Python implementation of Amount
-os.environ['USE_PY_AMOUNT'] = 'yes'
-
 # -- General configuration -----------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
