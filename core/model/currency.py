@@ -12,7 +12,6 @@ from datetime import date, timedelta
 import logging
 import threading
 from queue import Queue, Empty
-from operator import attrgetter
 
 from . import _ccore
 
@@ -22,28 +21,14 @@ class CurrencyNotSupportedException(Exception):
 class RateProviderUnavailable(Exception):
     """The rate provider is temporarily unavailable."""
 
-class Currency:
-    """Represents a currency and allow easy exchange rate lookups.
-
-    A ``Currency`` instance is created with either a 3-letter ISO code or with a full name. If it's
-    present in the database, an instance will be returned. If not, ``ValueError`` is raised. The
-    easiest way to access a currency instance, however, is by using module-level constants. For
-    example::
-
-        >>> from hscommon.currency import USD, EUR
-        >>> from datetime import date
-        >>> USD.value_in(EUR, date.today())
-        0.6339119851386843
-
-    Unless a :class:`RatesDB` global instance is set through :meth:`Currency.set_rate_db` however,
-    only fallback values will be used as exchange rates.
-    """
+class Currencies:
     all = []
     by_code = {}
     by_name = {}
     rates_db = None
 
-    def __new__(cls, code=None, name=None):
+    @classmethod
+    def get(cls, code=None, name=None):
         """Returns the currency with the given code."""
         assert (code is None and name is not None) or (code is not None and name is None)
         if code is not None:
@@ -58,29 +43,6 @@ class Currency:
             except KeyError:
                 raise ValueError('Unknown currency name: %r' % name)
 
-    def __getnewargs__(self):
-        return (self.code,)
-
-    def __getstate__(self):
-        return None
-
-    def __setstate__(self, state):
-        pass
-
-    def __repr__(self):
-        return '<Currency %s>' % self.code
-
-    def __eq__(self, other):
-        if isinstance(other, Currency):
-            other = other._inner
-        if isinstance(other, _ccore.Currency):
-            return self._inner == other
-        else:
-            return NotImplemented
-
-    def __hash__(self):
-        return hash(self._inner)
-
     @staticmethod
     def register(
             code, name, exponent=2, start_date=None, start_rate=1, stop_date=None, latest_rate=1,
@@ -90,18 +52,15 @@ class Currency:
         ``priority`` determines the order of currencies in :meth:`all`. Lower priority goes first.
         """
         code = code.upper()
-        if code in Currency.by_code:
-            return Currency.by_code[code]
-        assert name not in Currency.by_name
-        currency = object.__new__(Currency)
+        if code in Currencies.by_code:
+            return Currencies.by_code[code]
+        assert name not in Currencies.by_name
         _ccore.currency_register(
             code, exponent, start_date, start_rate, stop_date, latest_rate)
-        currency._inner = _ccore.Currency(code)
-        currency.name = name
-        currency.priority = priority
-        Currency.by_code[code] = currency
-        Currency.by_name[name] = currency
-        Currency.all.append(currency)
+        currency = _ccore.Currency(code)
+        Currencies.by_code[code] = currency
+        Currencies.by_name[name] = currency
+        Currencies.all.append((currency, name, priority))
         return currency
 
     @staticmethod
@@ -109,65 +68,41 @@ class Currency:
         # Clear all currencies except USD, EUR and CAD because these are directly imported in too
         # many modules and we depend on those instances being present at too many places.
         # For now, this is only called during testing.
-        Currency.all = [c for c in Currency.all if c.code in {'CAD', 'USD', 'EUR'}]
-        Currency.by_name = {c.name: c for c in Currency.all}
-        Currency.by_code = {c.code: c for c in Currency.all}
-        Currency.rates_db = None
-        Currency.sort_currencies()
+        Currencies.all = [(c, n, p) for (c, n, p) in Currencies.all if c.code in {'CAD', 'USD', 'EUR'}]
+        Currencies.by_name = {n: c for (c, n, p) in Currencies.all}
+        Currencies.by_code = {c.code: c for (c, n, p) in Currencies.all}
+        Currencies.rates_db = None
+        Currencies.sort_currencies()
 
     @staticmethod
     def set_rates_db(db):
         """Sets a new currency ``RatesDB`` instance to be used with all ``Currency`` instances.
         """
-        Currency.rates_db = db
+        Currencies.rates_db = db
 
     @staticmethod
     def get_rates_db():
         """Returns the current ``RatesDB`` instance.
         """
-        if Currency.rates_db is None:
-            Currency.rates_db = RatesDB() # Make sure we always have some db to work with
-        return Currency.rates_db
+        if Currencies.rates_db is None:
+            Currencies.rates_db = RatesDB() # Make sure we always have some db to work with
+        return Currencies.rates_db
 
     @staticmethod
     def sort_currencies():
-        Currency.all = sorted(Currency.all, key=attrgetter('priority', 'code'))
-
-    def rates_date_range(self):
-        """Returns the range of date for which rates are available for this currency."""
-        return self.get_rates_db().date_range(self.code)
-
-    def value_in(self, currency, date):
-        """Returns the value of this currency in terms of the other currency on the given date."""
-        return self.get_rates_db().get_rate(date, self.code, currency.code)
-
-    def set_CAD_value(self, value, date):
-        """Sets the currency's value in CAD on the given date."""
-        self.get_rates_db().set_CAD_value(date, self.code, value)
-
-    @property
-    def code(self):
-        return self._inner.code
-
-    @property
-    def exponent(self):
-        return self._inner.exponent
-
-    @property
-    def latest_rate(self):
-        return self._inner.latest_rate
+        Currencies.all = sorted(Currencies.all, key=lambda t: (t[2], t[0].code))
 
 
 # For legacy purpose, we create USD, EUR and CAD in here, but all other currencies are app-defined.
-USD = Currency.register(
+USD = Currencies.register(
     'USD', 'U.S. dollar',
-    start_date=date(1998, 1, 2), start_rate=1.425, latest_rate=1.0128
+    start_date=date(1998, 1, 2), start_rate=1.425, latest_rate=1.0128, priority=1
 )
-EUR = Currency.register(
+EUR = Currencies.register(
     'EUR', 'European Euro',
-    start_date=date(1999, 1, 4), start_rate=1.8123, latest_rate=1.3298
+    start_date=date(1999, 1, 4), start_rate=1.8123, latest_rate=1.3298, priority=2
 )
-CAD = Currency.register('CAD', 'Canadian dollar', latest_rate=1)
+CAD = Currencies.register('CAD', 'Canadian dollar', latest_rate=1, priority=4)
 
 class RatesDB:
     """Stores exchange rates for currencies.
@@ -321,5 +256,5 @@ class RatesDB:
 def initialize_db(path):
     """Initialize the app wide currency db if not already initialized."""
     ratesdb = RatesDB(str(path))
-    Currency.set_rates_db(ratesdb)
+    Currencies.set_rates_db(ratesdb)
 

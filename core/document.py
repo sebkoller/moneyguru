@@ -22,7 +22,7 @@ from .exception import FileFormatError, OperationAborted
 from .loader import native
 from .model.account import Account, Group, AccountList, GroupList, AccountType
 from .model.amount import parse_amount, format_amount
-from .model.currency import Currency
+from .model.currency import Currencies
 from .model.budget import BudgetList
 from .model.date import (
     MonthRange, QuarterRange, YearRange, YearToDateRange, RunningYearRange,
@@ -234,7 +234,7 @@ class BaseDocument:
             to = self.accounts.find(to, AccountType.Expense) if to else None
         if date is not NOEDIT and amount is not NOEDIT and amount != 0:
             currencies_to_ensure = [amount.currency.code, self.default_currency.code]
-            Currency.get_rates_db().ensure_rates(date, currencies_to_ensure)
+            Currencies.get_rates_db().ensure_rates(date, currencies_to_ensure)
 
         min_date = date if date is not NOEDIT else datetime.date.max
         for transaction in transactions:
@@ -329,7 +329,7 @@ class BaseDocument:
         """
         assert entry is not None
         if date is not NOEDIT and amount is not NOEDIT and amount != 0:
-            Currency.get_rates_db().ensure_rates(date, [amount.currency.code, entry.account.currency.code])
+            Currencies.get_rates_db().ensure_rates(date, [amount.currency.code, entry.account.currency.code])
         candidate_dates = [entry.date, date, reconciliation_date, entry.reconciliation_date]
         min_date = min(d for d in candidate_dates if d is not NOEDIT and d is not None)
         if reconciliation_date is not NOEDIT:

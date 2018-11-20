@@ -1,6 +1,4 @@
-# Created By: Eric Mc Sween
-# Created On: 2007-12-13
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +8,7 @@ import os
 import re
 from itertools import groupby
 
-from .currency import Currency
+from .currency import Currencies
 
 try:
     if os.environ.get('USE_PY_AMOUNT'):
@@ -195,7 +193,7 @@ def parse_amount(
     if m is not None:
         capture = m.group(0).upper()
         try:
-            currency = Currency(capture)
+            currency = Currencies.get(capture)
         except ValueError:
             if strict_currency:
                 raise UnsupportedCurrencyError(capture)
@@ -230,8 +228,6 @@ def parse_amount(
 def convert_amount(amount, target_currency, date):
     """Returns ``amount`` converted to ``target_currency`` using ``date`` exchange rates.
 
-    .. seealso:: :meth:`.Currency.value_in`
-
     :param amount: :class:`Amount`
     :param target_currency: :class:`.Currency`
     :param date: ``datetime.date``
@@ -241,7 +237,8 @@ def convert_amount(amount, target_currency, date):
     currency = amount.currency
     if currency == target_currency:
         return amount
-    exchange_rate = currency.value_in(target_currency, date)
+    exchange_rate = Currencies.get_rates_db().get_rate(
+        date, currency.code, target_currency.code)
     return Amount(amount.value * exchange_rate, target_currency)
 
 def prorate_amount(amount, spread_over_range, wanted_range):

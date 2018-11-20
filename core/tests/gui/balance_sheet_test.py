@@ -1,4 +1,4 @@
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -15,7 +15,7 @@ from ...app import Application
 from ...document import Document
 from ...model.account import AccountType
 from ...model.date import MonthRange
-from ...model.currency import Currency, USD, CAD
+from ...model.currency import Currencies, USD, CAD
 
 # IMPORTANT NOTE: Keep in mind that every node count check in these tests take the total node and the
 # blank node into account. For example, the node count of an empty ASSETS node is 2.
@@ -511,11 +511,13 @@ def test_budget(app, monkeypatch):
 def test_budget_multiple_currencies(app, monkeypatch):
     # budgeted amounts must be correctly converted to the target account's currency
     monkeypatch.patch_today(2008, 1, 15)
-    USD.set_CAD_value(0.8, date(2008, 1, 1))
+    Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
     app.show_pview()
     app.istatement.selected = app.istatement.income[0]
     apanel = app.mw.edit_item()
-    apanel.currency_list.select(Currency.all.index(CAD))
+    for i, (c, n, p) in enumerate(Currencies.all):
+        if c == CAD:
+            apanel.currency_list.select(i)
     apanel.save()
     app.add_budget('income', 'Account 1', '400 cad')
     app.show_nwview()
@@ -608,8 +610,8 @@ def test_selection_as_csv(app):
 def app_multiple_currencies():
     app = TestApp(app=Application(ApplicationGUI(), default_currency=CAD))
     app.drsel.select_month_range()
-    USD.set_CAD_value(0.8, date(2008, 1, 1))
-    USD.set_CAD_value(0.9, date(2008, 1, 31))
+    Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
+    Currencies.get_rates_db().set_CAD_value(date(2008, 1, 31), 'USD', 0.9)
     app.add_group('Group')
     app.add_account('USD account', currency=USD, group_name='Group')
     app.show_account()
@@ -626,7 +628,7 @@ def app_multiple_currencies():
 def test_balance_sheet_with_multiple_currencies(app):
     # Totals in balance sheets are properly converted using conversion rates. Also, whenever
     # multiple currencies are involved, we always explicitly display currencies. Ref #392
-    eq_(USD.value_in(CAD, date(2008, 2, 1)), 0.9)
+    eq_(Currencies.get_rates_db().get_rate(date(2008, 2, 1), 'USD', 'CAD'), 0.9)
     eq_(app.doc.date_range, MonthRange(date(2008, 1, 1)))
     eq_(app.bsheet.assets.start, 'CAD 40.00')
     eq_(app.bsheet.assets.end, 'CAD 235.00')

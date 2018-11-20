@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -17,7 +17,7 @@ from ..exception import FileFormatError
 from ..model.account import Account, Group, AccountList, GroupList, AccountType
 from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
 from ..model.budget import Budget
-from ..model.currency import Currency
+from ..model.currency import Currencies
 from ..model.oven import Oven
 from ..model.recurrence import Recurrence, Spawn
 from ..model.transaction import Transaction, Split
@@ -291,7 +291,7 @@ class Loader:
             account_currency = self.default_currency
             try:
                 if info.currency:
-                    account_currency = Currency(info.currency)
+                    account_currency = Currencies.get(info.currency)
             except ValueError:
                 pass # keep account_currency as self.default_currency
             account = Account(info.name, account_currency, account_type)
@@ -375,7 +375,7 @@ class Loader:
             self.budgets.append(budget)
         self._post_load()
         self.oven.cook(datetime.date.min, until_date=None)
-        Currency.get_rates_db().ensure_rates(start_date, [x.code for x in currencies])
+        Currencies.get_rates_db().ensure_rates(start_date, [x.code for x in currencies])
 
 
 class GroupInfo:

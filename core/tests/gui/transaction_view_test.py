@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-01-09
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +8,7 @@ from datetime import date
 
 from hscommon.testutil import eq_
 
-from ...model.currency import USD
+from ...model.currency import Currencies
 from ..base import TestApp, with_app
 
 # --- three transactions
@@ -37,7 +35,7 @@ def test_totals_select_two(app):
 # --- Multiple currencies
 def app_multiple_currencies():
     app = TestApp()
-    USD.set_CAD_value(2, date(2010, 3, 9))
+    Currencies.get_rates_db().set_CAD_value(date(2010, 3, 9), 'USD', 2)
     app.add_txn('10/03/2010', amount='10')
     app.add_txn('10/03/2010', amount='10 CAD') # worth 5usd
     return app

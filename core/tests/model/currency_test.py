@@ -12,7 +12,8 @@ from hscommon.testutil import jointhreads, eq_
 
 from ...model.amount import convert_amount
 from ...model.amount import Amount
-from ...model.currency import Currency, USD, CAD, RateProviderUnavailable, RatesDB
+from ...model.currency import (
+    Currencies, USD, CAD, RateProviderUnavailable, RatesDB)
 from ...plugin import boc_currency_provider
 
 def slow_down(func):
@@ -37,13 +38,13 @@ def set_ratedb_for_tests(async_=False, slow_down_provider=False, provider=None):
     if slow_down_provider:
         provider = slow_down(provider)
     db.register_rate_provider(provider)
-    Currency.set_rates_db(db)
+    Currencies.set_rates_db(db)
     return db, log
 
 def test_unknown_currency():
     # Only known currencies are accepted.
     with raises(ValueError):
-        Currency('NOPE')
+        Currencies.get('NOPE')
 
 def test_async_and_repeat():
     # If you make an ensure_rates() call and then the same call right after (before the first one
@@ -58,7 +59,7 @@ def test_async_and_repeat():
 def test_seek_rate():
     # Trying to get rate around the existing date gives the rate in question.
     set_ratedb_for_tests()
-    USD.set_CAD_value(0.98, date(2008, 5, 20))
+    Currencies.get_rates_db().set_CAD_value(date(2008, 5, 20), 'USD', 0.98)
     amount = Amount(42, USD)
     expected = Amount(42 * .98, CAD)
     eq_(convert_amount(amount, CAD, date(2008, 5, 21)), expected)

@@ -62,25 +62,6 @@ getcur(const char *code)
     return res;
 }
 
-PyObject*
-currency_unpack(PyObject *currency)
-{
-    // Returns a new reference
-    // WARNING: there are *two* levels of "_inner" (for now). The python
-    // Currency, the Currency from the python C module, and the pure C one.
-    // "currency" might be wither of those two levels.
-    if (!Currency_Check(currency)) {
-        // not a _ccore.Currency
-        currency = PyObject_GetAttrString(currency, "_inner");
-        if (currency == NULL) {
-            return NULL;
-        }
-    } else {
-        Py_INCREF(currency);
-    }
-    return currency;
-}
-
 /* Functions */
 PyObject*
 py_currency_global_init(PyObject *self, PyObject *args)
@@ -218,34 +199,6 @@ py_currency_daterange(PyObject *self, PyObject *args)
 
 /* Methods */
 
-PyObject*
-PyCurrency_value_in(PyObject *self, PyObject *args)
-{
-    PyObject *pydate, *pycurrency;
-    struct tm date = {0};
-    double rate;
-    Currency *c1, *c2;
-
-    if (!PyArg_ParseTuple(args, "OO", &pycurrency, &pydate)) {
-        return NULL;
-    }
-
-    if (!pydate2tm(pydate, &date)) {
-        return NULL;
-    }
-    pycurrency = currency_unpack(pycurrency);
-    if (pycurrency == NULL) {
-        return NULL;
-    }
-    c1 = ((PyCurrency*)self)->currency;
-    c2 = ((PyCurrency*)pycurrency)->currency;
-    if (currency_getrate(&date, c1, c2, &rate) != CURRENCY_OK) {
-        Py_INCREF(Py_None);
-        return Py_None;
-    }
-    return PyFloat_FromDouble(rate);
-}
-
 static PyObject *
 PyCurrency_getcode(PyCurrency *self)
 {
@@ -285,6 +238,21 @@ PyCurrency_init(PyCurrency *self, PyObject *args, PyObject *kwds)
         return -1;
     }
     return 0;
+}
+
+static PyObject *
+PyCurrency_copy(PyObject *self)
+{
+    PyCurrency *r;
+    r = (PyCurrency *)PyType_GenericAlloc((PyTypeObject *)Currency_Type, 0);
+    r->currency = ((PyCurrency *)self)->currency;
+    return (PyObject *)r;
+}
+
+static PyObject *
+PyCurrency_deepcopy(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    return PyCurrency_copy(self);
 }
 
 static PyObject *
@@ -333,7 +301,8 @@ PyCurrency_richcompare(PyCurrency *self, PyObject *other, int op)
 /* Defs */
 
 static PyMethodDef PyCurrency_methods[] = {
-    {"value_in", (PyCFunction)PyCurrency_value_in, METH_VARARGS, ""},
+    {"__copy__", (PyCFunction)PyCurrency_copy, METH_NOARGS, ""},
+    {"__deepcopy__", (PyCFunction)PyCurrency_deepcopy, METH_VARARGS, ""},
     {0, 0, 0, 0},
 };
 

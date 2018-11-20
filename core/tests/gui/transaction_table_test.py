@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-07-11
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -17,7 +15,7 @@ from ...const import PaneType
 from ...gui.transaction_table import TransactionTable
 from ...model.date import MonthRange, YearRange
 from ...model.account import AccountType
-from ...model.currency import USD
+from ...model.currency import Currencies
 
 # ---
 def app_tview_shown():
@@ -490,7 +488,7 @@ def test_edit_from():
 # --- Three-way multi-currency transaction
 def app_three_way_multi_currency_transaction():
     app = TestApp()
-    USD.set_CAD_value(0.8, date(2008, 1, 1))
+    Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
     app.add_account('first')
     app.show_account()
     app.add_entry('11/07/2008', transfer='second', decrease='42')

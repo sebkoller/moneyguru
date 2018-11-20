@@ -10,7 +10,7 @@ import xml.etree.cElementTree as ET
 from hscommon.util import tryint
 
 from ..exception import FileFormatError
-from ..model.currency import Currency
+from ..model.currency import Currencies
 from .base import SplitInfo, TransactionInfo
 from . import base
 
@@ -82,7 +82,7 @@ class Loader(base.Loader):
                 # For now, all our prefs are ints, so we can simply assume tryint, but we'll
                 # eventually need something more sophisticated.
                 if name == 'default_currency':
-                    value = Currency.by_code.get(value)
+                    value = Currencies.by_code.get(value)
                 else:
                     value = tryint(value, default=None)
                 if name and value is not None:

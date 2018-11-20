@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-03
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -12,16 +10,16 @@ from hscommon.testutil import eq_
 
 from ..base import TestApp, with_app, testdata
 from ...model.account import AccountType
-from ...model.currency import CAD, USD
+from ...model.currency import CAD, USD, Currencies
 
 class TestAssetsAndLiabilitiesInDifferentAccounts:
     def do_setup(self):
         app = TestApp()
         app.drsel.select_month_range()
         for i in range(1, 15):
-            USD.set_CAD_value(1.42, date(2008, 7, i))
+            Currencies.get_rates_db().set_CAD_value(date(2008, 7, i), 'USD', 1.42)
         for i in range(15, 32):
-            USD.set_CAD_value(1.54, date(2008, 7, i))
+            Currencies.get_rates_db().set_CAD_value(date(2008, 7, i), 'USD', 1.54)
         app.add_account('asset1')
         app.show_account()
         app.add_entry('12/6/2008', increase='10') # previous balance

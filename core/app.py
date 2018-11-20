@@ -23,7 +23,7 @@ from . import __version__
 from .const import DATE_FORMAT_FOR_PREFERENCES
 from .model import currency
 from .model.amount import parse_amount, format_amount
-from .model.currency import Currency, USD
+from .model.currency import Currencies, USD
 from .model.date import parse_date, format_date
 from .plugin import CurrencyProviderPlugin, get_all_core_plugin_modules, get_plugins_from_mod
 
@@ -248,7 +248,7 @@ class Application(Broadcaster):
     def _hook_currency_plugins(self):
         currency_plugins = [p for p in self.get_enabled_plugins() if issubclass(p, CurrencyProviderPlugin)]
         for p in currency_plugins:
-            Currency.get_rates_db().register_rate_provider(p().wrapped_get_currency_rates)
+            Currencies.get_rates_db().register_rate_provider(p().wrapped_get_currency_rates)
 
     def _save_custom_ranges(self):
         custom_ranges = []

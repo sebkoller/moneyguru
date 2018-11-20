@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-02-15
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -17,7 +15,7 @@ from ...exception import FileFormatError
 from ...loader import native
 from ...model.account import AccountType
 from ...model.amount import Amount
-from ...model.currency import Currency, USD
+from ...model.currency import Currencies, USD
 
 
 def pytest_funcarg__loader(request):
@@ -56,7 +54,7 @@ def test_wrong_mtime(loader):
 
 def test_account_and_entry_values(loader):
     # Make sure loaded values are correct.
-    PLN = Currency.register('PLN', 'PLN')
+    PLN = Currencies.register('PLN', 'PLN')
     loader.parse(testdata.filepath('moneyguru', 'simple.moneyguru'))
     loader.load()
     accounts = loader.accounts

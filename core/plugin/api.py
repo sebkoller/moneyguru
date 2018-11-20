@@ -24,7 +24,7 @@ from datetime import date
 from collections import namedtuple
 
 from hscommon.notify import Broadcaster
-from ..model.currency import Currency, CurrencyNotSupportedException
+from ..model.currency import Currencies, CurrencyNotSupportedException
 from ..gui.base import BaseView
 from ..gui.table import GUITable, Row
 from ..const import PaneType
@@ -183,7 +183,7 @@ class CurrencyProviderPlugin(Plugin):
                 self.register_currency(code, name, exponent=exponent, latest_rate=fallback_rate)
         except TypeError: # We return None, which means we registered all currencies manually.
             pass
-        Currency.sort_currencies()
+        Currencies.sort_currencies()
 
     def wrapped_get_currency_rates(self, currency_code, start_date, end_date):
         """Tries to fetch exchange rates for ``currency_code``.
@@ -220,7 +220,7 @@ class CurrencyProviderPlugin(Plugin):
 
         Returns the resulting currency instance.
         """
-        result = Currency.register(code, name, **kwargs)
+        result = Currencies.register(code, name, **kwargs)
         self.supported_currency_codes.add(code)
         return result
 

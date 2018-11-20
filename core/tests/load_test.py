@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +10,7 @@ from hscommon.testutil import eq_
 
 from ..document import ScheduleScope
 from ..model.account import AccountType
-from ..model.currency import Currency, CAD
+from ..model.currency import Currencies, CAD
 from ..model.date import MonthRange
 from .base import compare_apps, TestApp, with_app, testdata
 
@@ -58,7 +58,7 @@ class TestLoadFile:
     @with_app(do_setup)
     def test_change_account_currency(self, app):
         # Changing an account currency sets the modified flag.
-        PLN = Currency(code='PLN')
+        PLN = Currencies.get(code='PLN')
         app.show_nwview()
         apanel = app.mainwindow.edit_item()
         apanel.currency = PLN
@@ -199,7 +199,7 @@ class TestTwoAccountTwoEntriesInEachWithNonAsciiStrings:
         # Two accounts, two entries in each. Descriptions, categories and account names contain
         # non-latin characters (a polish 'l'). currencies are set to non-default values. first account
         # is selected.
-        PLN = Currency(code='PLN')
+        PLN = Currencies.get(code='PLN')
         app = TestApp()
         app.add_account('first_account\u0142', currency=PLN)
         app.show_account()

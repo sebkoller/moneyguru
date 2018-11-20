@@ -9,6 +9,7 @@ from datetime import date
 # splits in our transactions.
 from hscommon.util import flatten
 from core.plugin import ReadOnlyTablePlugin, Column
+from core.model.currency import Currencies
 
 class CurrencyRatesPlugin(ReadOnlyTablePlugin):
     NAME = 'Currency Rates'
@@ -35,12 +36,12 @@ class CurrencyRatesPlugin(ReadOnlyTablePlugin):
         allsplits = flatten(t.splits for t in self.document.transactions)
         # Create a set of all used currencies
         currencies = {s.amount.currency for s in allsplits if s.amount}
+        ratesdb = Currencies.get_rates_db()
         for currency in currencies:
             row = self.add_row()
             row.set_field('name', currency.name)
-            # currencies have a value_in(other_currency, at_date) returning the exchange rathe
-            # at the given date as a float value.
-            exchange_rate = currency.value_in(native_currency, date.today())
+            exchange_rate = ratesdb.get_rate(
+                date.today(), currency.code, native_currency.code)
             row.set_field('rate', '%0.4f' % exchange_rate, sort_value=exchange_rate)
             try:
                 _, max_date = currency.rates_db.date_range(currency.code)

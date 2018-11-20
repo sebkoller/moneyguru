@@ -8,7 +8,7 @@ from datetime import date, datetime
 from urllib.request import urlopen
 import json
 
-from core.model.currency import RateProviderUnavailable, USD, EUR, CAD
+from core.model.currency import RateProviderUnavailable
 from core.plugin import CurrencyProviderPlugin
 
 
@@ -20,12 +20,9 @@ class BOCProviderPlugin(CurrencyProviderPlugin):
     def register_currencies(self):
         self.supported_currency_codes |= {'USD', 'EUR'} # already added
         # In order we want to list them
-        USD.priority = 1
-        EUR.priority = 2
         self.register_currency(
             'GBP', 'U.K. pound sterling',
             start_date=date(1998, 1, 2), start_rate=2.3397, latest_rate=1.5349, priority=3)
-        CAD.priority = 4
         self.register_currency(
             'AUD', 'Australian dollar',
             start_date=date(1998, 1, 2), start_rate=0.9267, latest_rate=0.9336, priority=5)

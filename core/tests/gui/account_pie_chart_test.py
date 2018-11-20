@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-09-04
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -14,7 +12,7 @@ from ..base import ApplicationGUI, TestApp, with_app
 from ...app import Application
 from ...gui.pie_chart import MIN_SLICE_COUNT, MIN_VIEW_SIZE, SIZE_COST_FOR_SLICE, COLOR_COUNT
 from ...model.account import AccountType
-from ...model.currency import Currency, USD, CAD
+from ...model.currency import Currencies, USD, CAD
 
 # --- Slice count
 def app_show_nwview():
@@ -93,7 +91,10 @@ class TestSomeAssetsAndLiabilities:
         # just make sure it doesn't crash
         app.bsheet.selected = app.bsheet.assets[0]
         apanel = app.mw.edit_item()
-        apanel.currency_list.select(Currency.all.index(CAD))
+        for i, (c, n, p) in enumerate(Currencies.all):
+            if c == CAD:
+                apanel.currency_list.select(i)
+                break
         apanel.save()
         app.add_account('income', account_type=AccountType.Income)
         app.add_budget('income', None, '5')
@@ -291,7 +292,7 @@ class TestDifferentDateRanges:
 class TestMultipleCurrencies:
     def do_setup(self):
         app = TestApp(app=Application(ApplicationGUI(), default_currency=CAD))
-        USD.set_CAD_value(0.8, date(2008, 1, 1))
+        Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
         app.add_account('USD income', account_type=AccountType.Income, currency=USD)
         app.add_account('CAD income', account_type=AccountType.Income, currency=CAD)
         app.add_account('USD asset', currency=USD)

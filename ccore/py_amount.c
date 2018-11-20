@@ -10,9 +10,10 @@ typedef struct {
 } PyAmount;
 
 PyObject *Amount_Type;
-PyObject* currency_unpack(PyObject *currency);
+PyObject *Currency_Type;
 
 #define Amount_Check(v) (Py_TYPE(v) == (PyTypeObject *)Amount_Type)
+#define Currency_Check(v) (Py_TYPE(v) == (PyTypeObject *)Currency_Type)
 
 /* Utility funcs */
 
@@ -35,10 +36,12 @@ set_currency(PyAmount *amount, PyObject *currency)
 {
     PyObject *tmp;
 
-    currency = currency_unpack(currency);
-    if (currency == NULL) {
+    if (!Currency_Check(currency)) {
+        PyErr_SetString(PyExc_TypeError, "not a currency");
         return false;
     }
+
+    Py_INCREF(currency);
     tmp = amount->currency;
     amount->currency = currency;
     Py_XDECREF(tmp);

@@ -10,7 +10,7 @@ from hscommon.testutil import eq_
 
 from ...model.account import Account, Group, AccountList, AccountType
 from ...model.amount import Amount
-from ...model.currency import USD, CAD
+from ...model.currency import USD, CAD, Currencies
 from ...model.date import MonthRange
 from ...model.oven import Oven
 from ...model.transaction import Transaction
@@ -55,10 +55,10 @@ class TestGroupComparison:
 
 class TestOneAccount:
     def setup_method(self, method):
-        USD.set_CAD_value(1.1, date(2007, 12, 31))
-        USD.set_CAD_value(0.9, date(2008, 1, 1))
-        USD.set_CAD_value(0.8, date(2008, 1, 2))
-        USD.set_CAD_value(0.7, date(2008, 1, 3))
+        Currencies.get_rates_db().set_CAD_value(date(2007, 12, 31), 'USD', 1.1)
+        Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.9)
+        Currencies.get_rates_db().set_CAD_value(date(2008, 1, 2), 'USD', 0.8)
+        Currencies.get_rates_db().set_CAD_value(date(2008, 1, 3), 'USD', 0.7)
         self.account = Account('Checking', USD, AccountType.Asset)
         accounts = AccountList(CAD)
         accounts.add(self.account)

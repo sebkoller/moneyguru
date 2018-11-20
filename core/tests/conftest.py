@@ -13,7 +13,7 @@ import logging
 
 from hscommon.testutil import pytest_funcarg__app # noqa
 
-from ..model.currency import RatesDB, Currency
+from ..model.currency import RatesDB, Currencies
 from ..model import currency as currency_module
 
 logging.basicConfig(level=logging.DEBUG)
@@ -39,7 +39,7 @@ def pytest_configure(config):
     def fake_initialize_db(path):
         ratesdb = RatesDB(':memory:', async_=False)
         ratesdb.register_rate_provider = lambda *a: None
-        Currency.set_rates_db(ratesdb)
+        Currencies.set_rates_db(ratesdb)
 
     global global_monkeypatch
     monkeypatch = config.pluginmanager.getplugin('monkeypatch')

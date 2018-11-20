@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,7 +11,7 @@ from hscommon.trans import tr
 
 from ..exception import DuplicateAccountNameError
 from ..model.account import AccountType
-from ..model.currency import Currency
+from ..model.currency import Currencies
 from .base import MainWindowPanel, LinkedSelectableList
 
 ACCOUNT_TYPE_DESC = {
@@ -52,11 +52,11 @@ class AccountPanel(MainWindowPanel):
         self._init_fields()
         self_proxy = weakref.proxy(self)
         self.type_list = AccountTypeList(self_proxy)
-        currencies_display = ['%s - %s' % (currency.code, currency.name) for currency in Currency.all]
+        currencies_display = ['%s - %s' % (c, n) for c, n, p in Currencies.all]
 
         def setfunc(index):
             try:
-                self_proxy.currency = Currency.all[index]
+                self_proxy.currency = Currencies.all[index][0]
             except IndexError:
                 pass
         self.currency_list = LinkedSelectableList(items=currencies_display, setfunc=setfunc)
@@ -72,7 +72,9 @@ class AccountPanel(MainWindowPanel):
         self.inactive = account.inactive
         self.notes = account.notes
         self.type_list.select(AccountType.InOrder.index(self.type))
-        self.currency_list.select(Currency.all.index(self.currency))
+        for i, (c, n, p) in enumerate(Currencies.all):
+            if c == self.currency:
+                self.currency_list.select(i)
         self.can_change_currency = not any(e.reconciled for e in account.entries)
         self.account = account # for the save() assert
 

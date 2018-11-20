@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-20
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +8,7 @@ from datetime import date
 
 from hscommon.testutil import eq_
 
-from ...model.currency import USD
+from ...model.currency import USD, Currencies
 from ..base import TestApp, with_app
 
 class TestPristine:
@@ -38,7 +36,7 @@ class TestIncomesAndExpensesInDifferentAccounts:
     def do_setup(self):
         app = TestApp()
         app.drsel.select_month_range()
-        USD.set_CAD_value(1.42, date(2008, 7, 1))
+        Currencies.get_rates_db().set_CAD_value(date(2008, 7, 1), 'USD', 1.42)
         # in july 2008, the first mondy is the 7th
         app.add_account('asset')
         app.show_account()

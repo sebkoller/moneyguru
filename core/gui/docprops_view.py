@@ -1,5 +1,4 @@
-# Created On: 2011/10/13
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,7 +7,7 @@
 from hscommon.trans import tr
 
 from ..const import PaneType
-from ..model.currency import Currency
+from ..model.currency import Currencies
 from .base import BaseView, LinkedSelectableList
 
 class DocPropsView(BaseView):
@@ -52,14 +51,16 @@ class DocPropsView(BaseView):
         def setfunc(index):
             self.document.year_start_month = index + 1
         self.year_start_month_list = LinkedSelectableList(items=MONTHS, setfunc=setfunc)
-        currencies_display = ['%s - %s' % (currency.code, currency.name) for currency in Currency.all]
+        currencies_display = ['%s - %s' % (c, n) for c, n, p in Currencies.all]
 
         def setfunc(index):
-            self.document.default_currency = Currency.all[index]
+            self.document.default_currency = Currencies.all[index][0]
         self.currency_list = LinkedSelectableList(items=currencies_display, setfunc=setfunc)
 
     def _revalidate(self):
-        self.currency_list.select(Currency.all.index(self.document.default_currency))
+        for i, (c, n, p) in enumerate(Currencies.all):
+            if c == self.document.default_currency:
+                self.currency_list.select(i)
         self.first_weekday_list.select(self.document.first_weekday)
         self.ahead_months_list.select(self.document.ahead_months)
         self.year_start_month_list.select(self.document.year_start_month - 1)

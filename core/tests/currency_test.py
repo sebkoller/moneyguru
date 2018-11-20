@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-06-22
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -15,7 +13,7 @@ from hscommon.testutil import eq_, log_calls
 from ..app import Application
 from ..model import currency
 from ..model.account import AccountType
-from ..model.currency import Currency, USD, EUR, CAD
+from ..model.currency import Currencies, USD, EUR, CAD
 from ..model.date import MonthRange
 from .base import ApplicationGUI, TestApp, with_app, compare_apps
 from .model.currency_test import set_ratedb_for_tests
@@ -52,7 +50,7 @@ def test_cache_path_is_not_none(fake_server, monkeypatch, tmpdir):
 
 def test_default_currency(fake_server):
     # It's possible to specify a default currency at startup.
-    PLN = Currency(code='PLN')
+    PLN = Currencies.get(code='PLN')
     app = TestApp(app=Application(ApplicationGUI(), default_currency=PLN))
     app.show_tview()
     eq_(app.doc.default_currency, PLN)
@@ -166,10 +164,10 @@ class TestCaseCADLiabilityAndUSDLiability:
 # 2 accounts (including one income), one entry. The entry has an amount that differs from the
 # account's currency.
 def app_entry_with_foreign_currency():
-    PLN = Currency(code='PLN')
+    PLN = Currencies.get(code='PLN')
     app = TestApp()
-    EUR.set_CAD_value(1.42, date(2007, 10, 1))
-    PLN.set_CAD_value(0.42, date(2007, 10, 1))
+    Currencies.get_rates_db().set_CAD_value(date(2007, 10, 1), 'EUR', 1.42)
+    Currencies.get_rates_db().set_CAD_value(date(2007, 10, 1), 'PLN', 0.42)
     app.add_account('first', CAD)
     app.add_account('second', PLN, account_type=AccountType.Income)
     app.show_nwview()
@@ -200,7 +198,7 @@ def test_change_currency_from_income_account():
 def test_ensures_rates(tmpdir, fake_server, monkeypatch):
     # Upon calling save and load, rates are asked for both EUR and PLN.
     app = app_entry_with_foreign_currency()
-    rates_db = Currency.get_rates_db()
+    rates_db = Currencies.get_rates_db()
     monkeypatch.setattr(rates_db, 'ensure_rates', log_calls(rates_db.ensure_rates))
     filename = str(tmpdir.join('foo.xml'))
     app.doc.save_to_xml(filename)
@@ -311,11 +309,12 @@ def test_ensures_rates_multiple_currencies(app):
     }
     eq_(set(log), expected)
     # Now let's test that the rates are in the DB
-    eq_(USD.value_in(CAD, date(2008, 4, 20)), 1.42)
-    eq_(EUR.value_in(CAD, date(2008, 4, 22)), 1.44)
-    eq_(EUR.value_in(USD, date(2008, 4, 24)), 1.0)
-    eq_(USD.value_in(CAD, date(2008, 4, 25)), 1.47)
-    eq_(USD.value_in(CAD, date(2008, 4, 27)), 1.49)
+    ratesdb = Currencies.get_rates_db()
+    eq_(ratesdb.get_rate(date(2008, 4, 20), 'USD', 'CAD'), 1.42)
+    eq_(ratesdb.get_rate(date(2008, 4, 22), 'EUR', 'CAD'), 1.44)
+    eq_(ratesdb.get_rate(date(2008, 4, 24), 'EUR', 'USD'), 1.0)
+    eq_(ratesdb.get_rate(date(2008, 4, 25), 'USD', 'CAD'), 1.47)
+    eq_(ratesdb.get_rate(date(2008, 4, 27), 'USD', 'CAD'), 1.49)
 
 @with_app(app_three_currencies_two_entries)
 def test_ensures_rates_async(app, monkeypatch):
@@ -392,9 +391,8 @@ def test_set_split_to_logical_imbalance():
 
 class TestCaseEntryWithXPFAmount:
     def setup_method(self, method):
-        XPF = Currency(code='XPF')
         app = TestApp()
-        XPF.set_CAD_value(0.42, date(2009, 7, 20))
+        Currencies.get_rates_db().set_CAD_value(date(2009, 7, 20), 'XPF', 0.42)
         app.add_account('account', CAD)
         app.show_account()
         app.add_entry('20/07/2009', increase='100 XPF')

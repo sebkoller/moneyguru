@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -7,7 +7,7 @@
 from hscommon.testutil import eq_
 from core.plugin import CurrencyProviderPlugin, ViewPlugin
 
-from ..model.currency import Currency
+from ..model.currency import Currencies
 from ..const import PaneType
 from .base import TestApp, with_app
 
@@ -43,8 +43,8 @@ def test_dont_crash_with_duplicate_currency_register(app):
             return [('XXX', "Bar", 2, 1)]
 
     app.set_plugins([FooCurrencyProvider, BarCurrencyProvider]) # no crash
-    c = Currency('XXX')
-    eq_(c.name, "Foo")
+    c = Currencies.get('XXX')
+    eq_(c.exponent, 2)
 
 @with_app(TestApp)
 def test_ignore_duplicate_plugin_names(app):
@@ -86,7 +86,7 @@ def test_disable_currency_plugin(app):
     row = find_pview_row(pview, 'Stale currencies provider')
     assert row.enabled
     row.enabled = False
-    Currency.reset_currencies()
+    Currencies.reset_currencies()
     newapp = app.new_app_same_prefs()
     tview = newapp.show_tview()
     newapp.add_txn(amount='42 ats')

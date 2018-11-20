@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-07-25
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -12,7 +10,7 @@ from datetime import date
 from hscommon.util import allsame, flatten
 from hscommon.gui.text_field import TextField
 
-from ..model.currency import Currency
+from ..model.currency import Currencies
 from .base import MainWindowPanel, LinkedSelectableList
 from .completable_edit import CompletableEdit
 
@@ -57,11 +55,11 @@ class MassEditionPanel(MainWindowPanel):
         self.to_field = MassEditTextField(self_proxy, 'to')
         self.amount_field = MassEditAmountField(self_proxy, 'amount')
         self.completable_edit = CompletableEdit(mainwindow)
-        currencies_display = ['%s - %s' % (currency.code, currency.name) for currency in Currency.all]
+        currencies_display = ['%s - %s' % (c, n) for c, n, p in Currencies.all]
 
         def setfunc(index):
-            if 0 <= index < len(Currency.all):
-                currency = Currency.all[index]
+            if 0 <= index < len(Currencies.all):
+                currency = Currencies.all[index][0]
             else:
                 currency = None
             if currency != self_proxy.currency:
@@ -111,7 +109,9 @@ class MassEditionPanel(MainWindowPanel):
             self.currency = splits[0].amount.currency
         else:
             self.currency = self.document.default_currency
-        self.currency_list.select(Currency.all.index(self.currency))
+        for i, (c, n, p) in enumerate(Currencies.all):
+            if c == self.currency:
+                self.currency_list.select(i)
         if self.can_change_accounts:
             def get_from(t):
                 s1, s2 = t.splits
