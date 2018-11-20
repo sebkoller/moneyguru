@@ -10,7 +10,8 @@ BLDSHARED = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_v
 BLDLIBRARY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('BLDLIBRARY'))")
 CFLAGSFORSHARED = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CFLAGSFORSHARED'))")
 INCLUDEPY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))")
-CFLAGS = $(CFLAGSFORSHARED) -I$(INCLUDEPY)
+CFLAGS ?=
+CFLAGS += -std=c99 $(CFLAGSFORSHARED) -I$(INCLUDEPY)
 LDFLAGS = `pkg-config --libs sqlite3` $(BLDLIBRARY)
 
 .PHONY: all
