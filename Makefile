@@ -90,7 +90,7 @@ i18n: $(mofiles)
 	msgfmt -o $@ $<	
 
 ccore:
-	make -C ccore
+	make -C ccore PYTHON=$(PYTHON)
 	cp ccore/_ccore.so core/model
 
 mergepot :
@@ -128,9 +128,10 @@ uninstall :
 	rm -f "${DESTDIR}${PREFIX}/share/pixmaps/moneyguru.png"
 
 clean:
+	make -C ccore clean
 	-rm -rf build env
-	-rm locale/*/LC_MESSAGES/*.mo
-	-rm core/model/*.so
-	-rm run.py
+	-rm -rf locale/*/LC_MESSAGES/*.mo
+	-rm -rf core/model/*.so
+	-rm -rf run.py
 
 .PHONY : clean srcpkg normpo mergepot ccore i18n reqs run pyc install uninstall all
