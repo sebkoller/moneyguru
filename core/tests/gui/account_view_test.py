@@ -1,9 +1,7 @@
-# Created By: Virgil Dupras
-# Created On: 2010-01-09
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2018 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from hscommon.testutil import eq_
@@ -37,10 +35,12 @@ def test_totals_two_selected(app):
 def test_totals_with_unicode_amount_format(app):
     # it seems that some people have some weird separator in their settings, and there was a
     # UnicodeEncodeError in the status line formatting.
+    # Since the C rewrite of format_amount, we don't support multi-byte decimal
+    # sep. When that happens, it's replaced by the default value.
     app.app._decimal_sep = '\xa0'
     app.show_tview() # force a refresh
     app.show_aview()
-    expected = "1 out of 2 selected. Increase: 0\xa000 Decrease: 12\xa000"
+    expected = "1 out of 2 selected. Increase: 0.00 Decrease: 12.00"
     eq_(app.mw.status_line, expected)
 
 # --- Asset Shown

@@ -2,6 +2,7 @@
 #include <time.h>
 
 #define CURRENCY_CODE_MAXLEN 4
+#define CURRENCY_MAX_EXPONENT 10
 
 typedef struct {
     char code[CURRENCY_CODE_MAXLEN+1];

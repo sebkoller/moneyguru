@@ -31,10 +31,39 @@ get_amount(PyObject *amount)
     }
 }
 
+static Currency*
+get_currency(PyObject *currency)
+{
+    PyObject *tmp;
+    Currency *result;
+
+    if (!Currency_Check(currency)) {
+        PyErr_SetString(PyExc_TypeError, "not a currency");
+        return NULL;
+    }
+    tmp = PyObject_GetAttrString(currency, "_inner");
+    if (tmp == NULL) {
+        return NULL;
+    }
+    if (!PyCapsule_CheckExact(tmp)) {
+        PyErr_SetString(PyExc_TypeError, "not a capsule");
+        Py_DECREF(tmp);
+        return NULL;
+    }
+    result = (Currency *)PyCapsule_GetPointer(tmp, NULL);
+    Py_DECREF(tmp);
+    if (result == NULL) {
+        PyErr_SetString(PyExc_TypeError, "invalid capsule");
+        return NULL;
+    }
+    return result;
+}
+
 static bool
 set_currency(PyAmount *amount, PyObject *currency)
 {
     PyObject *tmp;
+    Currency *c;
 
     if (!Currency_Check(currency)) {
         PyErr_SetString(PyExc_TypeError, "not a currency");
@@ -46,21 +75,11 @@ set_currency(PyAmount *amount, PyObject *currency)
     amount->currency = currency;
     Py_XDECREF(tmp);
 
-    tmp = PyObject_GetAttrString(currency, "_inner");
-    if (tmp == NULL) {
+    c = get_currency(currency);
+    if (c == NULL) {
         return false;
     }
-    if (!PyCapsule_CheckExact(tmp)) {
-        PyErr_SetString(PyExc_TypeError, "not a capsule");
-        Py_DECREF(tmp);
-        return false;
-    }
-    amount->amount.currency = (Currency *)PyCapsule_GetPointer(tmp, NULL);
-    Py_DECREF(tmp);
-    if (amount->currency == NULL) {
-        PyErr_SetString(PyExc_TypeError, "invalid capsule");
-        return false;
-    }
+    amount->amount.currency = c;
     return true;
 }
 
@@ -455,8 +474,79 @@ PyAmount_getvalue(PyAmount *self)
     return self->rval;
 }
 
-/* We need both __copy__ and __deepcopy__ methods for amounts to behave correctly in undo_test. */
+/* Functions */
+PyObject*
+py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    int rc;
+    Amount *amount;
+    PyObject *pyamount;
+    PyObject *default_currency = NULL;
+    PyObject *zero_currency = NULL;
+    bool blank_zero = false;
+    bool show_currency = false;
+    char *decimal_sep = ".";
+    char *grouping_sep = "";
+    Currency *c = NULL;
+    char result[64];
+    static char *kwlist[] = {
+        "amount", "default_currency", "blank_zero", "zero_currency",
+        "decimal_sep", "grouping_sep", NULL};
 
+    rc = PyArg_ParseTupleAndKeywords(
+        args, kwds, "O|OpOss", kwlist, &pyamount, &default_currency,
+        &blank_zero, &zero_currency, &decimal_sep, &grouping_sep);
+    if (!rc) {
+        return NULL;
+    }
+    if (pyamount == Py_None) {
+        // special case, always blank
+        blank_zero = true;
+    }
+
+    // We don't support (yet) multibyte decimal sep and grouping sep. Let's
+    // normalize that case.
+    if (strlen(decimal_sep) > 1) {
+        decimal_sep = ".";
+    }
+    if (strlen(grouping_sep) > 1) {
+        grouping_sep = " ";
+    }
+
+    amount = get_amount(pyamount);
+    if (!amount->val) {
+        if (zero_currency != NULL && zero_currency != Py_None) {
+            c = get_currency(zero_currency);
+            if (c == NULL) {
+                return NULL;
+            }
+            amount->currency = c;
+        } else {
+            amount->currency = NULL;
+        }
+    }
+    if (default_currency != NULL && default_currency != Py_None) {
+        c = get_currency(default_currency);
+        if (c == NULL) {
+            return NULL;
+        }
+        show_currency = c != amount->currency;
+    } else {
+        show_currency = amount->currency != NULL;
+    }
+    rc = amount_format(
+        result, amount, show_currency, blank_zero, decimal_sep[0],
+        grouping_sep[0]);
+    if (!rc) {
+        PyErr_SetString(PyExc_ValueError, "something went wrong");
+        return NULL;
+    }
+    rc = strlen(result);
+    return PyUnicode_DecodeUTF8(result, rc, NULL);
+}
+
+/* We need both __copy__ and __deepcopy__ methods for amounts to behave
+ * correctly in undo_test. */
 static PyMethodDef PyAmount_methods[] = {
     {"__copy__", (PyCFunction)PyAmount_copy, METH_NOARGS, ""},
     {"__deepcopy__", (PyCFunction)PyAmount_deepcopy, METH_VARARGS, ""},

@@ -5,10 +5,9 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 import re
-from itertools import groupby
 
 from .currency import Currencies
-from ._ccore import Amount
+from ._ccore import Amount, amount_format as format_amount # noqa
 
 
 class UnsupportedCurrencyError(ValueError):
@@ -32,68 +31,6 @@ re_decimal_sep_2 = re.compile(r"[,.](?=\d{1,2}$)")
 re_decimal_sep_x = re.compile(r"[,.](?=\d{1,10}$)")
 # A valid amount, once it has been pre-processed
 re_amount = re.compile(r"\d+\.\d+|\.\d+|\d+")
-
-def format_amount(
-        amount, default_currency=None, blank_zero=False, zero_currency=None, decimal_sep='.',
-        grouping_sep=''):
-    """Returns a formatted string from ``amount``.
-
-    From a regular amount, will return (depending on the options of course), something like
-    "CAD 42.54", or maybe only "42.54".
-
-    This all depends on ``default_currency``, which is a settings in moneyGuru which we pass onto
-    this function. To lighten the UI a bit, moneyGuru only displays "foreign" (non-default)
-    currencies in amounts. Therefore, if ``amount.currency`` is the same as ``default_currency``, we
-    don't include our amount currency code in our result.
-
-    When amount is null (zero), we don't display currency code because, well, nothingness doesn't
-    have a currency.
-
-    Another caveat: The number of digits we print depends on our currency's
-    :attr:`exponent <.Currency.exponent>` (most of the time 2, but sometimes 0 or 3).
-
-    :param default_currency: The user's "native" currency.
-    :type default_currency: :class:`.Currency`.
-    :param bool blank_zero: If amount is zero, return ``''`` instead of ``0.00``.
-    :param zero_currency: If we really want to specify a currency when amount is zero, we can
-                          specify which here.
-    :type zero_currency: :class:`.Currency`.
-    :param str decimal_sep: The decimal separator to use for formatting.
-    :param str grouping_sep: The thousands separator to use for formatting.
-
-    .. seealso:: :doc:`/currencies`
-    """
-    if amount is None:
-        return ''
-    number = '0.00'
-    currency = None
-    negative = False
-    if not amount:
-        if blank_zero:
-            return ''
-        elif zero_currency is not None and zero_currency != default_currency:
-            currency = zero_currency.code
-    else:
-        negative = amount < 0
-        number = '%.*f' % (amount.currency.exponent, float(abs(amount)))
-        if amount.currency != default_currency:
-            currency = amount.currency.code
-    if decimal_sep != '.':
-        number = number.replace('.', decimal_sep)
-    if grouping_sep:
-        # Yup, this code is complicated, but grouping digits *is* complicated.
-        splitted = number.split(decimal_sep)
-        left = splitted[0]
-        groups = []
-        for _, pair_group in groupby(enumerate(reversed(left)), lambda pair: pair[0] // 3):
-            groups.append(''.join(reversed([pair[1] for pair in pair_group])))
-        splitted[0] = grouping_sep.join(reversed(groups))
-        number = decimal_sep.join(splitted)
-    if negative:
-        number = '-' + number
-    if currency is not None:
-        number = '%s %s' % (currency, number)
-    return number
 
 def parse_amount_expression(string, exponent):
     # Parse an expression. Before we can do that, we need to replace all amounts with their parsed

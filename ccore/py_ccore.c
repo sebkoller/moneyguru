@@ -3,6 +3,8 @@
 
 PyType_Spec Amount_Type_Spec;
 PyObject *Amount_Type;
+PyObject*
+py_amount_format(PyObject *self, PyObject *args, PyObject *kwds);
 
 PyType_Spec Currency_Type_Spec;
 PyObject *Currency_Type;
@@ -13,8 +15,9 @@ PyObject* py_currency_set_CAD_value(PyObject *self, PyObject *args);
 PyObject* py_currency_daterange(PyObject *self, PyObject *args);
 
 static PyMethodDef module_methods[] = {
-    {"currency_global_init",  py_currency_global_init, METH_VARARGS},
-    {"currency_register",  py_currency_register, METH_VARARGS},
+    {"amount_format", (PyCFunction)py_amount_format, METH_VARARGS | METH_KEYWORDS},
+    {"currency_global_init", py_currency_global_init, METH_VARARGS},
+    {"currency_register", py_currency_register, METH_VARARGS},
     {"currency_getrate", py_currency_getrate, METH_VARARGS},
     {"currency_set_CAD_value", py_currency_set_CAD_value, METH_VARARGS},
     {"currency_daterange", py_currency_daterange, METH_VARARGS},
