@@ -10,7 +10,7 @@ from hscommon.testutil import eq_
 
 from ..base import TestApp, with_app, testdata
 from ...model.account import AccountType
-from ...model.currency import CAD, USD, Currencies
+from ...model.currency import Currencies
 
 class TestAssetsAndLiabilitiesInDifferentAccounts:
     def do_setup(self):
@@ -29,7 +29,7 @@ class TestAssetsAndLiabilitiesInDifferentAccounts:
         app.show_account()
         app.add_entry('1/7/2008', increase='32')
         app.add_entry('5/7/2008', increase='22')
-        app.add_account('liability1', CAD, account_type=AccountType.Liability)
+        app.add_account('liability1', 'CAD', account_type=AccountType.Liability)
         app.show_account()
         app.add_entry('1/7/2008', increase='10')
         app.add_account('liability2', account_type=AccountType.Liability)
@@ -125,7 +125,7 @@ class TestAssetsAndLiabilitiesInDifferentAccounts:
         ]
         eq_(app.nw_graph_data(), expected)
         eq_(app.nwgraph.title, 'Net Worth')
-        eq_(app.nwgraph.currency, USD)
+        eq_(app.nwgraph.currency, 'USD')
 
     @with_app(do_setup)
     def test_refresh_account_deleted(self, app):

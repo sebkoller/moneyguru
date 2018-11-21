@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-04-20
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -13,7 +11,7 @@
 from datetime import date
 
 from hscommon.testutil import eq_, assert_almost_equal
-from ...model.currency import Currencies, RatesDB, CAD, EUR, USD
+from ...model.currency import Currencies, RatesDB
 
 def setup_module(module):
     global FOO
@@ -34,17 +32,19 @@ def teardown_function(function):
 
 def test_currency_creation():
     # Different ways to create a currency.
-    eq_(Currencies.get('CAD'), CAD)
+    CAD = Currencies.get('CAD')
     eq_(Currencies.get(name='Canadian dollar'), CAD)
 
 def test_currency_copy():
     # Currencies can be copied.
     import copy
+    CAD = Currencies.get('CAD')
     eq_(copy.copy(CAD), CAD)
     eq_(copy.deepcopy(CAD), CAD)
 
 def test_get_rate_on_empty_db():
     # When there is no data available, use the start_rate.
+    USD = Currencies.get('USD')
     eq_(Currencies.get_rates_db().get_rate(date(2008, 4, 20), 'CAD', 'USD'), 1 / USD.latest_rate)
 
 def test_physical_rates_db_remember_rates(tmpdir):
@@ -79,6 +79,7 @@ def test_get_rate_with_daily_rate():
 def test_get_rate_different_currency():
     # Use fallback rates when necessary.
     setup_daily_rate()
+    EUR = Currencies.get('EUR')
     rate = Currencies.get_rates_db().get_rate(date(2008, 4, 20), 'CAD', 'EUR')
     assert_almost_equal(rate, 1 / EUR.latest_rate, places=6)
     rate = Currencies.get_rates_db().get_rate(date(2008, 4, 20), 'EUR', 'USD')

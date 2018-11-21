@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-10-26
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,7 +6,6 @@
 
 from hscommon.testutil import eq_
 
-from ..model.currency import USD
 from ..gui.export_panel import ExportFormat
 from ..loader.csv import Loader as CSVLoader
 from ..loader.qif import Loader as QIFLoader
@@ -37,14 +34,14 @@ def test_export_only_current_date_range(app):
     app.add_txn('01/01/2011', from_='foo', amount='1') # not in the same date range
     options = {'current_daterange_only': True}
     expath = perform_export(app, options)
-    loader = CSVLoader(USD)
+    loader = CSVLoader('USD')
     loader.parse(expath)
     lines = [l for l in loader.lines if l]
     eq_(len(lines), 2) # header + 1 line
     # QIF too
     options['export_format'] = ExportFormat.QIF
     expath = perform_export(app, options)
-    loader = QIFLoader(USD)
+    loader = QIFLoader('USD')
     loader.parse(expath)
     eq_(len(loader.blocks), 2) # 1 account + 1 entry
 
@@ -59,7 +56,7 @@ def app_transaction_with_payee_and_checkno():
 @with_app(app_transaction_with_payee_and_checkno)
 def test_export_simple_txn_to_csv(app):
     expath = perform_export(app)
-    loader = CSVLoader(USD)
+    loader = CSVLoader('USD')
     loader.parse(expath)
     lines = [l for l in loader.lines if l]
     eq_(len(lines), 2)
@@ -81,7 +78,7 @@ def app_transaction_with_splits():
 @with_app(app_transaction_with_splits)
 def test_export_txn_with_splits_to_csv(app):
     expath = perform_export(app)
-    loader = CSVLoader(USD)
+    loader = CSVLoader('USD')
     loader.parse(expath)
     lines = [l for l in loader.lines if l]
     eq_(len(lines), 2)
@@ -99,7 +96,7 @@ def app_txn_with_null_amount():
 def test_export_txn_with_null_amount(app):
     # Don't crash on txns with null amounts
     expath = perform_export(app) # don't crash
-    loader = CSVLoader(USD)
+    loader = CSVLoader('USD')
     loader.parse(expath)
     lines = [l for l in loader.lines if l]
     eq_(len(lines), 2)

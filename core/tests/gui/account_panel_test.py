@@ -8,12 +8,12 @@ from hscommon.testutil import eq_
 
 from ..base import TestApp, with_app
 from ...model.account import AccountType
-from ...model.currency import Currencies, CAD
+from ...model.currency import Currencies
 
 # --- Some account
 def app_some_account():
     app = TestApp()
-    app.add_account('foobar', CAD, account_type=AccountType.Expense, account_number='4242')
+    app.add_account('foobar', 'CAD', account_type=AccountType.Expense, account_number='4242')
     app.show_pview()
     return app
 
@@ -22,9 +22,9 @@ def test_change_currency_index(app):
     # Changing currency_index correctly updates the currency.
     apanel = app.mw.edit_item()
     apanel.currency_list.select(0)
-    eq_(apanel.currency, Currencies.all[0][0])
+    eq_(apanel.currency, Currencies.all[0][0].code)
     apanel.currency_list.select(42)
-    eq_(apanel.currency, Currencies.all[42][0])
+    eq_(apanel.currency, Currencies.all[42][0].code)
 
 @with_app(app_some_account)
 def test_change_type_index(app):
@@ -46,7 +46,7 @@ def test_fields(app):
     apanel = app.mw.edit_item()
     eq_(apanel.name, 'foobar')
     eq_(apanel.type, AccountType.Expense)
-    eq_(apanel.currency, CAD)
+    eq_(apanel.currency, 'CAD')
     eq_(apanel.type_list.selected_index, 3) # Expense type is last in the list
     eq_(Currencies.all[apanel.currency_list.selected_index][0].code, 'CAD')
     eq_(apanel.account_number, '4242')
@@ -99,7 +99,7 @@ def test_save_then_load(app):
     # To test the currency, we have to load again
     app.bsheet.selected = app.bsheet.liabilities[0] # foobaz
     apanel = app.mw.edit_item()
-    eq_(apanel.currency, Currencies.all[42][0])
+    eq_(apanel.currency, Currencies.all[42][0].code)
     eq_(apanel.type, AccountType.Liability)
     eq_(apanel.name, 'changed name')
     eq_(apanel.account_number, '4241')

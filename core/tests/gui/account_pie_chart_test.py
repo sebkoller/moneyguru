@@ -12,7 +12,7 @@ from ..base import ApplicationGUI, TestApp, with_app
 from ...app import Application
 from ...gui.pie_chart import MIN_SLICE_COUNT, MIN_VIEW_SIZE, SIZE_COST_FOR_SLICE, COLOR_COUNT
 from ...model.account import AccountType
-from ...model.currency import Currencies, USD, CAD
+from ...model.currency import Currencies
 
 # --- Slice count
 def app_show_nwview():
@@ -92,7 +92,7 @@ class TestSomeAssetsAndLiabilities:
         app.bsheet.selected = app.bsheet.assets[0]
         apanel = app.mw.edit_item()
         for i, (c, n, p) in enumerate(Currencies.all):
-            if c == CAD:
+            if c.code == 'CAD':
                 apanel.currency_list.select(i)
                 break
         apanel.save()
@@ -291,14 +291,14 @@ class TestDifferentDateRanges:
 
 class TestMultipleCurrencies:
     def do_setup(self):
-        app = TestApp(app=Application(ApplicationGUI(), default_currency=CAD))
+        app = TestApp(app=Application(ApplicationGUI(), default_currency='CAD'))
         Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
-        app.add_account('USD income', account_type=AccountType.Income, currency=USD)
-        app.add_account('CAD income', account_type=AccountType.Income, currency=CAD)
-        app.add_account('USD asset', currency=USD)
+        app.add_account('USD income', account_type=AccountType.Income, currency='USD')
+        app.add_account('CAD income', account_type=AccountType.Income, currency='CAD')
+        app.add_account('USD asset', currency='USD')
         app.show_account()
         app.add_entry('1/1/2008', 'USD entry', transfer='USD income', increase='1')
-        app.add_account('CAD asset', currency=CAD)
+        app.add_account('CAD asset', currency='CAD')
         app.show_account()
         app.add_entry('1/1/2008', 'CAD entry', transfer='CAD income', increase='1')
         app.show_nwview()

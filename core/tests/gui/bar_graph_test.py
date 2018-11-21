@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-21
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +8,6 @@ from hscommon.testutil import eq_
 
 from ..base import TestApp, with_app
 from ...model.account import AccountType
-from ...model.currency import CAD
 
 class TestPristine:
     def do_setup(self):
@@ -36,13 +33,13 @@ class TestPristine:
 class TestForeignAccount:
     def do_setup(self):
         app = TestApp()
-        app.add_account('Visa', account_type=AccountType.Income, currency=CAD)
+        app.add_account('Visa', account_type=AccountType.Income, currency='CAD')
         app.show_account()
         return app
 
     @with_app(do_setup)
     def test_graph(self, app):
-        eq_(app.bargraph.currency, CAD)
+        eq_(app.bargraph.currency, 'CAD')
 
 
 class TestSomeIncomeInTheFutureWithRangeOnYearToDate:

@@ -199,5 +199,5 @@ def same_currency(amount1, amount2):
     return not (amount1 and amount2 and amount1.currency_code != amount2.currency_code)
 
 def of_currency(amount, currency):
-    return not amount or amount.currency_code == currency.code
+    return not amount or amount.currency_code == currency
 

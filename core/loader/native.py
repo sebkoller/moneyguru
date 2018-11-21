@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +10,6 @@ import xml.etree.cElementTree as ET
 from hscommon.util import tryint
 
 from ..exception import FileFormatError
-from ..model.currency import Currencies
 from .base import SplitInfo, TransactionInfo
 from . import base
 
@@ -79,11 +78,10 @@ class Loader(base.Loader):
         props_element = root.find('properties')
         if props_element is not None:
             for name, value in props_element.attrib.items():
-                # For now, all our prefs are ints, so we can simply assume tryint, but we'll
-                # eventually need something more sophisticated.
-                if name == 'default_currency':
-                    value = Currencies.by_code.get(value)
-                else:
+                # For now, all our prefs except default_currency are ints, so
+                # we can simply assume tryint, but we'll eventually need
+                # something more sophisticated.
+                if name != 'default_currency':
                     value = tryint(value, default=None)
                 if name and value is not None:
                     self.properties[name] = value

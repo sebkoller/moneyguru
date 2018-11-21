@@ -233,7 +233,7 @@ class BaseDocument:
         if to is not NOEDIT:
             to = self.accounts.find(to, AccountType.Expense) if to else None
         if date is not NOEDIT and amount is not NOEDIT and amount != 0:
-            currencies_to_ensure = [amount.currency_code, self.default_currency.code]
+            currencies_to_ensure = [amount.currency_code, self.default_currency]
             Currencies.get_rates_db().ensure_rates(date, currencies_to_ensure)
 
         min_date = date if date is not NOEDIT else datetime.date.max
@@ -329,7 +329,7 @@ class BaseDocument:
         """
         assert entry is not None
         if date is not NOEDIT and amount is not NOEDIT and amount != 0:
-            Currencies.get_rates_db().ensure_rates(date, [amount.currency_code, entry.account.currency.code])
+            Currencies.get_rates_db().ensure_rates(date, [amount.currency_code, entry.account.currency])
         candidate_dates = [entry.date, date, reconciliation_date, entry.reconciliation_date]
         min_date = min(d for d in candidate_dates if d is not NOEDIT and d is not None)
         if reconciliation_date is not NOEDIT:
@@ -365,21 +365,20 @@ class BaseDocument:
             default_currency = None
         else:
             default_currency = self.default_currency
-        default_currency = default_currency.code if default_currency else ''
         return format_amount(
-            amount, default_currency, decimal_sep=self.app._decimal_sep,
+            amount, default_currency or '', decimal_sep=self.app._decimal_sep,
             grouping_sep=self.app._grouping_sep, **kwargs
         )
 
     def parse_amount(self, amount, default_currency=None):
         if default_currency is None:
-            default_currency = self.default_currency.code
+            default_currency = self.default_currency
         return parse_amount(amount, default_currency, auto_decimal_place=self.app._auto_decimal_place)
 
     def is_amount_native(self, amount):
         if amount == 0:
             return True
-        return amount.currency_code == self.default_currency.code
+        return amount.currency_code == self.default_currency
 
     # --- Properties
     @property

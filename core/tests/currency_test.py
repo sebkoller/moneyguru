@@ -13,7 +13,7 @@ from hscommon.testutil import eq_, log_calls
 from ..app import Application
 from ..model import currency
 from ..model.account import AccountType
-from ..model.currency import Currencies, USD, EUR, CAD
+from ..model.currency import Currencies
 from ..model.date import MonthRange
 from .base import ApplicationGUI, TestApp, with_app, compare_apps
 from .model.currency_test import set_ratedb_for_tests
@@ -50,12 +50,11 @@ def test_cache_path_is_not_none(fake_server, monkeypatch, tmpdir):
 
 def test_default_currency(fake_server):
     # It's possible to specify a default currency at startup.
-    PLN = Currencies.get(code='PLN')
-    app = TestApp(app=Application(ApplicationGUI(), default_currency=PLN))
+    app = TestApp(app=Application(ApplicationGUI(), default_currency='PLN'))
     app.show_tview()
-    eq_(app.doc.default_currency, PLN)
+    eq_(app.doc.default_currency, 'PLN')
     app.add_account()
-    eq_(app.doc.default_currency, PLN)
+    eq_(app.doc.default_currency, 'PLN')
 
 @with_app(TestApp)
 def test_set_account_list_currency_on_load(app, fake_server):
@@ -73,7 +72,7 @@ def test_set_account_list_currency_on_load(app, fake_server):
 def app_one_empty_account_eur(monkeypatch):
     monkeypatch.patch_today(2008, 5, 25)
     app = TestApp()
-    app.add_account('Checking', EUR)
+    app.add_account('Checking', 'EUR')
     app.show_account()
     app.doc.date_range = MonthRange(date(2007, 10, 1))
     return app
@@ -109,8 +108,8 @@ def test_add_transaction_with_foreign_amount(app):
 class TestCaseCADAssetAndUSDAsset:
     def setup_method(self, method):
         app = TestApp()
-        app.add_account('CAD Account', CAD)
-        app.add_account('USD Account', USD)
+        app.add_account('CAD Account', 'CAD')
+        app.add_account('USD Account', 'USD')
         app.show_account()
         self.app = app
 
@@ -136,8 +135,8 @@ class TestCaseCADAssetAndUSDAsset:
 class TestCaseCADLiabilityAndUSDLiability:
     def setup_method(self, method):
         app = TestApp()
-        app.add_account('CAD Account', CAD, account_type=AccountType.Liability)
-        app.add_account('USD Account', USD, account_type=AccountType.Liability)
+        app.add_account('CAD Account', 'CAD', account_type=AccountType.Liability)
+        app.add_account('USD Account', 'USD', account_type=AccountType.Liability)
         app.show_account()
         self.app = app
 
@@ -164,12 +163,11 @@ class TestCaseCADLiabilityAndUSDLiability:
 # 2 accounts (including one income), one entry. The entry has an amount that differs from the
 # account's currency.
 def app_entry_with_foreign_currency():
-    PLN = Currencies.get(code='PLN')
     app = TestApp()
     Currencies.get_rates_db().set_CAD_value(date(2007, 10, 1), 'EUR', 1.42)
     Currencies.get_rates_db().set_CAD_value(date(2007, 10, 1), 'PLN', 0.42)
-    app.add_account('first', CAD)
-    app.add_account('second', PLN, account_type=AccountType.Income)
+    app.add_account('first', 'CAD')
+    app.add_account('second', 'PLN', account_type=AccountType.Income)
     app.show_nwview()
     app.bsheet.selected = app.bsheet.assets[0]
     app.show_account()
@@ -224,8 +222,8 @@ def test_opposite_entry_balance():
 class TestCaseCADAssetAndUSDIncome:
     def setup_method(self, method):
         app = TestApp()
-        app.add_account('CAD Account', CAD)
-        app.add_account('USD Income', USD, account_type=AccountType.Income)
+        app.add_account('CAD Account', 'CAD')
+        app.add_account('USD Income', 'USD', account_type=AccountType.Income)
         app.show_account()
         app.add_entry(transfer='CAD Account', increase='42 usd')
         self.app = app
@@ -253,9 +251,9 @@ class TestCaseDifferentCurrencies:
     # 2 transactions. One with the default currency and one with a different currency. Both
     # transaction have a transfer to the second account.
     def setup_method(self, method):
-        app = TestApp(app=Application(ApplicationGUI(), default_currency=CAD))
+        app = TestApp(app=Application(ApplicationGUI(), default_currency='CAD'))
         app.add_account('first account')
-        app.add_account('second account', USD)
+        app.add_account('second account', 'USD')
         app.show_nwview()
         app.bsheet.selected = app.bsheet.assets[0]
         app.show_account()
@@ -288,11 +286,11 @@ def app_three_currencies_two_entries(monkeypatch):
     # Three account of different currencies, and 2 entries on differenet date. The app is saved,
     # and then loaded (The goal of this is to test that moneyguru ensures it got the rates it needs).
     monkeypatch.patch_today(2008, 4, 30)
-    theapp = Application(ApplicationGUI(), default_currency=CAD)
+    theapp = Application(ApplicationGUI(), default_currency='CAD')
     app = TestApp(app=theapp)
     app.add_account('first account')
-    app.add_account('second account', USD)
-    app.add_account('third account', EUR)
+    app.add_account('second account', 'USD')
+    app.add_account('third account', 'EUR')
     app.show_account('first account')
     app.add_entry(date='20/4/2008', increase='42 cad')
     app.add_entry(date='25/4/2008', increase='42 cad')
@@ -336,8 +334,8 @@ def test_ensures_rates_async(app, monkeypatch):
 # --- Multi-currency transaction
 def app_multi_currency_transaction():
     app = TestApp()
-    app.add_account('CAD Account', CAD)
-    app.add_account('USD Account', USD)
+    app.add_account('CAD Account', 'CAD')
+    app.add_account('USD Account', 'USD')
     app.show_account()
     app.add_entry(transfer='CAD Account', increase='42 usd')
     app.show_nwview()
@@ -393,7 +391,7 @@ class TestCaseEntryWithXPFAmount:
     def setup_method(self, method):
         app = TestApp()
         Currencies.get_rates_db().set_CAD_value(date(2009, 7, 20), 'XPF', 0.42)
-        app.add_account('account', CAD)
+        app.add_account('account', 'CAD')
         app.show_account()
         app.add_entry('20/07/2009', increase='100 XPF')
         self.app = app

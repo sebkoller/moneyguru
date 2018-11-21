@@ -1,4 +1,4 @@
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,7 +8,6 @@ from hscommon.testutil import eq_
 
 from ..base import TestApp, with_app
 from ...model.account import AccountType
-from ...model.currency import CAD
 
 # --- Pristine
 @with_app(TestApp)
@@ -82,13 +81,13 @@ class TestTwoLiabilityTransactions:
 class TestForeignAccount:
     def do_setup(self):
         app = TestApp()
-        app.add_account('Visa', currency=CAD)
+        app.add_account('Visa', currency='CAD')
         app.show_account()
         return app
 
     @with_app(do_setup)
     def test_graph(self, app):
-        eq_(app.balgraph.currency, CAD)
+        eq_(app.balgraph.currency, 'CAD')
 
 
 # ---

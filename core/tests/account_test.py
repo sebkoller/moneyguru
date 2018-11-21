@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-06-15
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,7 +9,6 @@ from hscommon.testutil import eq_
 from .base import TestApp, with_app, testdata
 from ..exception import FileFormatError
 from ..model.account import AccountType
-from ..model.currency import EUR
 
 # --- Pristine
 @with_app(TestApp)
@@ -43,7 +40,7 @@ def test_delete_root_type_nodes(app):
 # --- One empty account
 def app_one_empty_account():
     app = TestApp()
-    app.add_account('Checking', EUR, account_number='4242')
+    app.add_account('Checking', 'EUR', account_number='4242')
     return app
 
 @with_app(app_one_empty_account)
@@ -85,7 +82,7 @@ def test_get_account_attribute_value(app):
     # get_account_*() returns the correct values.
     apanel = app.mw.edit_item()
     eq_(apanel.name, 'Checking')
-    eq_(apanel.currency, EUR)
+    eq_(apanel.currency, 'EUR')
     eq_(apanel.type, AccountType.Asset)
 
 @with_app(app_one_empty_account)

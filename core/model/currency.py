@@ -44,6 +44,14 @@ class Currencies:
                 raise ValueError('Unknown currency name: %r' % name)
 
     @staticmethod
+    def has(code):
+        try:
+            Currencies.get(code)
+            return True
+        except ValueError:
+            return False
+
+    @staticmethod
     def register(
             code, name, exponent=2, start_date=None, start_rate=1, stop_date=None, latest_rate=1,
             priority=100):
@@ -94,15 +102,15 @@ class Currencies:
 
 
 # For legacy purpose, we create USD, EUR and CAD in here, but all other currencies are app-defined.
-USD = Currencies.register(
+Currencies.register(
     'USD', 'U.S. dollar',
     start_date=date(1998, 1, 2), start_rate=1.425, latest_rate=1.0128, priority=1
 )
-EUR = Currencies.register(
+Currencies.register(
     'EUR', 'European Euro',
     start_date=date(1999, 1, 4), start_rate=1.8123, latest_rate=1.3298, priority=2
 )
-CAD = Currencies.register('CAD', 'Canadian dollar', latest_rate=1, priority=4)
+Currencies.register('CAD', 'Canadian dollar', latest_rate=1, priority=4)
 
 class RatesDB:
     """Stores exchange rates for currencies.

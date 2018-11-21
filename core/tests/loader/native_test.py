@@ -15,11 +15,11 @@ from ...exception import FileFormatError
 from ...loader import native
 from ...model.account import AccountType
 from ...model.amount import Amount
-from ...model.currency import Currencies, USD
+from ...model.currency import Currencies
 
 
 def pytest_funcarg__loader(request):
-    return native.Loader(USD)
+    return native.Loader('USD')
 
 def test_parse_non_xml(loader):
     content = b'this is not xml content'
@@ -54,20 +54,20 @@ def test_wrong_mtime(loader):
 
 def test_account_and_entry_values(loader):
     # Make sure loaded values are correct.
-    PLN = Currencies.register('PLN', 'PLN')
+    Currencies.register('PLN', 'PLN')
     loader.parse(testdata.filepath('moneyguru', 'simple.moneyguru'))
     loader.load()
     accounts = loader.accounts
     eq_(len(accounts), 3)
     account = accounts[0]
     eq_(account.name, 'Account 1')
-    eq_(account.currency, USD)
+    eq_(account.currency, 'USD')
     account = accounts[1]
     eq_(account.name, 'Account 2')
-    eq_(account.currency, PLN)
+    eq_(account.currency, 'PLN')
     account = accounts[2]
     eq_(account.name, 'foobar')
-    eq_(account.currency, USD)
+    eq_(account.currency, 'USD')
     eq_(account.type, AccountType.Expense)
     transactions = loader.transaction_infos
     eq_(len(transactions), 4)

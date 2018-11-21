@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-06-24
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -16,7 +14,6 @@ from ..const import PaneType
 from ..document import ScheduleScope
 from ..model.date import MonthRange
 from ..model.account import AccountType
-from ..model.currency import EUR
 from .base import compare_apps, testdata, TestApp, with_app
 
 def copydoc(doc):
@@ -120,7 +117,7 @@ def app_one_nameless_account():
 def test_undo_apanel_attrs(app, checkstate):
     # Undoing a changes made from apanel work
     apanel = app.mw.edit_item()
-    apanel.currency = EUR
+    apanel.currency = 'EUR'
     apanel.account_number = '1234'
     apanel.notes = 'some notes'
     apanel.save()

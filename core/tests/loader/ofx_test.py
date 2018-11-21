@@ -13,21 +13,20 @@ from ..base import testdata
 from ...exception import FileFormatError
 from ...loader import ofx
 from ...model.amount import Amount
-from ...model.currency import USD, EUR
 
 def test_dont_choke_on_empty_files():
     # The ofx loader doesn't choke on an empty file
-    loader = ofx.Loader(USD)
+    loader = ofx.Loader('USD')
     with raises(FileFormatError):
         loader.parse(testdata.filepath('zerofile'))
 
 def test_format_error():
-    loader = ofx.Loader(USD)
+    loader = ofx.Loader('USD')
     with raises(FileFormatError):
         loader.parse(testdata.filepath('ofx', 'invalid.ofx'))
 
 def test_amounts_in_invalid_currency_account():
-    loader = ofx.Loader(USD)
+    loader = ofx.Loader('USD')
     loader.parse(testdata.filepath('ofx', 'invalid_currency.ofx'))
     loader.load()
     account = loader.accounts.find('815-30219-11111-EOP')
@@ -37,7 +36,7 @@ def test_amounts_in_invalid_currency_account():
 
 def test_blank_line_ofx_attrs():
     # Just make sure that a ofx file starting with a blank line is correctly loaded
-    loader = ofx.Loader(USD)
+    loader = ofx.Loader('USD')
     loader.parse(testdata.filepath('ofx', 'blank_first_line.ofx'))
     loader.load()
     eq_(len(loader.accounts), 1)
@@ -45,7 +44,7 @@ def test_blank_line_ofx_attrs():
 
 # ---
 def loader_desjardins():
-    loader = ofx.Loader(USD)
+    loader = ofx.Loader('USD')
     loader.parse(testdata.filepath('ofx', 'desjardins.ofx'))
     loader.load()
     return loader
@@ -85,14 +84,14 @@ def test_reference_desjardins():
 
 # ---
 def loader_ing():
-    loader = ofx.Loader(USD)
+    loader = ofx.Loader('USD')
     loader.parse(testdata.filepath('ofx', 'ing.qfx'))
     loader.load()
     return loader
 
 def test_accounts_ing():
     loader = loader_ing()
-    accounts = [(x.name, x.currency.code) for x in loader.accounts]
+    accounts = [(x.name, x.currency) for x in loader.accounts]
     expected = [('123456', 'CAD')]
     eq_(accounts, expected)
 
@@ -107,7 +106,7 @@ def test_entries_ing():
 
 # ---
 def loader_fortis():
-    loader = ofx.Loader(EUR)
+    loader = ofx.Loader('EUR')
     loader.parse(testdata.filepath('ofx', 'fortis.ofx'))
     loader.load()
     return loader
@@ -122,7 +121,7 @@ def test_reference_fortis():
 
 # ---
 def loader_ccstmtrs():
-    loader = ofx.Loader(EUR)
+    loader = ofx.Loader('EUR')
     loader.parse(testdata.filepath('ofx', 'ccstmtrs.ofx'))
     loader.load()
     return loader

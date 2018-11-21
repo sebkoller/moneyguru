@@ -1,6 +1,4 @@
-# Created By: Eric Mc Sween
-# Created On: 2008-03-04
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -271,9 +269,9 @@ class Transaction:
                 tsplit = tsplits[0]
                 tsplit.account = to
         if currency is not NOEDIT:
-            tochange = (s for s in self.splits if s.amount and s.amount.currency_code != currency.code)
+            tochange = (s for s in self.splits if s.amount and s.amount.currency_code != currency)
             for split in tochange:
-                split.amount = Amount(split.amount.value, currency.code)
+                split.amount = Amount(split.amount.value, currency)
                 split.reconciliation_date = None
         # Reconciliation can never be lower than txn date
         for split in self.splits:

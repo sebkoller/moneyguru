@@ -12,10 +12,9 @@ from ..base import TestApp, testdata
 from ...loader.qif import Loader
 from ...model.account import AccountType
 from ...model.amount import Amount
-from ...model.currency import USD
 
 def test_checkbook_values():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'checkbook.qif'))
     loader.load()
     accounts = [a for a in loader.accounts if a.is_balance_sheet_account()]
@@ -23,10 +22,10 @@ def test_checkbook_values():
     eq_(len(accounts), 2)
     account = accounts[0]
     eq_(account.name, 'Account 1')
-    eq_(account.currency, USD)
+    eq_(account.currency, 'USD')
     account = accounts[1]
     eq_(account.name, 'Account 2')
-    eq_(account.currency, USD)
+    eq_(account.currency, 'USD')
     transactions = loader.transactions
     eq_(len(transactions), 8)
     transaction = transactions[0]
@@ -95,14 +94,14 @@ def test_checkbook_values():
     eq_(transaction.splits[1].amount, Amount(80.00, 'USD'))
 
 def test_missing_values():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'missing_fields.qif'))
     loader.load()
     accounts = [a for a in loader.accounts if a.is_balance_sheet_account()]
     eq_(len(accounts), 1)
     account = accounts[0]
     eq_(account.name, 'Account')
-    eq_(account.currency, USD)
+    eq_(account.currency, 'USD')
     transactions = loader.transactions
     eq_(len(transactions), 3)
     transaction = transactions[0]
@@ -128,7 +127,7 @@ def test_missing_values():
     eq_(transaction.splits[1].amount, Amount(-100.00, 'USD'))
 
 def test_four_digit_year():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'four_digit_year.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -140,7 +139,7 @@ def test_four_digit_year():
     eq_(transaction.date, date(2007, 1, 1))
 
 def test_ddmmyy():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'ddmmyy.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -152,7 +151,7 @@ def test_ddmmyy():
     eq_(transaction.date, date(2007, 1, 22))
 
 def test_ddmmyyyy():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'ddmmyyyy.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -164,7 +163,7 @@ def test_ddmmyyyy():
     eq_(transaction.date, date(2007, 1, 22))
 
 def test_ddmmyyyy_with_dots():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'ddmmyyyy_with_dots.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -176,7 +175,7 @@ def test_ddmmyyyy_with_dots():
     eq_(transaction.date, date(2007, 1, 22))
 
 def test_yyyymmdd_without_sep():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'yyyymmdd_without_sep.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -188,7 +187,7 @@ def test_yyyymmdd_without_sep():
     eq_(transaction.date, date(2007, 1, 22))
 
 def test_yyyymmdd_with_sep():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'yyyymmdd_with_sep.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -200,7 +199,7 @@ def test_yyyymmdd_with_sep():
     eq_(transaction.date, date(2007, 1, 22))
 
 def test_chr13_line_sep():
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'chr13_line_sep.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -213,7 +212,7 @@ def test_chr13_line_sep():
 
 def test_first_field_not_account():
     # Previously, when the first field was not an account, a dummy "Account" field was added
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'first_field_not_account.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -221,14 +220,14 @@ def test_first_field_not_account():
 
 def test_accountless_with_splits():
     # Previously, the split amounts would be reversed
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'accountless_with_splits.qif'))
     loader.load()
     accounts = [a for a in loader.accounts if a.is_balance_sheet_account()]
     eq_(len(accounts), 1)
     account = accounts[0]
     eq_(account.name, 'Account')
-    eq_(account.currency, USD)
+    eq_(account.currency, 'USD')
     transactions = loader.transactions
     eq_(len(transactions), 2)
     transaction = transactions[0]
@@ -241,7 +240,7 @@ def test_accountless_with_splits():
 
 def test_other_sections():
     # Previously, other sections would confuse the qif loader
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'other_sections.qif'))
     loader.load()
     eq_(len(loader.transactions), 3)
@@ -249,7 +248,7 @@ def test_other_sections():
 def test_missing_line_sep():
     # It is possible sometimes that some apps do bad exports that contain some missing line
     # separators Make sure that it doesn't prevent the QIF from being loaded
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'missing_line_sep.qif'))
     loader.load()
     eq_(len(loader.transactions), 1)
@@ -257,7 +256,7 @@ def test_missing_line_sep():
 
 def test_credit_card():
     # A CCard account is imported as a liability
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'credit_card.qif'))
     loader.load()
     accounts = loader.account_infos
@@ -267,7 +266,7 @@ def test_credit_card():
 
 def test_autoswitch():
     # autoswitch.qif has an autoswitch section with accounts containing "D" lines
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'autoswitch.qif'))
     loader.load()
     eq_(len(loader.account_infos), 50)
@@ -275,7 +274,7 @@ def test_autoswitch():
 
 def test_autoswitch_buggy():
     # sp,eQIF exporter put another !Option:AutoSwitch after having cleared it
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'autoswitch_buggy.qif'))
     loader.load()
     eq_(len(loader.account_infos), 50)
@@ -284,7 +283,7 @@ def test_autoswitch_buggy():
 def test_autoswitch_none():
     # Some QIF files don't have the autoswitch flag to indicate a list of accounts. The loader used
     # to crash when such an account block would contain a "D" line that couldn't parse to a date.
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'autoswitch_none.qif'))
     loader.load() # no crash
     # We don't test for account_info because in such buggy cases, we don't care much. We only care
@@ -293,7 +292,7 @@ def test_autoswitch_none():
 
 def test_with_cat():
     # some file have a "!Type:Cat" section with buggy "D" lines
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'with_cat.qif'))
     loader.load()
     eq_(len(loader.account_infos), 1)
@@ -302,7 +301,7 @@ def test_with_cat():
 def test_transfer():
     # Transfer happen with 2 entries putting [] brackets arround the account names of the 'L'
     # sections.
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'transfer.qif'))
     loader.load()
     eq_(len(loader.accounts), 2)
@@ -310,7 +309,7 @@ def test_transfer():
 
 def test_extra_dline():
     # Ignore extra D lines which don't contain dates. Previously, these lines would cause a crash.
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'extra_dline.qif'))
     loader.load() # no crash
     eq_(len(loader.transactions), 1)
@@ -320,7 +319,7 @@ def test_extra_dline():
 def test_transfer_space_in_account_names():
     # When "L" lines have a space character at the end (bfore the "]" bracket) it doesn't prevent
     # us from correctly matching the account with seen account names.
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'transfer_space_in_account_names.qif'))
     loader.load()
     eq_(len(loader.transactions), 1) # the transactions hasn't been doubled.
@@ -346,7 +345,7 @@ def test_transfer_splits():
     # The transfer_splits file has a split between 3 accounts. The particularity in this is that
     # the account references are placed in [] brackets. There was a bug where bracketed links were
     # correctly handled in "L" lines, but not in split lines.
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'transfer_splits.qif'))
     loader.load()
     eq_(len(loader.accounts), 3)
@@ -357,7 +356,7 @@ def test_quicken_split_duplicate():
     # don't have the same split count. In this example, we have a 3 way split (Checking:-1000,
     # Home:500, Interest:500) but the first split we encounter is only two way (Checking:-500,
     # Home:500). What we have to do is to only keep the largest in a group of matching txns.
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'quicken_split_duplicate.qif'))
     loader.load()
     eq_(len(loader.transactions), 1)
@@ -366,7 +365,7 @@ def test_quicken_split_duplicate():
 def test_same_date_same_amount():
     # There was a bug in QIF loading where two transactions with the same date and the same amount,
     # regardless of whether they were transfers, would be detected as "duplicates" and de-duplicated.
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'same_date_same_amount.qif'))
     loader.load()
     eq_(len(loader.transactions), 3)
@@ -376,7 +375,7 @@ def test_same_date_same_amount_transfer():
     # wasn't enough because, depending on the algo's internal dictionary iteration order (which is
     # random), the test here would falsely pass. Now, with 3 transactions, it's much less likely to
     # falsely pass.
-    loader = Loader(USD)
+    loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'same_date_same_amount_transfer.qif'))
     loader.load()
     expected_descs = {

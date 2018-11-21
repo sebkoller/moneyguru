@@ -20,7 +20,6 @@ from ..exception import FileFormatError
 from ..gui.entry_table import EntryTable
 from ..loader import base
 from ..model.account import AccountType
-from ..model.currency import EUR
 from ..model.date import MonthRange, QuarterRange, YearRange
 
 # --- No Setup
@@ -167,7 +166,7 @@ class TestRangeOnYearToDate:
 def app_one_empty_account_range_on_october_2007(monkeypatch):
     # One empty account, range on October 2007
     app = TestApp()
-    app.add_account('Checking', EUR)
+    app.add_account('Checking', 'EUR')
     app.show_account()
     app.doc.date_range = MonthRange(date(2007, 10, 1))
     app.clear_gui_calls()

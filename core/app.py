@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -23,7 +23,7 @@ from . import __version__
 from .const import DATE_FORMAT_FOR_PREFERENCES
 from .model import currency
 from .model.amount import parse_amount, format_amount
-from .model.currency import Currencies, USD
+from .model.currency import Currencies
 from .model.date import parse_date, format_date
 from .plugin import CurrencyProviderPlugin, get_all_core_plugin_modules, get_plugins_from_mod
 
@@ -145,7 +145,7 @@ class Application(Broadcaster):
 
     def __init__(
             self, view, date_format='dd/MM/yyyy', decimal_sep='.', grouping_sep='',
-            default_currency=USD, cache_path=None, appdata_path=None):
+            default_currency='USD', cache_path=None, appdata_path=None):
         Broadcaster.__init__(self)
         self.view = view
         self.cache_path = cache_path
@@ -268,8 +268,7 @@ class Application(Broadcaster):
 
         This simply wraps :func:`core.model.amount.format_amount` and adds default values.
         """
-        default_currency = self._default_currency.code if self._default_currency else ''
-        return format_amount(amount, default_currency, decimal_sep=self._decimal_sep,
+        return format_amount(amount, self._default_currency, decimal_sep=self._decimal_sep,
                              grouping_sep=self._grouping_sep, **kw)
 
     def format_date(self, date):

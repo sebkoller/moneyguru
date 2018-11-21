@@ -55,11 +55,11 @@ class MassEditionPanel(MainWindowPanel):
         self.to_field = MassEditTextField(self_proxy, 'to')
         self.amount_field = MassEditAmountField(self_proxy, 'amount')
         self.completable_edit = CompletableEdit(mainwindow)
-        currencies_display = ['%s - %s' % (c, n) for c, n, p in Currencies.all]
+        currencies_display = ['%s - %s' % (c.code, n) for c, n, p in Currencies.all]
 
         def setfunc(index):
             if 0 <= index < len(Currencies.all):
-                currency = Currencies.all[index][0]
+                currency = Currencies.all[index][0].code
             else:
                 currency = None
             if currency != self_proxy.currency:
@@ -106,11 +106,11 @@ class MassEditionPanel(MainWindowPanel):
         splits = flatten(t.splits for t in transactions)
         splits = [s for s in splits if s.amount]
         if splits and allsame(s.amount.currency_code for s in splits):
-            self.currency = Currencies.get(splits[0].amount.currency_code)
+            self.currency = splits[0].amount.currency_code
         else:
             self.currency = self.document.default_currency
         for i, (c, n, p) in enumerate(Currencies.all):
-            if c == self.currency:
+            if c.code == self.currency:
                 self.currency_list.select(i)
         if self.can_change_accounts:
             def get_from(t):

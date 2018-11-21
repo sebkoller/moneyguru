@@ -290,8 +290,8 @@ class Loader:
                 account_type = AccountType.Asset
             account_currency = self.default_currency
             try:
-                if info.currency:
-                    account_currency = Currencies.get(info.currency)
+                if info.currency and Currencies.has(info.currency):
+                    account_currency = info.currency
             except ValueError:
                 pass # keep account_currency as self.default_currency
             account = Account(info.name, account_currency, account_type)
@@ -303,7 +303,7 @@ class Loader:
             account.account_number = info.account_number
             account.inactive = info.inactive
             account.notes = info.notes
-            currencies.add(account.currency.code)
+            currencies.add(account.currency)
             self.accounts.add(account)
 
         # Pre-parse transaction info. We bring all relevant info recorded at the txn level into the split level

@@ -1,6 +1,4 @@
-# Created By: Eric Mc Sween
-# Created On: 2008-07-12
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,7 +7,6 @@
 from hscommon.testutil import eq_
 
 from ...model.account import AccountType
-from ...model.currency import EUR
 from ..base import TestApp, with_app
 
 # --- One account
@@ -100,7 +97,7 @@ def test_toggle_debit_credit(app):
 # ---
 def app_eur_account():
     app = TestApp()
-    app.add_account(currency=EUR)
+    app.add_account(currency='EUR')
     app.show_account()
     return app
 
@@ -341,7 +338,7 @@ def test_transfer_column(app):
 # --- EUR account with EUR entries
 def app_eur_account_with_eur_entries():
     app = TestApp()
-    app.add_account(currency=EUR)
+    app.add_account(currency='EUR')
     app.show_account()
     app.add_entry(increase='42') # EUR
     app.add_entry(decrease='42') # EUR

@@ -10,7 +10,6 @@ from datetime import date
 from hscommon.util import first
 
 from ..model.account import Account, AccountType
-from ..model.currency import Currencies
 from ..model.transaction import Split, Transaction
 from .base import MainWindowPanel
 from .split_table import SplitTable
@@ -114,7 +113,7 @@ class TransactionPanel(PanelWithTransaction):
         split = first(self._selected_splits)
         new_split_currency = self.document.default_currency
         if split is not None and split.amount != 0:
-            new_split_currency = Currencies.get(split.amount.currency_code)
+            new_split_currency = split.amount.currency_code
         self.transaction.mct_balance(new_split_currency)
         self.split_table.refresh_splits()
 

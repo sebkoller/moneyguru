@@ -1,6 +1,6 @@
 # Created By: Virgil Dupras
 # Created On: 2008-08-08
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -48,7 +48,7 @@ class ChangeStructure(ImportActionPlugin):
                 txn_copy = transaction.replicate()
                 if txn_copy.splits[0].amount == 0:  # If an amount is zero, it's an int...
                     amount_value = 0
-                    amount_currency = import_document.default_currency.code
+                    amount_currency = import_document.default_currency
                 else:
                     amount_value = txn_copy.splits[0].amount.value
                     amount_currency = txn_copy.splits[0].amount.currency_code

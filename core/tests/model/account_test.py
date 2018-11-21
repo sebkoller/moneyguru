@@ -10,7 +10,7 @@ from hscommon.testutil import eq_
 
 from ...model.account import Account, Group, AccountList, AccountType
 from ...model.amount import Amount
-from ...model.currency import USD, CAD, Currencies
+from ...model.currency import Currencies
 from ...model.date import MonthRange
 from ...model.oven import Oven
 from ...model.transaction import Transaction
@@ -19,17 +19,17 @@ from ...model.transaction_list import TransactionList
 class TestAccountComparison:
     def test_comparison(self):
         # Accounts are sorted by name. The sort is insensitive to case and accents.
-        bell = Account('Bell', USD, AccountType.Asset)
-        belarus = Account('Bélarus', USD, AccountType.Asset)
-        achigan = Account('achigan', USD, AccountType.Asset)
+        bell = Account('Bell', 'USD', AccountType.Asset)
+        belarus = Account('Bélarus', 'USD', AccountType.Asset)
+        achigan = Account('achigan', 'USD', AccountType.Asset)
         accounts = [bell, belarus, achigan]
         eq_(sorted(accounts), [achigan, belarus, bell])
 
     def test_equality(self):
         # Two different account objects are never equal.
-        zoo1 = Account('Zoo', USD, AccountType.Asset)
-        zoo2 = Account('Zoo', USD, AccountType.Asset)
-        zoo3 = Account('Zoö', USD, AccountType.Asset)
+        zoo1 = Account('Zoo', 'USD', AccountType.Asset)
+        zoo2 = Account('Zoo', 'USD', AccountType.Asset)
+        zoo3 = Account('Zoö', 'USD', AccountType.Asset)
         eq_(zoo1, zoo1)
         assert zoo1 != zoo2
         assert zoo1 != zoo3
@@ -59,8 +59,8 @@ class TestOneAccount:
         Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.9)
         Currencies.get_rates_db().set_CAD_value(date(2008, 1, 2), 'USD', 0.8)
         Currencies.get_rates_db().set_CAD_value(date(2008, 1, 3), 'USD', 0.7)
-        self.account = Account('Checking', USD, AccountType.Asset)
-        accounts = AccountList(CAD)
+        self.account = Account('Checking', 'USD', AccountType.Asset)
+        accounts = AccountList('CAD')
         accounts.add(self.account)
         transactions = TransactionList([
             Transaction(date(2007, 12, 31), account=self.account, amount=Amount(20, 'USD')),
@@ -77,12 +77,12 @@ class TestOneAccount:
 
         # The balance is converted using the rate on the day the balance is
         # requested.
-        eq_(self.account.entries.balance(date(2007, 12, 31), currency=CAD), Amount(20 * 1.1, 'CAD'))
+        eq_(self.account.entries.balance(date(2007, 12, 31), currency='CAD'), Amount(20 * 1.1, 'CAD'))
 
     def test_cash_flow(self):
         range = MonthRange(date(2008, 1, 1))
         eq_(self.account.entries.cash_flow(range), Amount(252, 'USD'))
 
         # Each entry is converted using the entry's day rate.
-        eq_(self.account.entries.cash_flow(range, CAD), Amount(201.40, 'CAD'))
+        eq_(self.account.entries.cash_flow(range, 'CAD'), Amount(201.40, 'CAD'))
 

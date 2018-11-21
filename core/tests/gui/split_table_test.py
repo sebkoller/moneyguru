@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-07-05
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,13 +6,12 @@
 
 from hscommon.testutil import eq_
 
-from ...model.currency import CAD, EUR
 from ..base import TestApp, with_app
 
 # --- One entry
 def app_one_entry():
     app = TestApp()
-    app.add_account('first', currency=CAD)
+    app.add_account('first', currency='CAD')
     app.show_account()
     app.add_entry(transfer='second', increase='42')
     return app
@@ -193,8 +190,8 @@ def test_move_split():
 # --- EUR account and EUR transfer
 def app_eur_account_and_eur_transfer():
     app = TestApp()
-    app.add_account('first', EUR)
-    app.add_account('second', EUR)
+    app.add_account('first', 'EUR')
+    app.add_account('second', 'EUR')
     app.show_account()
     app.add_entry(transfer='first', increase='42') # EUR
     return app

@@ -9,7 +9,6 @@ from datetime import date
 from hscommon.util import extract
 
 from .amount import prorate_amount
-from .currency import Currencies
 from .date import DateRange, ONE_DAY
 from .recurrence import Recurrence, Spawn, DateCounter, RepeatType
 from .transaction import Transaction, Split
@@ -162,8 +161,6 @@ class BudgetList(list):
         if not budgets:
             return 0
         currency = currency or account.currency
-        if isinstance(currency, str):
-            currency = Currencies.get(currency)
         amount = sum(b.amount_for_date_range(date_range, currency) for b in budgets)
         return amount
 

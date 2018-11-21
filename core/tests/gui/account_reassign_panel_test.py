@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-04-12
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,7 +6,6 @@
 
 from hscommon.testutil import eq_
 
-from ...model.currency import USD, EUR
 from ..base import TestApp, with_app
 
 # --- Deleting second account
@@ -50,8 +47,8 @@ def test_reassign_to_one(app):
 # --- Different currencies
 def app_different_currencies_reconciled_entries():
     app = TestApp()
-    app.add_account('one', currency=USD)
-    app.add_account('two', currency=EUR)
+    app.add_account('one', currency='USD')
+    app.add_account('two', currency='EUR')
     app.add_txn(description='txn 1', from_='one', amount='1 USD')
     app.add_txn(description='txn 2', from_='two', amount='1 EUR')
     app.show_account('one')

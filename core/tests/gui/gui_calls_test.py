@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-11-07
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -12,7 +10,6 @@
 
 from ...document import FilterType
 from ...model.account import AccountType
-from ...model.currency import EUR
 from ..base import TestApp, with_app, testdata
 
 # --- No Setup
@@ -75,12 +72,12 @@ def test_change_default_currency():
     # When the default currency is changed, all gui refresh themselves
     app = app_cleared_gui_calls()
     app.show_nwview()
-    app.doc.default_currency = EUR
+    app.doc.default_currency = 'EUR'
     app.check_gui_calls(app.bsheet_gui, ['refresh'])
     app.check_gui_calls(app.nwgraph_gui, ['refresh'])
     app.check_gui_calls(app.nwview.pie.view, ['refresh'])
     # but not if it stays the same
-    app.doc.default_currency = EUR
+    app.doc.default_currency = 'EUR'
     app.check_gui_calls_partial(app.bsheet_gui, not_expected=['refresh'])
 
 @with_app(app_cleared_gui_calls)

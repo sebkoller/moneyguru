@@ -8,7 +8,7 @@ from datetime import date
 
 from hscommon.testutil import eq_
 
-from ...model.currency import USD, Currencies
+from ...model.currency import Currencies
 from ..base import TestApp, with_app
 
 class TestPristine:
@@ -105,5 +105,5 @@ class TestIncomesAndExpensesInDifferentAccounts:
         expected = [50 + 80 + 32 + 22 - 7.04, 90 - 100, 54]
         eq_(amounts, expected)
         eq_(app.pgraph.title, 'Profit & Loss')
-        eq_(app.pgraph.currency, USD)
+        eq_(app.pgraph.currency, 'USD')
 

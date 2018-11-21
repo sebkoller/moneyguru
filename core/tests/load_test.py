@@ -10,7 +10,6 @@ from hscommon.testutil import eq_
 
 from ..document import ScheduleScope
 from ..model.account import AccountType
-from ..model.currency import Currencies, CAD
 from ..model.date import MonthRange
 from .base import compare_apps, TestApp, with_app, testdata
 
@@ -58,10 +57,9 @@ class TestLoadFile:
     @with_app(do_setup)
     def test_change_account_currency(self, app):
         # Changing an account currency sets the modified flag.
-        PLN = Currencies.get(code='PLN')
         app.show_nwview()
         apanel = app.mainwindow.edit_item()
-        apanel.currency = PLN
+        apanel.currency = 'PLN'
         apanel.save()
         assert app.doc.is_dirty()
 
@@ -199,13 +197,12 @@ class TestTwoAccountTwoEntriesInEachWithNonAsciiStrings:
         # Two accounts, two entries in each. Descriptions, categories and account names contain
         # non-latin characters (a polish 'l'). currencies are set to non-default values. first account
         # is selected.
-        PLN = Currencies.get(code='PLN')
         app = TestApp()
-        app.add_account('first_account\u0142', currency=PLN)
+        app.add_account('first_account\u0142', currency='PLN')
         app.show_account()
         app.add_entry('3/10/2007', 'first\u0142', transfer='other account', increase='1 usd')
         app.add_entry('4/10/2007', 'second\u0142', increase='2 usd') # Imbalance
-        app.add_account('second_account\u0142', currency=CAD)
+        app.add_account('second_account\u0142', currency='CAD')
         app.show_account()
         app.add_entry('5/10/2007', 'third\u0142', transfer='first_account\u0142', decrease='1 usd')
         app.add_entry('6/10/2007', 'fourth\u0142', transfer='yet another account', decrease='2 usd')

@@ -116,7 +116,7 @@ class BaseEntryTableRow(Row, RowWithDateMixIn, RowWithDebitAndCreditMixIn):
 
     @property
     def balance(self):
-        account_currency = self.account.currency.code if self.account.currency else ''
+        account_currency = self.account.currency if self.account.currency else ''
         return self.table.document.format_amount(self._the_balance(), zero_currency=account_currency)
     can_edit_balance = False
 
@@ -199,7 +199,7 @@ class EntryTableRow(BaseEntryTableRow):
         inmode = self.table.reconciliation_mode
         canedit = self.can_edit()
         future = self._date > datetime.date.today()
-        foreign = self._amount != 0 and self._amount.currency_code != self.account.currency.code
+        foreign = self._amount != 0 and self._amount.currency_code != self.account.currency
         balance_sheet = self.account.is_balance_sheet_account()
         return inmode and canedit and not future and not foreign and balance_sheet
 
@@ -273,7 +273,7 @@ class EntryTableRow(BaseEntryTableRow):
 
     @property
     def can_edit_reconciliation_date(self):
-        foreign = self._amount != 0 and self._amount.currency_code != self.account.currency.code
+        foreign = self._amount != 0 and self._amount.currency_code != self.account.currency
         return not foreign
 
 

@@ -11,7 +11,7 @@ from hscommon.testutil import eq_
 from ..base import TestApp, with_app, ApplicationGUI
 from ...app import Application
 from ...model.account import AccountType
-from ...model.currency import CAD, USD, Currencies
+from ...model.currency import Currencies
 from ...model.date import MonthRange
 
 # ---
@@ -144,15 +144,15 @@ def test_year_to_date_last_cash_flow(app, monkeypatch):
 
 # ---
 def app_multiple_currencies():
-    app = TestApp(app=Application(ApplicationGUI(), default_currency=CAD))
+    app = TestApp(app=Application(ApplicationGUI(), default_currency='CAD'))
     app.drsel.select_month_range()
     Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
     Currencies.get_rates_db().set_CAD_value(date(2008, 1, 31), 'USD', 0.9)
     app.add_group('Group', account_type=AccountType.Income)
-    app.add_account('CAD account', currency=CAD, account_type=AccountType.Income, group_name='Group')
+    app.add_account('CAD account', currency='CAD', account_type=AccountType.Income, group_name='Group')
     app.show_account()
     app.add_entry('1/1/2008', 'USD entry', increase='100.00')
-    app.add_account('USD account', currency=USD, account_type=AccountType.Income, group_name='Group')
+    app.add_account('USD account', currency='USD', account_type=AccountType.Income, group_name='Group')
     app.show_account()
     app.add_entry('1/1/2007', 'USD entry', increase='50.00')
     app.add_entry('1/1/2008', 'USD entry', increase='80.00')
@@ -182,16 +182,16 @@ def test_income_statement_multiple_currencies(app):
 
 # ---
 def app_multiple_currencies_over_two_months():
-    app = TestApp(app=Application(ApplicationGUI(), default_currency=CAD))
+    app = TestApp(app=Application(ApplicationGUI(), default_currency='CAD'))
     app.drsel.select_month_range()
     Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
     Currencies.get_rates_db().set_CAD_value(date(2008, 1, 31), 'USD', 0.9)
     Currencies.get_rates_db().set_CAD_value(date(2008, 2, 10), 'USD', 0.9)
-    app.add_account('CAD account', currency=CAD, account_type=AccountType.Income)
+    app.add_account('CAD account', currency='CAD', account_type=AccountType.Income)
     app.show_account()
     app.add_entry('1/1/2008', 'CAD entry', increase='200.00')
     app.add_entry('1/2/2008', 'CAD entry', increase='190.00')
-    app.add_account('USD account', currency=USD, account_type=AccountType.Expense)
+    app.add_account('USD account', currency='USD', account_type=AccountType.Expense)
     app.show_account()
     app.add_entry('1/1/2008', 'USD entry', increase='50.00')
     app.add_entry('1/1/2008', 'USD entry', increase='80.00')

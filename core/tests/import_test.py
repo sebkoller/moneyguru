@@ -13,7 +13,6 @@ from .base import ApplicationGUI, TestApp, with_app, testdata
 from ..app import Application
 from ..exception import FileFormatError
 from ..loader.csv import CsvField
-from ..model.currency import Currencies, CAD
 from ..model.date import MonthRange, YearRange
 
 
@@ -111,8 +110,7 @@ def test_import_updates_undo_description(app):
 # ---
 def app_qif_import():
     # One account named 'Account 1' and then an parse_file_for_import() call for the 'checkbook.qif' test file.
-    PLN = Currencies.get(code='PLN')
-    app = TestApp(app=Application(ApplicationGUI(), default_currency=PLN))
+    app = TestApp(app=Application(ApplicationGUI(), default_currency='PLN'))
     app.doc.date_range = YearRange(date(2007, 1, 1))
     app.add_account('Account 1')
     app.add_account('Account 1 1')
@@ -137,8 +135,7 @@ def test_default_account_currency_after_qif_import(app):
     app.show_nwview()
     app.bsheet.selected = app.bsheet.assets[2]
     apanel = app.mainwindow.edit_item()
-    PLN = Currencies.get(code='PLN')
-    eq_(apanel.currency, PLN)
+    eq_(apanel.currency, 'PLN')
 
 @with_app(app_qif_import)
 def test_default_entry_currency_after_qif_import(app):
@@ -147,7 +144,7 @@ def test_default_entry_currency_after_qif_import(app):
     app.show_nwview()
     app.bsheet.selected = app.bsheet.assets[2]
     apanel = app.mainwindow.edit_item()
-    apanel.currency = CAD
+    apanel.currency = 'CAD'
     apanel.save()
     app.show_account()
     eq_(app.etable[0].increase, '42.32')

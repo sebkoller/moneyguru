@@ -15,7 +15,7 @@ from ...app import Application
 from ...document import Document
 from ...model.account import AccountType
 from ...model.date import MonthRange
-from ...model.currency import Currencies, USD, CAD
+from ...model.currency import Currencies
 
 # IMPORTANT NOTE: Keep in mind that every node count check in these tests take the total node and the
 # blank node into account. For example, the node count of an empty ASSETS node is 2.
@@ -516,7 +516,7 @@ def test_budget_multiple_currencies(app, monkeypatch):
     app.istatement.selected = app.istatement.income[0]
     apanel = app.mw.edit_item()
     for i, (c, n, p) in enumerate(Currencies.all):
-        if c == CAD:
+        if c.code == 'CAD':
             apanel.currency_list.select(i)
     apanel.save()
     app.add_budget('income', 'Account 1', '400 cad')
@@ -608,17 +608,17 @@ def test_selection_as_csv(app):
 
 # --- Multiple currencies
 def app_multiple_currencies():
-    app = TestApp(app=Application(ApplicationGUI(), default_currency=CAD))
+    app = TestApp(app=Application(ApplicationGUI(), default_currency='CAD'))
     app.drsel.select_month_range()
     Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
     Currencies.get_rates_db().set_CAD_value(date(2008, 1, 31), 'USD', 0.9)
     app.add_group('Group')
-    app.add_account('USD account', currency=USD, group_name='Group')
+    app.add_account('USD account', currency='USD', group_name='Group')
     app.show_account()
     app.add_entry('1/1/2007', 'USD entry', increase='50.00')
     app.add_entry('1/1/2008', 'USD entry', increase='80.00')
     app.add_entry('31/1/2008', 'USD entry', increase='20.00')
-    app.add_account('CAD account', currency=CAD, group_name='Group')
+    app.add_account('CAD account', currency='CAD', group_name='Group')
     app.show_account()
     app.add_entry('1/1/2008', 'USD entry', increase='100.00')
     app.show_nwview()
