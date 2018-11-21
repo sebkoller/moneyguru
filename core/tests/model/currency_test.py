@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -43,8 +43,7 @@ def set_ratedb_for_tests(async_=False, slow_down_provider=False, provider=None):
 
 def test_unknown_currency():
     # Only known currencies are accepted.
-    with raises(ValueError):
-        Currencies.get('NOPE')
+    assert not Currencies.has('NOPE')
 
 def test_async_and_repeat():
     # If you make an ensure_rates() call and then the same call right after (before the first one

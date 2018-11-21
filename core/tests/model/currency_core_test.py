@@ -20,6 +20,7 @@ def setup_module(module):
     FOO = Currencies.register('FOO', 'Currency with start date', start_date=date(2009, 1, 12), start_rate=2)
     BAR = Currencies.register('BAR', 'Currency with stop date', stop_date=date(2010, 1, 12), latest_rate=2)
     PLN = Currencies.register('PLN', 'PLN')
+    Currencies.set_rates_db(None)
 
 def teardown_module(module):
     # We must unset our test currencies or else we might mess up with other tests.
@@ -30,17 +31,11 @@ def teardown_module(module):
 def teardown_function(function):
     Currencies.set_rates_db(None)
 
-def test_currency_copy():
-    # Currencies can be copied.
-    import copy
-    CAD = Currencies.get('CAD')
-    eq_(copy.copy(CAD), CAD)
-    eq_(copy.deepcopy(CAD), CAD)
-
 def test_get_rate_on_empty_db():
-    # When there is no data available, use the start_rate.
-    USD = Currencies.get('USD')
-    eq_(Currencies.get_rates_db().get_rate(date(2008, 4, 20), 'CAD', 'USD'), 1 / USD.latest_rate)
+    # When there is no data available, use the latest rate.
+    USD_LATEST_RATE = 1.0128
+    Currencies.set_rates_db(None)
+    eq_(Currencies.get_rates_db().get_rate(date(2008, 4, 20), 'CAD', 'USD'), 1 / USD_LATEST_RATE)
 
 def test_physical_rates_db_remember_rates(tmpdir):
     # When a rates db uses a real file, rates are remembered
@@ -74,11 +69,11 @@ def test_get_rate_with_daily_rate():
 def test_get_rate_different_currency():
     # Use fallback rates when necessary.
     setup_daily_rate()
-    EUR = Currencies.get('EUR')
+    EUR_LATEST_RATE = 1.3298
     rate = Currencies.get_rates_db().get_rate(date(2008, 4, 20), 'CAD', 'EUR')
-    assert_almost_equal(rate, 1 / EUR.latest_rate, places=6)
+    assert_almost_equal(rate, 1 / EUR_LATEST_RATE, places=6)
     rate = Currencies.get_rates_db().get_rate(date(2008, 4, 20), 'EUR', 'USD')
-    assert_almost_equal(rate, EUR.latest_rate * 0.996115, places=6)
+    assert_almost_equal(rate, EUR_LATEST_RATE * 0.996115, places=6)
 
 def test_get_rate_reverse():
     # It's possible to get the reverse value of a rate using the same data.

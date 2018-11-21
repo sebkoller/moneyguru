@@ -43,8 +43,7 @@ def test_dont_crash_with_duplicate_currency_register(app):
             return [('XXX', "Bar", 2, 1)]
 
     app.set_plugins([FooCurrencyProvider, BarCurrencyProvider]) # no crash
-    c = Currencies.get('XXX')
-    eq_(c.exponent, 2)
+    assert 'XXX - Foo' in Currencies.display_list()
 
 @with_app(TestApp)
 def test_ignore_duplicate_plugin_names(app):
