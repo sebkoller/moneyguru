@@ -80,7 +80,7 @@ class Transaction:
         might have amounts with different currencies here.
 
         :param account: :class:`.Account`
-        :param currency: :class:`.Currency`
+        :Param currency: :class:`.Currency`
 
         .. seealso:: :func:`.convert_amount`
         """
@@ -108,11 +108,11 @@ class Transaction:
         if not unassigned:
             return
         if target_split.amount:
-            target_currency = target_split.amount.currency
+            target_currency = target_split.amount.currency_code
         else:
             # Use whatever is the currency of the first split to show up
-            target_currency = unassigned[0].amount.currency
-        unassigned = [split for split in unassigned if split.amount.currency == target_currency]
+            target_currency = unassigned[0].amount.currency_code
+        unassigned = [split for split in unassigned if split.amount.currency_code == target_currency]
         amount = sum(split.amount for split in unassigned)
         target_split.amount += amount
         for split in unassigned:
@@ -154,7 +154,7 @@ class Transaction:
             elif (weak_split.amount > 0) == (strong_split.amount > 0): # on the same side
                 weak_split.amount *= -1
         splits_with_amount = [s for s in self.splits if s.amount]
-        if splits_with_amount and not allsame(s.amount.currency for s in splits_with_amount):
+        if splits_with_amount and not allsame(s.amount.currency_code for s in splits_with_amount):
             self.balance_currencies(strong_split)
             return
         imbalance = sum(s.amount for s in self.splits)
@@ -196,13 +196,13 @@ class Transaction:
             return
         currency2balance = defaultdict(int)
         for split in splits_with_amount:
-            currency2balance[split.amount.currency] += split.amount
+            currency2balance[split.amount.currency_code] += split.amount
         imbalanced = stripfalse(currency2balance.values()) # filters out zeros (balances currencies)
         # For a logical imbalance to be possible, all imbalanced amounts must be on the same side
         if imbalanced and allsame(amount > 0 for amount in imbalanced):
             unassigned = [s for s in self.splits if s.account is None and s is not strong_split]
             for amount in imbalanced:
-                split = first(s for s in unassigned if s.amount == 0 or s.amount.currency == amount.currency)
+                split = first(s for s in unassigned if s.amount == 0 or s.amount.currency_code == amount.currency_code)
                 if split is not None:
                     if split.amount == amount: # we end up with a null split, remove it
                         self.splits.remove(split)
@@ -271,7 +271,7 @@ class Transaction:
                 tsplit = tsplits[0]
                 tsplit.account = to
         if currency is not NOEDIT:
-            tochange = (s for s in self.splits if s.amount and s.amount.currency != currency)
+            tochange = (s for s in self.splits if s.amount and s.amount.currency_code != currency.code)
             for split in tochange:
                 split.amount = Amount(split.amount.value, currency)
                 split.reconciliation_date = None
@@ -432,7 +432,7 @@ class Transaction:
             # first split and use it as a base currency. Then, we sum up all amounts, convert them, and
             # divide the sum by 2.
             splits_with_amount = [s for s in self.splits if s.amount != 0]
-            currency = splits_with_amount[0].amount.currency
+            currency = splits_with_amount[0].amount.currency_code
             convert = lambda a: convert_amount(abs(a), currency, self.date)
             amount_sum = sum(convert(s.amount) for s in splits_with_amount)
             return amount_sum * 0.5
@@ -468,7 +468,7 @@ class Transaction:
         """*readonly*. ``bool``. Whether our splits contain more than one currency."""
         splits_with_amount = (s for s in self.splits if s.amount != 0)
         try:
-            return not allsame(s.amount.currency for s in splits_with_amount)
+            return not allsame(s.amount.currency_code for s in splits_with_amount)
         except ValueError: # no split with amount
             return False
 

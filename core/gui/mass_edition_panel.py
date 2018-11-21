@@ -105,8 +105,8 @@ class MassEditionPanel(MainWindowPanel):
             self.checkno_field.text = first.checkno
         splits = flatten(t.splits for t in transactions)
         splits = [s for s in splits if s.amount]
-        if splits and allsame(s.amount.currency for s in splits):
-            self.currency = splits[0].amount.currency
+        if splits and allsame(s.amount.currency_code for s in splits):
+            self.currency = Currencies.get(splits[0].amount.currency_code)
         else:
             self.currency = self.document.default_currency
         for i, (c, n, p) in enumerate(Currencies.all):

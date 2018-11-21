@@ -199,7 +199,7 @@ class EntryTableRow(BaseEntryTableRow):
         inmode = self.table.reconciliation_mode
         canedit = self.can_edit()
         future = self._date > datetime.date.today()
-        foreign = self._amount != 0 and self._amount.currency != self.account.currency
+        foreign = self._amount != 0 and self._amount.currency_code != self.account.currency.code
         balance_sheet = self.account.is_balance_sheet_account()
         return inmode and canedit and not future and not foreign and balance_sheet
 
@@ -273,7 +273,7 @@ class EntryTableRow(BaseEntryTableRow):
 
     @property
     def can_edit_reconciliation_date(self):
-        foreign = self._amount != 0 and self._amount.currency != self.account.currency
+        foreign = self._amount != 0 and self._amount.currency_code != self.account.currency.code
         return not foreign
 
 

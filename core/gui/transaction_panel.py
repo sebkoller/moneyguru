@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-07-06
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -12,6 +10,7 @@ from datetime import date
 from hscommon.util import first
 
 from ..model.account import Account, AccountType
+from ..model.currency import Currencies
 from ..model.transaction import Split, Transaction
 from .base import MainWindowPanel
 from .split_table import SplitTable
@@ -115,7 +114,7 @@ class TransactionPanel(PanelWithTransaction):
         split = first(self._selected_splits)
         new_split_currency = self.document.default_currency
         if split is not None and split.amount != 0:
-            new_split_currency = split.amount.currency
+            new_split_currency = Currencies.get(split.amount.currency_code)
         self.transaction.mct_balance(new_split_currency)
         self.split_table.refresh_splits()
 

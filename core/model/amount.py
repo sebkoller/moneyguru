@@ -130,6 +130,8 @@ def parse_amount(
         else:
             string = re_currency.sub('', string)
     currency = currency or default_currency
+    if isinstance(currency, str):
+        currency = Currencies.get(currency)
     exponent = currency.exponent if currency is not None else 2
     string = string.strip()
     # When we have an expression, we deal only with "simple" numbers. Turning expression off when
@@ -164,11 +166,13 @@ def convert_amount(amount, target_currency, date):
     """
     if amount == 0:
         return amount
-    currency = amount.currency
+    if hasattr(target_currency, 'code'):
+        target_currency = target_currency.code
+    currency = amount.currency_code
     if currency == target_currency:
         return amount
     exchange_rate = Currencies.get_rates_db().get_rate(
-        date, currency.code, target_currency.code)
+        date, currency, target_currency)
     return Amount(amount.value * exchange_rate, target_currency)
 
 def prorate_amount(amount, spread_over_range, wanted_range):
@@ -192,8 +196,8 @@ def prorate_amount(amount, spread_over_range, wanted_range):
     return amount * rate
 
 def same_currency(amount1, amount2):
-    return not (amount1 and amount2 and amount1.currency != amount2.currency)
+    return not (amount1 and amount2 and amount1.currency_code != amount2.currency_code)
 
 def of_currency(amount, currency):
-    return not amount or amount.currency == currency
+    return not amount or amount.currency_code == currency.code
 

@@ -1,9 +1,7 @@
-# Created By: Virgil Dupras
-# Created On: 2009-06-03
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2018 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from datetime import date
@@ -11,6 +9,7 @@ from datetime import date
 from hscommon.util import extract
 
 from .amount import prorate_amount
+from .currency import Currencies
 from .date import DateRange, ONE_DAY
 from .recurrence import Recurrence, Spawn, DateCounter, RepeatType
 from .transaction import Transaction, Split
@@ -56,10 +55,10 @@ class Budget(Recurrence):
         self._previous_spawns = []
         ref = Transaction(ref_date)
         Recurrence.__init__(self, ref, repeat_type, 1)
-    
+
     def __repr__(self):
         return '<Budget %r %r %r>' % (self.account, self.target, self.amount)
-    
+
     # --- Override
     def _create_spawn(self, ref, recurrence_date):
         # `recurrence_date` is the date at which the budget *starts*.
@@ -68,7 +67,7 @@ class Budget(Recurrence):
         next(date_counter) # first next() is the start_date
         end_date = next(date_counter) - ONE_DAY
         return BudgetSpawn(self, ref, recurrence_date=recurrence_date, date=end_date)
-    
+
     def get_spawns(self, end, transactions, consumedtxns):
         """Returns the list of transactions spawned by our budget.
 
@@ -95,10 +94,10 @@ class Budget(Recurrence):
             affects_spawn = lambda t: spawn.recurrence_date <= t.date <= spawn.date
             wheat, shaft = extract(affects_spawn, relevant_transactions)
             relevant_transactions = shaft
-            txns_amount = sum(t.amount_for_account(account, budget_amount.currency) for t in wheat)
+            txns_amount = sum(t.amount_for_account(account, budget_amount.currency_code) for t in wheat)
             if abs(txns_amount) < abs(budget_amount):
                 spawn_amount = budget_amount - txns_amount
-                if spawn.amount_for_account(account, budget_amount.currency) != spawn_amount:
+                if spawn.amount_for_account(account, budget_amount.currency_code) != spawn_amount:
                     spawn.amount = abs(spawn_amount)
                     spawn.set_splits([Split(spawn, account, spawn_amount), Split(spawn, self.target, -spawn_amount)])
             else:
@@ -106,7 +105,7 @@ class Budget(Recurrence):
             consumedtxns |= set(wheat)
         self._previous_spawns = spawns
         return spawns
-    
+
     # --- Public
     def amount_for_date_range(self, date_range, currency):
         """Returns the budgeted amount for ``date_range``.
@@ -135,7 +134,7 @@ class Budget(Recurrence):
             my_date_range = DateRange(my_start_date, my_end_date)
             total_amount += prorate_amount(amount, my_date_range, date_range)
         return total_amount
-    
+
 
 class BudgetList(list):
     """Manage the collection of budgets of a document.
@@ -163,9 +162,11 @@ class BudgetList(list):
         if not budgets:
             return 0
         currency = currency or account.currency
+        if isinstance(currency, str):
+            currency = Currencies.get(currency)
         amount = sum(b.amount_for_date_range(date_range, currency) for b in budgets)
         return amount
-    
+
     def budgets_for_target(self, target):
         """Return all budgets with ``target`` as :attr:`Budget.target`.
 
@@ -174,7 +175,7 @@ class BudgetList(list):
         :rtype: List of :class:`Budget`
         """
         return [b for b in self if b.target is target]
-    
+
     def normal_amount_for_account(self, account, date_range, currency=None):
         """Normalized version of :meth:`amount_for_account`.
 
@@ -182,4 +183,4 @@ class BudgetList(list):
         """
         budgeted_amount = self.amount_for_account(account, date_range, currency)
         return account.normalize_amount(budgeted_amount)
-    
+

@@ -303,7 +303,7 @@ class Loader:
             account.account_number = info.account_number
             account.inactive = info.inactive
             account.notes = info.notes
-            currencies.add(account.currency)
+            currencies.add(account.currency.code)
             self.accounts.add(account)
 
         # Pre-parse transaction info. We bring all relevant info recorded at the txn level into the split level
@@ -331,7 +331,7 @@ class Loader:
                 currency = split_info.account.currency if split_info.account is not None else self.default_currency
                 split_info.amount = self.parse_amount(str_amount, currency)
                 if split_info.amount:
-                    currencies.add(split_info.amount.currency)
+                    currencies.add(split_info.amount.currency_code)
 
         self.transaction_infos.sort(key=attrgetter('date'))
         for date, transaction_infos in groupby(self.transaction_infos, attrgetter('date')):
@@ -375,7 +375,7 @@ class Loader:
             self.budgets.append(budget)
         self._post_load()
         self.oven.cook(datetime.date.min, until_date=None)
-        Currencies.get_rates_db().ensure_rates(start_date, [x.code for x in currencies])
+        Currencies.get_rates_db().ensure_rates(start_date, list(currencies))
 
 
 class GroupInfo:

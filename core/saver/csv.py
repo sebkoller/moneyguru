@@ -25,8 +25,8 @@ def save(filename, accounts, daterange=None):
             transfer = ', '.join(a.name for a in entry.transfer)
             amount = entry.amount
             if amount:
-                amount_fmt = format_amount(amount, amount.currency)
-                currency_code = amount.currency.code
+                amount_fmt = format_amount(amount, amount.currency_code)
+                currency_code = amount.currency_code
             else:
                 amount_fmt = '0.00'
                 currency_code = ''

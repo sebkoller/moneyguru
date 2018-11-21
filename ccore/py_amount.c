@@ -5,7 +5,6 @@
 typedef struct {
     PyObject_HEAD
     Amount amount;
-    PyObject *currency; /* a Currency instance */
     PyObject *rval; /* Real value, as a python float instance */
 } PyAmount;
 
@@ -36,24 +35,39 @@ get_currency(PyObject *currency)
 {
     PyObject *tmp;
     Currency *result;
+    char *code;
 
-    if (!Currency_Check(currency)) {
-        PyErr_SetString(PyExc_TypeError, "not a currency");
-        return NULL;
-    }
-    tmp = PyObject_GetAttrString(currency, "_inner");
-    if (tmp == NULL) {
-        return NULL;
-    }
-    if (!PyCapsule_CheckExact(tmp)) {
-        PyErr_SetString(PyExc_TypeError, "not a capsule");
+    if (Currency_Check(currency)) {
+        tmp = PyObject_GetAttrString(currency, "_inner");
+        if (tmp == NULL) {
+            return NULL;
+        }
+        if (!PyCapsule_CheckExact(tmp)) {
+            PyErr_SetString(PyExc_TypeError, "not a capsule");
+            Py_DECREF(tmp);
+            return NULL;
+        }
+        result = (Currency *)PyCapsule_GetPointer(tmp, NULL);
         Py_DECREF(tmp);
-        return NULL;
+        if (result == NULL) {
+            PyErr_SetString(PyExc_TypeError, "invalid capsule");
+            return NULL;
+        }
     }
-    result = (Currency *)PyCapsule_GetPointer(tmp, NULL);
-    Py_DECREF(tmp);
-    if (result == NULL) {
-        PyErr_SetString(PyExc_TypeError, "invalid capsule");
+    else if (PyUnicode_Check(currency)) {
+        tmp = PyUnicode_AsASCIIString(currency);
+        if (tmp == NULL) {
+            return NULL;
+        }
+        code = PyBytes_AsString(tmp);
+        result = currency_get(code);
+        Py_DECREF(tmp);
+        if (result == NULL) {
+            PyErr_SetString(PyExc_TypeError, "couldn't find currency code");
+            return NULL;
+        }
+    } else {
+        PyErr_SetString(PyExc_TypeError, "not a currency");
         return NULL;
     }
     return result;
@@ -62,18 +76,7 @@ get_currency(PyObject *currency)
 static bool
 set_currency(PyAmount *amount, PyObject *currency)
 {
-    PyObject *tmp;
     Currency *c;
-
-    if (!Currency_Check(currency)) {
-        PyErr_SetString(PyExc_TypeError, "not a currency");
-        return false;
-    }
-
-    Py_INCREF(currency);
-    tmp = amount->currency;
-    amount->currency = currency;
-    Py_XDECREF(tmp);
 
     c = get_currency(currency);
     if (c == NULL) {
@@ -128,7 +131,7 @@ check_amounts(PyObject *a, PyObject *b, bool seterr)
 }
 
 static PyObject *
-create_amount(int64_t ival, PyObject *currency)
+create_amount(int64_t ival, Currency *currency)
 {
     /* Create a new amount in a way that is faster than the normal init */
     PyAmount *r;
@@ -137,9 +140,7 @@ create_amount(int64_t ival, PyObject *currency)
 
     r = (PyAmount *)PyType_GenericAlloc((PyTypeObject *)Amount_Type, 0);
     r->amount.val = ival;
-    if (!set_currency(r, currency)) {
-        return NULL;
-    }
+    r->amount.currency = currency;
     dtmp = (double)ival / pow(10, r->amount.currency->exponent);
     r->rval = PyFloat_FromDouble(dtmp);
     if (r->rval == NULL) {
@@ -153,7 +154,6 @@ create_amount(int64_t ival, PyObject *currency)
 static void
 PyAmount_dealloc(PyAmount *self)
 {
-    Py_XDECREF(self->currency);
     Py_XDECREF(self->rval);
     PyObject_Del(self);
 }
@@ -169,8 +169,6 @@ PyAmount_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     }
     self->amount.val = 0;
     self->amount.currency = NULL;
-    self->currency = Py_None;
-    Py_INCREF(self->currency);
     self->rval = PyFloat_FromDouble(0);
     if (self->rval == NULL) {
         Py_DECREF(self);
@@ -188,7 +186,6 @@ PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
 
     static char *kwlist[] = {"amount", "currency", NULL};
 
-    self->currency = NULL;
     self->rval = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, &amount, &currency)) {
@@ -214,7 +211,6 @@ static int
 PyAmount_traverse(PyAmount *self, visitproc visit, void *arg)
 {
     Py_VISIT(self->rval);
-    Py_VISIT(self->currency);
     return 0;
 }
 
@@ -222,7 +218,6 @@ static int
 PyAmount_clear(PyAmount *self)
 {
     Py_CLEAR(self->rval);
-    Py_CLEAR(self->currency);
     return 0;
 }
 
@@ -231,7 +226,7 @@ PyAmount_copy(PyObject *self)
 {
     return create_amount(
         ((PyAmount *)self)->amount.val,
-        ((PyAmount *)self)->currency);
+        ((PyAmount *)self)->amount.currency);
 }
 
 static PyObject *
@@ -246,7 +241,7 @@ PyAmount_repr(PyAmount *self)
     PyObject *r, *fmt, *args;
 
     args = Py_BuildValue(
-        "(iOO)", self->amount.val, self->rval, self->currency);
+        "(iOs)", self->amount.val, self->rval, self->amount.currency->code);
     fmt = PyUnicode_FromString("Amount(%r, %r, %r)");
     r = PyUnicode_Format(fmt, args);
     Py_DECREF(fmt);
@@ -257,12 +252,14 @@ PyAmount_repr(PyAmount *self)
 static Py_hash_t
 PyAmount_hash(PyAmount *self)
 {
-    PyObject *hash_tuple, *int_value;
+    PyObject *hash_tuple, *int_value, *byte_value;
     Py_hash_t r;
 
     int_value = PyLong_FromLongLong(self->amount.val);
-    hash_tuple = PyTuple_Pack(2, int_value, self->currency);
+    byte_value = PyBytes_FromString(self->amount.currency->code);
+    hash_tuple = PyTuple_Pack(2, int_value, byte_value);
     Py_DECREF(int_value);
+    Py_DECREF(byte_value);
     r = PyObject_Hash(hash_tuple);
     Py_DECREF(hash_tuple);
     return r;
@@ -311,7 +308,7 @@ PyAmount_richcompare(PyObject *a, PyObject *b, int op)
 static PyObject *
 PyAmount_neg(PyAmount* self)
 {
-    return create_amount(-self->amount.val, self->currency);
+    return create_amount(-self->amount.val, self->amount.currency);
 }
 
 static int
@@ -350,8 +347,7 @@ PyAmount_add(PyObject *a, PyObject *b)
     aval = get_amount(a)->val;
     bval = get_amount(b)->val;
     if (aval && bval) {
-        currency = ((PyAmount *)a)->currency;
-        return create_amount(aval + bval, currency);
+        return create_amount(aval + bval, ((PyAmount *)a)->amount.currency);
     }
     else if (aval) {
         /* b is 0, return a */
@@ -377,8 +373,7 @@ PyAmount_sub(PyObject *a, PyObject *b)
     aval = get_amount(a)->val;
     bval = get_amount(b)->val;
     if (aval && bval) {
-        currency = ((PyAmount *)a)->currency;
-        return create_amount(aval - bval, currency);
+        return create_amount(aval - bval, ((PyAmount *)a)->amount.currency);
     }
     else if (aval) {
         /* b is 0, return a */
@@ -422,7 +417,7 @@ PyAmount_mul(PyObject *a, PyObject *b)
     }
 
     ival = rint(((PyAmount *)a)->amount.val * dval);
-    return create_amount(ival, ((PyAmount *)a)->currency);
+    return create_amount(ival, ((PyAmount *)a)->amount.currency);
 }
 
 static PyObject *
@@ -457,14 +452,15 @@ PyAmount_true_divide(PyObject *a, PyObject *b)
     }
 
     ival = rint(((PyAmount *)a)->amount.val / dval);
-    return create_amount(ival, ((PyAmount *)a)->currency);
+    return create_amount(ival, ((PyAmount *)a)->amount.currency);
 }
 
 static PyObject *
-PyAmount_getcurrency(PyAmount *self)
+PyAmount_getcurrency_code(PyAmount *self)
 {
-    Py_INCREF(self->currency);
-    return self->currency;
+    int len;
+    len = strlen(self->amount.currency->code);
+    return PyUnicode_DecodeASCII(self->amount.currency->code, len, NULL);
 }
 
 static PyObject *
@@ -554,7 +550,7 @@ static PyMethodDef PyAmount_methods[] = {
 };
 
 static PyGetSetDef PyAmount_getseters[] = {
-    {"currency", (getter)PyAmount_getcurrency, NULL, "currency", NULL},
+    {"currency_code", (getter)PyAmount_getcurrency_code, NULL, "currency_code", NULL},
     {"value", (getter)PyAmount_getvalue, NULL, "value", NULL},
     {0, 0, 0, 0, 0},
 };
