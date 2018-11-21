@@ -515,9 +515,7 @@ def test_budget_multiple_currencies(app, monkeypatch):
     app.show_pview()
     app.istatement.selected = app.istatement.income[0]
     apanel = app.mw.edit_item()
-    for i, (c, n, p) in enumerate(Currencies.all):
-        if c.code == 'CAD':
-            apanel.currency_list.select(i)
+    apanel.currency_list.select(Currencies.index('CAD'))
     apanel.save()
     app.add_budget('income', 'Account 1', '400 cad')
     app.show_nwview()

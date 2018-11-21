@@ -82,6 +82,23 @@ class Currencies:
         Currencies.rates_db = None
         Currencies.sort_currencies()
 
+    @classmethod
+    def display_list(cls):
+        return ['%s - %s' % (c.code, n) for c, n, p in cls.all]
+
+    @classmethod
+    def index(cls, code):
+        for i, (c, n, p) in enumerate(cls.all):
+            if c.code == code:
+                return i
+        raise IndexError()
+
+    @classmethod
+    def code_at_index(cls, index):
+        if index < 0:
+            raise IndexError()
+        return Currencies.all[index][0].code
+
     @staticmethod
     def set_rates_db(db):
         """Sets a new currency ``RatesDB`` instance to be used with all ``Currency`` instances.

@@ -52,14 +52,14 @@ class AccountPanel(MainWindowPanel):
         self._init_fields()
         self_proxy = weakref.proxy(self)
         self.type_list = AccountTypeList(self_proxy)
-        currencies_display = ['%s - %s' % (c.code, n) for c, n, p in Currencies.all]
 
         def setfunc(index):
             try:
-                self_proxy.currency = Currencies.all[index][0].code
+                self_proxy.currency = Currencies.code_at_index(index)
             except IndexError:
                 pass
-        self.currency_list = LinkedSelectableList(items=currencies_display, setfunc=setfunc)
+        self.currency_list = LinkedSelectableList(
+            items=Currencies.display_list(), setfunc=setfunc)
 
     # --- Override
     def _load(self, account):
@@ -72,9 +72,10 @@ class AccountPanel(MainWindowPanel):
         self.inactive = account.inactive
         self.notes = account.notes
         self.type_list.select(AccountType.InOrder.index(self.type))
-        for i, (c, n, p) in enumerate(Currencies.all):
-            if c.code == self.currency:
-                self.currency_list.select(i)
+        try:
+            self.currency_list.select(Currencies.index(self.currency))
+        except IndexError:
+            pass
         self.can_change_currency = not any(e.reconciled for e in account.entries)
         self.account = account # for the save() assert
 

@@ -22,9 +22,9 @@ def test_change_currency_index(app):
     # Changing currency_index correctly updates the currency.
     apanel = app.mw.edit_item()
     apanel.currency_list.select(0)
-    eq_(apanel.currency, Currencies.all[0][0].code)
+    eq_(apanel.currency, Currencies.code_at_index(0))
     apanel.currency_list.select(42)
-    eq_(apanel.currency, Currencies.all[42][0].code)
+    eq_(apanel.currency, Currencies.code_at_index(42))
 
 @with_app(app_some_account)
 def test_change_type_index(app):
@@ -48,7 +48,7 @@ def test_fields(app):
     eq_(apanel.type, AccountType.Expense)
     eq_(apanel.currency, 'CAD')
     eq_(apanel.type_list.selected_index, 3) # Expense type is last in the list
-    eq_(Currencies.all[apanel.currency_list.selected_index][0].code, 'CAD')
+    eq_(Currencies.code_at_index(apanel.currency_list.selected_index), 'CAD')
     eq_(apanel.account_number, '4242')
     assert not apanel.inactive
     eq_(apanel.notes, '')
@@ -99,7 +99,7 @@ def test_save_then_load(app):
     # To test the currency, we have to load again
     app.bsheet.selected = app.bsheet.liabilities[0] # foobaz
     apanel = app.mw.edit_item()
-    eq_(apanel.currency, Currencies.all[42][0].code)
+    eq_(apanel.currency, Currencies.code_at_index(42))
     eq_(apanel.type, AccountType.Liability)
     eq_(apanel.name, 'changed name')
     eq_(apanel.account_number, '4241')

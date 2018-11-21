@@ -91,10 +91,7 @@ class TestSomeAssetsAndLiabilities:
         # just make sure it doesn't crash
         app.bsheet.selected = app.bsheet.assets[0]
         apanel = app.mw.edit_item()
-        for i, (c, n, p) in enumerate(Currencies.all):
-            if c.code == 'CAD':
-                apanel.currency_list.select(i)
-                break
+        apanel.currency_list.select(Currencies.index('CAD'))
         apanel.save()
         app.add_account('income', account_type=AccountType.Income)
         app.add_budget('income', None, '5')

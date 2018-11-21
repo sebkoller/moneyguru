@@ -55,19 +55,19 @@ class MassEditionPanel(MainWindowPanel):
         self.to_field = MassEditTextField(self_proxy, 'to')
         self.amount_field = MassEditAmountField(self_proxy, 'amount')
         self.completable_edit = CompletableEdit(mainwindow)
-        currencies_display = ['%s - %s' % (c.code, n) for c, n, p in Currencies.all]
 
         def setfunc(index):
-            if 0 <= index < len(Currencies.all):
-                currency = Currencies.all[index][0].code
-            else:
+            try:
+                currency = Currencies.code_at_index(index)
+            except IndexError:
                 currency = None
             if currency != self_proxy.currency:
                 self_proxy.currency = currency
                 self_proxy.currency_enabled = currency is not None
                 self_proxy.view.refresh()
         self.currency = None
-        self.currency_list = LinkedSelectableList(items=currencies_display, setfunc=setfunc)
+        self.currency_list = LinkedSelectableList(
+            items=Currencies.display_list(), setfunc=setfunc)
         self._init_checkboxes()
 
     # --- Private
@@ -109,9 +109,10 @@ class MassEditionPanel(MainWindowPanel):
             self.currency = splits[0].amount.currency_code
         else:
             self.currency = self.document.default_currency
-        for i, (c, n, p) in enumerate(Currencies.all):
-            if c.code == self.currency:
-                self.currency_list.select(i)
+        try:
+            self.currency_list.select(Currencies.index(self.currency))
+        except IndexError:
+            pass
         if self.can_change_accounts:
             def get_from(t):
                 s1, s2 = t.splits

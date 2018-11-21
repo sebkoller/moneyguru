@@ -51,16 +51,17 @@ class DocPropsView(BaseView):
         def setfunc(index):
             self.document.year_start_month = index + 1
         self.year_start_month_list = LinkedSelectableList(items=MONTHS, setfunc=setfunc)
-        currencies_display = ['%s - %s' % (c.code, n) for c, n, p in Currencies.all]
 
         def setfunc(index):
-            self.document.default_currency = Currencies.all[index][0].code
-        self.currency_list = LinkedSelectableList(items=currencies_display, setfunc=setfunc)
+            self.document.default_currency = Currencies.code_at_index(index)
+        self.currency_list = LinkedSelectableList(
+            items=Currencies.display_list(), setfunc=setfunc)
 
     def _revalidate(self):
-        for i, (c, n, p) in enumerate(Currencies.all):
-            if c.code == self.document.default_currency:
-                self.currency_list.select(i)
+        try:
+            self.currency_list.select(Currencies.index(self.document.default_currency))
+        except IndexError:
+            pass
         self.first_weekday_list.select(self.document.first_weekday)
         self.ahead_months_list.select(self.document.ahead_months)
         self.year_start_month_list.select(self.document.year_start_month - 1)
