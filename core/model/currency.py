@@ -24,24 +24,16 @@ class RateProviderUnavailable(Exception):
 class Currencies:
     all = []
     by_code = {}
-    by_name = {}
     rates_db = None
 
     @classmethod
-    def get(cls, code=None, name=None):
+    def get(cls, code):
         """Returns the currency with the given code."""
-        assert (code is None and name is not None) or (code is not None and name is None)
-        if code is not None:
-            code = code.upper()
-            try:
-                return cls.by_code[code]
-            except KeyError:
-                raise ValueError('Unknown currency code: %r' % code)
-        else:
-            try:
-                return cls.by_name[name]
-            except KeyError:
-                raise ValueError('Unknown currency name: %r' % name)
+        code = code.upper()
+        try:
+            return cls.by_code[code]
+        except KeyError:
+            raise ValueError('Unknown currency code: %r' % code)
 
     @staticmethod
     def has(code):
@@ -62,12 +54,10 @@ class Currencies:
         code = code.upper()
         if code in Currencies.by_code:
             return Currencies.by_code[code]
-        assert name not in Currencies.by_name
         _ccore.currency_register(
             code, exponent, start_date, start_rate, stop_date, latest_rate)
         currency = _ccore.Currency(code)
         Currencies.by_code[code] = currency
-        Currencies.by_name[name] = currency
         Currencies.all.append((currency, name, priority))
         return currency
 
@@ -77,7 +67,6 @@ class Currencies:
         # many modules and we depend on those instances being present at too many places.
         # For now, this is only called during testing.
         Currencies.all = [(c, n, p) for (c, n, p) in Currencies.all if c.code in {'CAD', 'USD', 'EUR'}]
-        Currencies.by_name = {n: c for (c, n, p) in Currencies.all}
         Currencies.by_code = {c.code: c for (c, n, p) in Currencies.all}
         Currencies.rates_db = None
         Currencies.sort_currencies()

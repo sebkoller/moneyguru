@@ -30,11 +30,6 @@ def teardown_module(module):
 def teardown_function(function):
     Currencies.set_rates_db(None)
 
-def test_currency_creation():
-    # Different ways to create a currency.
-    CAD = Currencies.get('CAD')
-    eq_(Currencies.get(name='Canadian dollar'), CAD)
-
 def test_currency_copy():
     # Currencies can be copied.
     import copy
