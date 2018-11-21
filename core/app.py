@@ -268,7 +268,8 @@ class Application(Broadcaster):
 
         This simply wraps :func:`core.model.amount.format_amount` and adds default values.
         """
-        return format_amount(amount, self._default_currency, decimal_sep=self._decimal_sep,
+        default_currency = self._default_currency.code if self._default_currency else ''
+        return format_amount(amount, default_currency, decimal_sep=self._decimal_sep,
                              grouping_sep=self._grouping_sep, **kw)
 
     def format_date(self, date):

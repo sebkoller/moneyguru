@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-01-18
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,13 +6,11 @@
 
 from datetime import date
 
-from pytest import raises
 from hscommon.testutil import eq_
 
-from ...exception import FileFormatError
 from ...loader.csv import Loader, CsvField
 from ...model.amount import Amount
-from ...model.currency import USD, EUR
+from ...model.currency import USD
 from ..base import testdata
 
 def test_fortis():
@@ -39,9 +35,9 @@ def test_fortis():
     eq_(txn.date, date(2008, 12, 1))
     eq_(txn.description, 'RETRAIT A UN DISTRIBUTEUR FORTIS')
     eq_(txn.splits[0].account.name, 'CSV Import')
-    eq_(txn.splits[0].amount, Amount(-100, EUR))
+    eq_(txn.splits[0].amount, Amount(-100, 'EUR'))
     assert txn.splits[1].account is None
-    eq_(txn.splits[1].amount, Amount(100, EUR))
+    eq_(txn.splits[1].amount, Amount(100, 'EUR'))
     eq_(txn.splits[0].reference, '2008-0069')
 
 def test_fortis_with_r_linesep():

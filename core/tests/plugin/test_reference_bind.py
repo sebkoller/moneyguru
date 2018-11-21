@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,13 +10,12 @@ from itertools import starmap
 from hscommon.testutil import eq_
 
 from ...model.amount import Amount
-from ...model.currency import USD
 from ...model.entry import Entry
 from ...model.transaction import Transaction
 from ...plugin.base_import_bind import ReferenceBind
 
 def create_entry(entry_date, description, reference):
-    txn = Transaction(entry_date, description=description, amount=Amount(1, USD))
+    txn = Transaction(entry_date, description=description, amount=Amount(1, 'USD'))
     split = txn.splits[0]
     split.reference = reference
     return Entry(split, split.amount, 0, 0, 0)

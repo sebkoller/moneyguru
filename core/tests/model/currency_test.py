@@ -13,7 +13,7 @@ from hscommon.testutil import jointhreads, eq_
 from ...model.amount import convert_amount
 from ...model.amount import Amount
 from ...model.currency import (
-    Currencies, USD, CAD, RateProviderUnavailable, RatesDB)
+    Currencies, RateProviderUnavailable, RatesDB)
 from ...plugin import boc_currency_provider
 
 def slow_down(func):
@@ -60,10 +60,10 @@ def test_seek_rate():
     # Trying to get rate around the existing date gives the rate in question.
     set_ratedb_for_tests()
     Currencies.get_rates_db().set_CAD_value(date(2008, 5, 20), 'USD', 0.98)
-    amount = Amount(42, USD)
-    expected = Amount(42 * .98, CAD)
-    eq_(convert_amount(amount, CAD, date(2008, 5, 21)), expected)
-    eq_(convert_amount(amount, CAD, date(2008, 5, 19)), expected)
+    amount = Amount(42, 'USD')
+    expected = Amount(42 * .98, 'CAD')
+    eq_(convert_amount(amount, 'CAD', date(2008, 5, 21)), expected)
+    eq_(convert_amount(amount, 'CAD', date(2008, 5, 19)), expected)
 
 # ---
 def test_ask_for_rates_in_the_past():

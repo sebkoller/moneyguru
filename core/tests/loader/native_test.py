@@ -79,7 +79,7 @@ def test_account_and_entry_values(loader):
     eq_(len(transaction.splits), 1)
     split = transaction.splits[0]
     eq_(split.account.name, 'Account 2')
-    eq_(split.amount, Amount(89, PLN))
+    eq_(split.amount, Amount(89, 'PLN'))
 
     transaction = transactions[1]
     eq_(transaction.date, date(2008, 2, 15))
@@ -88,10 +88,10 @@ def test_account_and_entry_values(loader):
     eq_(len(transaction.splits), 2)
     split = transaction.splits[0]
     eq_(split.account.name, 'Account 1')
-    eq_(split.amount, Amount(42, USD))
+    eq_(split.amount, Amount(42, 'USD'))
     split = transaction.splits[1]
     eq_(split.account.name, 'foobar')
-    eq_(split.amount, Amount(-42, USD))
+    eq_(split.amount, Amount(-42, 'USD'))
 
     transaction = transactions[2]
     eq_(transaction.date, date(2008, 2, 16))
@@ -103,7 +103,7 @@ def test_account_and_entry_values(loader):
     eq_(len(transaction.splits), 1)
     split = transaction.splits[0]
     eq_(split.account.name, 'Account 1')
-    eq_(split.amount, Amount(-14, USD))
+    eq_(split.amount, Amount(-14, 'USD'))
 
     transaction = transactions[3]
     eq_(transaction.date, date(2008, 2, 19))
@@ -112,7 +112,7 @@ def test_account_and_entry_values(loader):
     eq_(transaction.mtime, 1203095497)
     split = transaction.splits[0]
     eq_(split.account.name, 'Account 2')
-    eq_(split.amount, Amount(-101, PLN))
+    eq_(split.amount, Amount(-101, 'PLN'))
 
 def test_unsupported_currency(loader):
     # Trying to load a file containing amounts of unsupported currencies raises FileFormatError

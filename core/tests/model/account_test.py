@@ -1,4 +1,4 @@
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -63,26 +63,26 @@ class TestOneAccount:
         accounts = AccountList(CAD)
         accounts.add(self.account)
         transactions = TransactionList([
-            Transaction(date(2007, 12, 31), account=self.account, amount=Amount(20, USD)),
-            Transaction(date(2008, 1, 1), account=self.account, amount=Amount(100, USD)),
-            Transaction(date(2008, 1, 2), account=self.account, amount=Amount(50, USD)),
-            Transaction(date(2008, 1, 3), account=self.account, amount=Amount(70, CAD)),
-            Transaction(date(2008, 1, 31), account=self.account, amount=Amount(2, USD)),
+            Transaction(date(2007, 12, 31), account=self.account, amount=Amount(20, 'USD')),
+            Transaction(date(2008, 1, 1), account=self.account, amount=Amount(100, 'USD')),
+            Transaction(date(2008, 1, 2), account=self.account, amount=Amount(50, 'USD')),
+            Transaction(date(2008, 1, 3), account=self.account, amount=Amount(70, 'CAD')),
+            Transaction(date(2008, 1, 31), account=self.account, amount=Amount(2, 'USD')),
         ])
         oven = Oven(accounts, transactions, [], [])
         oven.cook(date.min, date.max)
 
     def test_balance(self):
-        eq_(self.account.entries.balance(date(2007, 12, 31)), Amount(20, USD))
+        eq_(self.account.entries.balance(date(2007, 12, 31)), Amount(20, 'USD'))
 
         # The balance is converted using the rate on the day the balance is
         # requested.
-        eq_(self.account.entries.balance(date(2007, 12, 31), currency=CAD), Amount(20 * 1.1, CAD))
+        eq_(self.account.entries.balance(date(2007, 12, 31), currency=CAD), Amount(20 * 1.1, 'CAD'))
 
     def test_cash_flow(self):
         range = MonthRange(date(2008, 1, 1))
-        eq_(self.account.entries.cash_flow(range), Amount(252, USD))
+        eq_(self.account.entries.cash_flow(range), Amount(252, 'USD'))
 
         # Each entry is converted using the entry's day rate.
-        eq_(self.account.entries.cash_flow(range, CAD), Amount(201.40, CAD))
+        eq_(self.account.entries.cash_flow(range, CAD), Amount(201.40, 'CAD'))
 

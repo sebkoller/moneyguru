@@ -9,10 +9,8 @@ typedef struct {
 } PyAmount;
 
 PyObject *Amount_Type;
-PyObject *Currency_Type;
 
 #define Amount_Check(v) (Py_TYPE(v) == (PyTypeObject *)Amount_Type)
-#define Currency_Check(v) (Py_TYPE(v) == (PyTypeObject *)Currency_Type)
 
 /* Utility funcs */
 
@@ -28,62 +26,6 @@ get_amount(PyObject *amount)
     else { /* it's an int and it *has* to be 0 */
         return amount_zero();
     }
-}
-
-static Currency*
-get_currency(PyObject *currency)
-{
-    PyObject *tmp;
-    Currency *result;
-    char *code;
-
-    if (Currency_Check(currency)) {
-        tmp = PyObject_GetAttrString(currency, "_inner");
-        if (tmp == NULL) {
-            return NULL;
-        }
-        if (!PyCapsule_CheckExact(tmp)) {
-            PyErr_SetString(PyExc_TypeError, "not a capsule");
-            Py_DECREF(tmp);
-            return NULL;
-        }
-        result = (Currency *)PyCapsule_GetPointer(tmp, NULL);
-        Py_DECREF(tmp);
-        if (result == NULL) {
-            PyErr_SetString(PyExc_TypeError, "invalid capsule");
-            return NULL;
-        }
-    }
-    else if (PyUnicode_Check(currency)) {
-        tmp = PyUnicode_AsASCIIString(currency);
-        if (tmp == NULL) {
-            return NULL;
-        }
-        code = PyBytes_AsString(tmp);
-        result = currency_get(code);
-        Py_DECREF(tmp);
-        if (result == NULL) {
-            PyErr_SetString(PyExc_TypeError, "couldn't find currency code");
-            return NULL;
-        }
-    } else {
-        PyErr_SetString(PyExc_TypeError, "not a currency");
-        return NULL;
-    }
-    return result;
-}
-
-static bool
-set_currency(PyAmount *amount, PyObject *currency)
-{
-    Currency *c;
-
-    c = get_currency(currency);
-    if (c == NULL) {
-        return false;
-    }
-    amount->amount.currency = c;
-    return true;
 }
 
 static bool
@@ -181,20 +123,25 @@ PyAmount_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 static int
 PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *amount, *currency, *tmp;
+    PyObject *amount, *tmp;
+    char *code;
     double dtmp;
+    Currency *c;
 
     static char *kwlist[] = {"amount", "currency", NULL};
 
     self->rval = NULL;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO", kwlist, &amount, &currency)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Os", kwlist, &amount, &code)) {
         return -1;
     }
 
-    if (!set_currency(self, currency)) {
+    c = currency_get(code);
+    if (c == NULL) {
+        PyErr_SetString(PyExc_ValueError, "couldn't find currency code");
         return -1;
     }
+    self->amount.currency = c;
     dtmp = PyFloat_AsDouble(amount);
     if (PyErr_Occurred()) {
         return -1;
@@ -477,8 +424,8 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
     int rc;
     Amount *amount;
     PyObject *pyamount;
-    PyObject *default_currency = NULL;
-    PyObject *zero_currency = NULL;
+    char *default_currency = "";
+    char *zero_currency = "";
     bool blank_zero = false;
     bool show_currency = false;
     char *decimal_sep = ".";
@@ -490,7 +437,7 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
         "decimal_sep", "grouping_sep", NULL};
 
     rc = PyArg_ParseTupleAndKeywords(
-        args, kwds, "O|OpOss", kwlist, &pyamount, &default_currency,
+        args, kwds, "O|spsss", kwlist, &pyamount, &default_currency,
         &blank_zero, &zero_currency, &decimal_sep, &grouping_sep);
     if (!rc) {
         return NULL;
@@ -511,9 +458,10 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
 
     amount = get_amount(pyamount);
     if (!amount->val) {
-        if (zero_currency != NULL && zero_currency != Py_None) {
-            c = get_currency(zero_currency);
+        if (strlen(zero_currency)) {
+            c = currency_get(zero_currency);
             if (c == NULL) {
+                PyErr_SetString(PyExc_ValueError, "currency not found");
                 return NULL;
             }
             amount->currency = c;
@@ -521,9 +469,10 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
             amount->currency = NULL;
         }
     }
-    if (default_currency != NULL && default_currency != Py_None) {
-        c = get_currency(default_currency);
+    if (strlen(default_currency)) {
+        c = currency_get(default_currency);
         if (c == NULL) {
+            PyErr_SetString(PyExc_ValueError, "currency not found");
             return NULL;
         }
         show_currency = c != amount->currency;

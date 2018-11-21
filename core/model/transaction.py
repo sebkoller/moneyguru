@@ -273,7 +273,7 @@ class Transaction:
         if currency is not NOEDIT:
             tochange = (s for s in self.splits if s.amount and s.amount.currency_code != currency.code)
             for split in tochange:
-                split.amount = Amount(split.amount.value, currency)
+                split.amount = Amount(split.amount.value, currency.code)
                 split.reconciliation_date = None
         # Reconciliation can never be lower than txn date
         for split in self.splits:

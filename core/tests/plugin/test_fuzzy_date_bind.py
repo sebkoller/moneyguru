@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras, Georg Drees
+# Copyright 2018 Virgil Dupras, Georg Drees
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -19,7 +19,6 @@ from pytest import mark, raises
 from hscommon.testutil import eq_
 
 from ...model.amount import Amount
-from ...model.currency import USD
 from ...model.entry import Entry
 from ...model.transaction import Transaction
 from ...plugin.fuzzy_date_bind import FuzzyDateBind
@@ -32,7 +31,7 @@ def create_entry(entry_date, description, amount):
     if isinstance(amount, Amount):
         txn = Transaction(entry_date, description=description, amount=amount)
     elif isinstance(amount, int) or isinstance(amount, float):
-        txn = Transaction(entry_date, description=description, amount=Amount(amount, USD))
+        txn = Transaction(entry_date, description=description, amount=Amount(amount, 'USD'))
     else:
         raise TypeError("amount must be of type model.amount.Amount, int or float!")
     if not isinstance(description, str):
@@ -45,7 +44,7 @@ def test_internal_create_entry_argument_fencing():
     # Verify that description and amount must be certain types
     # when created in tests.
     DATE = date(2017, 10, 10)
-    create_entry(DATE, "string", Amount(42, USD))
+    create_entry(DATE, "string", Amount(42, 'USD'))
     create_entry(DATE, "string", 42)
     create_entry(DATE, "string", 4.20)
     with raises(TypeError):

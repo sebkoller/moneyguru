@@ -217,12 +217,6 @@ PyCurrency_getlatest_rate(PyCurrency *self)
     return PyFloat_FromDouble(self->currency->latest_rate);
 }
 
-static PyObject *
-PyCurrency_get_inner(PyCurrency *self)
-{
-    return PyCapsule_New(self->currency, NULL, NULL);
-}
-
 static int
 PyCurrency_init(PyCurrency *self, PyObject *args, PyObject *kwds)
 {
@@ -310,7 +304,6 @@ static PyGetSetDef PyCurrency_getseters[] = {
     {"code", (getter)PyCurrency_getcode, NULL, "code", NULL},
     {"exponent", (getter)PyCurrency_getexponent, NULL, "exponent", NULL},
     {"latest_rate", (getter)PyCurrency_getlatest_rate, NULL, "latest_rate", NULL},
-    {"_inner", (getter)PyCurrency_get_inner, NULL, "_inner", NULL},
     {0, 0, 0, 0, 0},
 };
 

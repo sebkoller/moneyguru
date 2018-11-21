@@ -153,7 +153,7 @@ def parse_amount(
     if value == 0:
         return 0
     elif currency is not None:
-        return Amount(value, currency)
+        return Amount(value, currency.code)
     else:
         raise ValueError('No currency given')
 

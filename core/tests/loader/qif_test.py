@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-02-15
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -36,65 +34,65 @@ def test_checkbook_values():
     eq_(transaction.description, 'Starting Balance')
     eq_(transaction.payee, '')
     eq_(transaction.splits[0].account.name, 'Account 1')
-    eq_(transaction.splits[0].amount, Amount(42.32, USD))
+    eq_(transaction.splits[0].amount, Amount(42.32, 'USD'))
     assert transaction.splits[1].account is None
-    eq_(transaction.splits[1].amount, Amount(-42.32, USD))
+    eq_(transaction.splits[1].amount, Amount(-42.32, 'USD'))
     transaction = transactions[1]
     eq_(transaction.date, date(2007, 1, 1))
     eq_(transaction.description, 'Deposit')
     eq_(transaction.payee, '')
     eq_(transaction.splits[0].account.name, 'Account 1')
-    eq_(transaction.splits[0].amount, Amount(100, USD))
+    eq_(transaction.splits[0].amount, Amount(100, 'USD'))
     eq_(transaction.splits[1].account.name, 'Salary')
-    eq_(transaction.splits[1].amount, Amount(-100, USD))
+    eq_(transaction.splits[1].amount, Amount(-100, 'USD'))
     transaction = transactions[2]
     eq_(transaction.date, date(2007, 1, 1))
     eq_(transaction.description, 'Starting Balance')
     eq_(transaction.payee, '')
     eq_(transaction.splits[0].account.name, 'Account 2')
-    eq_(transaction.splits[0].amount, Amount(3000, USD))
+    eq_(transaction.splits[0].amount, Amount(3000, 'USD'))
     assert transaction.splits[1].account is None
-    eq_(transaction.splits[1].amount, Amount(-3000, USD))
+    eq_(transaction.splits[1].amount, Amount(-3000, 'USD'))
     transaction = transactions[3]
     eq_(transaction.date, date(2007, 1, 2))
     eq_(transaction.description, 'Withdrawal')
     eq_(transaction.payee, '')
     eq_(transaction.splits[0].account.name, 'Account 1')
-    eq_(transaction.splits[0].amount, Amount(-60, USD))
+    eq_(transaction.splits[0].amount, Amount(-60, 'USD'))
     eq_(transaction.splits[1].account.name, 'Cash')
-    eq_(transaction.splits[1].amount, Amount(60, USD))
+    eq_(transaction.splits[1].amount, Amount(60, 'USD'))
     transaction = transactions[4]
     eq_(transaction.date, date(2007, 1, 2))
     eq_(transaction.description, 'Power Bill')
     eq_(transaction.payee, 'Hydro-Quebec')
     eq_(transaction.splits[0].account.name, 'Account 1')
-    eq_(transaction.splits[0].amount, Amount(-57.12, USD))
+    eq_(transaction.splits[0].amount, Amount(-57.12, 'USD'))
     eq_(transaction.splits[1].account.name, 'Utilities')
-    eq_(transaction.splits[1].amount, Amount(57.12, USD))
+    eq_(transaction.splits[1].amount, Amount(57.12, 'USD'))
     transaction = transactions[5]
     eq_(transaction.date, date(2007, 1, 5))
     eq_(transaction.description, 'Interest')
     eq_(transaction.payee, 'My Bank')
     eq_(transaction.splits[0].account.name, 'Account 2')
-    eq_(transaction.splits[0].amount, Amount(8.92, USD))
+    eq_(transaction.splits[0].amount, Amount(8.92, 'USD'))
     eq_(transaction.splits[1].account.name, 'Interest')
-    eq_(transaction.splits[1].amount, Amount(-8.92, USD))
+    eq_(transaction.splits[1].amount, Amount(-8.92, 'USD'))
     transaction = transactions[6]
     eq_(transaction.date, date(2007, 2, 4))
     eq_(transaction.description, 'Transfer')
     eq_(transaction.payee, 'Account 2')
     eq_(transaction.splits[0].account.name, 'Account 1')
-    eq_(transaction.splits[0].amount, Amount(80.00, USD))
+    eq_(transaction.splits[0].amount, Amount(80.00, 'USD'))
     assert transaction.splits[1].account is None
-    eq_(transaction.splits[1].amount, Amount(-80.00, USD))
+    eq_(transaction.splits[1].amount, Amount(-80.00, 'USD'))
     transaction = transactions[7]
     eq_(transaction.date, date(2007, 2, 4))
     eq_(transaction.description, 'Transfer')
     eq_(transaction.payee, 'Account 1')
     eq_(transaction.splits[0].account.name, 'Account 2')
-    eq_(transaction.splits[0].amount, Amount(-80.00, USD))
+    eq_(transaction.splits[0].amount, Amount(-80.00, 'USD'))
     assert transaction.splits[1].account is None
-    eq_(transaction.splits[1].amount, Amount(80.00, USD))
+    eq_(transaction.splits[1].amount, Amount(80.00, 'USD'))
 
 def test_missing_values():
     loader = Loader(USD)
@@ -111,23 +109,23 @@ def test_missing_values():
     eq_(transaction.date, date(2007, 1, 1))
     eq_(transaction.description, 'Complete Entry')
     eq_(transaction.splits[0].account.name, 'Account')
-    eq_(transaction.splits[0].amount, Amount(100.00, USD))
+    eq_(transaction.splits[0].amount, Amount(100.00, 'USD'))
     eq_(transaction.splits[1].account.name, 'Category')
-    eq_(transaction.splits[1].amount, Amount(-100.00, USD))
+    eq_(transaction.splits[1].amount, Amount(-100.00, 'USD'))
     transaction = transactions[1]
     eq_(transaction.date, date(2007, 1, 2))
     eq_(transaction.description, 'No Category')
     eq_(transaction.splits[0].account.name, 'Account')
-    eq_(transaction.splits[0].amount, Amount(100.00, USD))
+    eq_(transaction.splits[0].amount, Amount(100.00, 'USD'))
     assert transaction.splits[1].account is None
-    eq_(transaction.splits[1].amount, Amount(-100.00, USD))
+    eq_(transaction.splits[1].amount, Amount(-100.00, 'USD'))
     transaction = transactions[2]
     eq_(transaction.date, date(2007, 1, 4))
     eq_(transaction.description, '')
     eq_(transaction.splits[0].account.name, 'Account')
-    eq_(transaction.splits[0].amount, Amount(100.00, USD))
+    eq_(transaction.splits[0].amount, Amount(100.00, 'USD'))
     eq_(transaction.splits[1].account.name, 'Category')
-    eq_(transaction.splits[1].amount, Amount(-100.00, USD))
+    eq_(transaction.splits[1].amount, Amount(-100.00, 'USD'))
 
 def test_four_digit_year():
     loader = Loader(USD)
@@ -255,7 +253,7 @@ def test_missing_line_sep():
     loader.parse(testdata.filepath('qif', 'missing_line_sep.qif'))
     loader.load()
     eq_(len(loader.transactions), 1)
-    eq_(loader.transactions[0].splits[0].amount, Amount(42.32, USD))
+    eq_(loader.transactions[0].splits[0].amount, Amount(42.32, 'USD'))
 
 def test_credit_card():
     # A CCard account is imported as a liability

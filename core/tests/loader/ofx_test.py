@@ -1,6 +1,4 @@
-# Created By: Eric Mc Sween
-# Created On: 2008-02-11
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -15,7 +13,7 @@ from ..base import testdata
 from ...exception import FileFormatError
 from ...loader import ofx
 from ...model.amount import Amount
-from ...model.currency import USD, CAD, EUR
+from ...model.currency import USD, EUR
 
 def test_dont_choke_on_empty_files():
     # The ofx loader doesn't choke on an empty file
@@ -35,7 +33,7 @@ def test_amounts_in_invalid_currency_account():
     account = loader.accounts.find('815-30219-11111-EOP')
     eq_(len(account.entries), 3)
     entry = account.entries[0]
-    eq_(entry.amount, Amount(0.02, USD))
+    eq_(entry.amount, Amount(0.02, 'USD'))
 
 def test_blank_line_ofx_attrs():
     # Just make sure that a ofx file starting with a blank line is correctly loaded
@@ -67,15 +65,15 @@ def test_transactions_usd_account():
     entry = account.entries[0]
     eq_(entry.date, date(2008, 1, 31))
     eq_(entry.description, 'Intérêt sur EOP/')
-    eq_(entry.amount, Amount(0.02, USD))
+    eq_(entry.amount, Amount(0.02, 'USD'))
     entry = account.entries[1]
     eq_(entry.date, date(2008, 2, 1))
     eq_(entry.description, 'Dépôt au comptoir/')
-    eq_(entry.amount, Amount(5029.50, USD))
+    eq_(entry.amount, Amount(5029.50, 'USD'))
     entry = account.entries[2]
     eq_(entry.date, date(2008, 2, 1))
     eq_(entry.description, 'Retrait au comptoir/')
-    eq_(entry.amount, Amount(-2665, USD))
+    eq_(entry.amount, Amount(-2665, 'USD'))
 
 def test_reference_desjardins():
     # OFX IDs are stored in the accounts and entries.
@@ -94,8 +92,8 @@ def loader_ing():
 
 def test_accounts_ing():
     loader = loader_ing()
-    accounts = [(x.name, x.currency) for x in loader.accounts]
-    expected = [('123456', CAD)]
+    accounts = [(x.name, x.currency.code) for x in loader.accounts]
+    expected = [('123456', 'CAD')]
     eq_(accounts, expected)
 
 def test_entries_ing():
@@ -105,7 +103,7 @@ def test_entries_ing():
     entry = account.entries[0]
     eq_(entry.date, date(2005, 9, 23))
     eq_(entry.description, 'Dépôt')
-    eq_(entry.amount, Amount(100, CAD))
+    eq_(entry.amount, Amount(100, 'CAD'))
 
 # ---
 def loader_fortis():

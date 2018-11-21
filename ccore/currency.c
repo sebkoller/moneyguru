@@ -216,6 +216,10 @@ currency_get(const char *code)
         currency_global_init(":memory:");
     }
 
+    if (!strlen(code)) {
+        return NULL;
+    }
+
     cur = g_currencies;
     while (*cur != NULL) {
         if (strncmp(code, (*cur)->code, CURRENCY_CODE_MAXLEN) == 0) {

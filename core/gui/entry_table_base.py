@@ -116,7 +116,7 @@ class BaseEntryTableRow(Row, RowWithDateMixIn, RowWithDebitAndCreditMixIn):
 
     @property
     def balance(self):
-        account_currency = self.account.currency
+        account_currency = self.account.currency.code if self.account.currency else ''
         return self.table.document.format_amount(self._the_balance(), zero_currency=account_currency)
     can_edit_balance = False
 

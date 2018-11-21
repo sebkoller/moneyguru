@@ -365,6 +365,7 @@ class BaseDocument:
             default_currency = None
         else:
             default_currency = self.default_currency
+        default_currency = default_currency.code if default_currency else ''
         return format_amount(
             amount, default_currency, decimal_sep=self.app._decimal_sep,
             grouping_sep=self.app._grouping_sep, **kwargs
