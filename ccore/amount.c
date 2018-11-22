@@ -169,7 +169,7 @@ amount_parse_single(
 {
     int i = 0;
     // index of the first digit
-    int istart;
+    int istart = -1;
     // index of the last digit
     int iend;
     int64_t val = 0;
@@ -192,6 +192,14 @@ amount_parse_single(
         }
         i++;
     }
+    if (istart < 0) {
+        // no digit
+        return false;
+    }
+    if (istart > 0 && s[istart-1] == '.' || s[istart-1] == ',') {
+        // number starts with a . or ,. Do as if there was a "0" in front.
+        istart--;
+    }
     while (s[i] != '\0') {
         if (isdigit(s[i])) {
             if (i > 0 && !isdigit(s[i-1])) {
@@ -201,14 +209,6 @@ amount_parse_single(
             last_digit_group_count++;
         }
         i++;
-    }
-    if (s[istart] == '\0') {
-        // no digit
-        return false;
-    }
-    if (istart > 0 && s[istart-1] == '.' || s[istart-1] == ',') {
-        // number starts with a . or ,. Do as if there was a "0" in front.
-        istart--;
     }
 
     // 2. Second pass
