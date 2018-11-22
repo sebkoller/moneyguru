@@ -490,6 +490,35 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
     return PyUnicode_DecodeUTF8(result, rc, NULL);
 }
 
+PyObject*
+py_amount_parse_single(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    int rc;
+    uint8_t exponent;
+    char *s;
+    bool auto_decimal_place;
+    bool parens_for_negatives = true;
+    int64_t val;
+    double dtmp;
+    static char *kwlist[] = {
+        "string", "exponent", "auto_decimal_place", "parens_for_negatives",
+        NULL};
+
+    rc = PyArg_ParseTupleAndKeywords(
+        args, kwds, "sbp|p", kwlist, &s, &exponent, &auto_decimal_place,
+        &parens_for_negatives);
+    if (!rc) {
+        return NULL;
+    }
+
+    if (!amount_parse_single(&val, s, exponent, auto_decimal_place)) {
+        PyErr_SetString(PyExc_ValueError, "couldn't parse amount");
+        return NULL;
+    }
+    dtmp = (double)val / pow(10, exponent);
+    return PyFloat_FromDouble(dtmp);
+}
+
 /* We need both __copy__ and __deepcopy__ methods for amounts to behave
  * correctly in undo_test. */
 static PyMethodDef PyAmount_methods[] = {

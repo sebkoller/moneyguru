@@ -1,3 +1,4 @@
+#pragma once
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -57,3 +58,30 @@ amount_format(
     char decimal_sep,
     char grouping_sep);
 
+/* Parse number in `s` and sets its numerical value in `dest`.
+ *
+ * The returned value is a "floated integer", an integer that represents a
+ * float, `exponent` being the digit where the decimal separator is. Example:
+ * 1234 w/ exp 3 -> 1.234
+ *
+ * This function deals with grouping separators and spurious stuff that might
+ * be around numbers (dollar signs etc.). Grouping seps can be any non-zero
+ * char, but it has to stay the same all the way. Otherwise it's an error. If
+ * the last non-digit character before the last chunk of digits is a "." or a
+ * ",", then that's the decimal sep.
+ *
+ * If auto_decimal_place is true and there's no decimal sep, then the amount is
+ * going to be divided by 10 ** exponent. Typing a literal "1000" with exp 2
+ * will yield 10.00.
+ *
+ * Having more than one character in between chunks of numbers (around, it's
+ * ok) is an error.
+ *
+ * "-" in the number's prefix makes it negative. Parens too. $-10, -$10, $(10)
+ * are negative.
+ *
+ * Returns true on success, false on error.
+ */
+bool
+amount_parse_single(
+    int64_t *dest, const char *s, uint8_t exponent, bool auto_decimal_place);

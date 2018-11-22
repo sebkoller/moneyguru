@@ -7,7 +7,9 @@
 import re
 
 from .currency import Currencies
-from ._ccore import Amount, amount_format as format_amount # noqa
+from ._ccore import ( # noqa
+    Amount, amount_format as format_amount,
+    amount_parse_single as parse_amount_single)
 
 
 class UnsupportedCurrencyError(ValueError):
@@ -20,17 +22,6 @@ re_arithmetic_operators = re.compile(r"[+\-*/()]")
 re_not_arithmetic_operators = re.compile(r"[^+\-*/()]+")
 # 3 letters (capturing)
 re_currency = re.compile(r'([a-zA-Z]{3}\s*$)|(^\s*[a-zA-Z]{3})')
-# grouping separator. A thousand sep character that has digit before and after *if* the right part
-# has 3 digits. \xa0 is a non-breaking space. We sometimes end up with those in space-separated
-# environments.
-re_grouping_sep = re.compile(r"(?<=\d)[.\s\xA0,'](?=\d{3})")
-# A dot or comma followed by digits followed by the end of the string.
-# currencies with 2 decimal places
-re_decimal_sep_2 = re.compile(r"[,.](?=\d{1,2}$)")
-# currencies with 3 or more decimal places
-re_decimal_sep_x = re.compile(r"[,.](?=\d{1,10}$)")
-# A valid amount, once it has been pre-processed
-re_amount = re.compile(r"\d+\.\d+|\.\d+|\d+")
 
 def parse_amount_expression(string, exponent):
     # Parse an expression. Before we can do that, we need to replace all amounts with their parsed
@@ -45,7 +36,7 @@ def parse_amount_expression(string, exponent):
             return None
         nonlocal hadfirstmatch
         if hadfirstmatch:
-            repl_exponent = 10 # meaning: many decimals
+            repl_exponent = 10
         else:
             repl_exponent = exponent
             hadfirstmatch = True
@@ -56,42 +47,6 @@ def parse_amount_expression(string, exponent):
     hadfirstmatch = False
     result = re_not_arithmetic_operators.sub(repl, string)
     return result
-
-def parse_amount_single(string, exponent, auto_decimal_place, parens_for_negatives=True):
-    # Parse a string which contains a single amount (not an expression) and return a float
-    # Now, we have a string that might have thousand separators and might or might not have
-    # a decimal separator, which might be either "," or ".". We'll first find our decimal sep
-    # and replace it with a placeholder char, find all thousand seps, replace them with nothing.
-    if exponent >= 3:
-        string = re_decimal_sep_x.sub('|', string)
-    elif exponent == 2:
-        string = re_decimal_sep_2.sub('|', string)
-    else:
-        pass # No decimal sep
-    string = re_grouping_sep.sub('', string)
-    string = string.replace('|', '.')
-    if auto_decimal_place and string.isdigit():
-        if exponent:
-            string = string.rjust(exponent, '0')
-            string = string[:-exponent] + '.' + string[-exponent:]
-    try:
-        value = float(string)
-    except ValueError:
-        # There might be some crap around the amount. Remove it and try again.
-        m = re_amount.search(string)
-        if m is None:
-            raise ValueError("'{}' is not an amount".format(string))
-        value = float(string[m.start():m.end()])
-        # Handle negative amounts either starting with a minus sign or surrounded
-        # by parenthasis, which is used frequently to denote a negative in finance.
-        # e.g. -12.30 == (12.30), if we're allowing parens to be used for negative
-        # values.
-        is_negative = '-' in string[:m.start()]
-        if not is_negative and parens_for_negatives:
-            is_negative = '(' in string[:m.start()] and ')' in string[m.end():]
-        if is_negative:
-            value = -value
-    return value
 
 def parse_amount(
         string, default_currency=None, with_expression=True, auto_decimal_place=False,
@@ -149,7 +104,7 @@ def parse_amount(
             raise ValueError('Invalid expression %r' % string)
         value = round(value, exponent)
     else:
-        value = parse_amount_single(string, exponent, auto_decimal_place)
+        value = parse_amount_single(string, exponent=exponent, auto_decimal_place=auto_decimal_place)
     if value == 0:
         return 0
     elif currency:
