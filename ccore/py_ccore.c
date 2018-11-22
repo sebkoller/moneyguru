@@ -3,16 +3,14 @@
 
 PyType_Spec Amount_Type_Spec;
 PyObject *Amount_Type;
-PyObject*
-py_amount_format(PyObject *self, PyObject *args, PyObject *kwds);
+PyObject* py_amount_format(PyObject *self, PyObject *args, PyObject *kwds);
 
-PyType_Spec Currency_Type_Spec;
-PyObject *Currency_Type;
 PyObject* py_currency_global_init(PyObject *self, PyObject *args);
 PyObject* py_currency_register(PyObject *self, PyObject *args);
 PyObject* py_currency_getrate(PyObject *self, PyObject *args);
 PyObject* py_currency_set_CAD_value(PyObject *self, PyObject *args);
 PyObject* py_currency_daterange(PyObject *self, PyObject *args);
+PyObject* py_currency_exponent(PyObject *self, PyObject *args);
 
 static PyMethodDef module_methods[] = {
     {"amount_format", (PyCFunction)py_amount_format, METH_VARARGS | METH_KEYWORDS},
@@ -21,6 +19,7 @@ static PyMethodDef module_methods[] = {
     {"currency_getrate", py_currency_getrate, METH_VARARGS},
     {"currency_set_CAD_value", py_currency_set_CAD_value, METH_VARARGS},
     {"currency_daterange", py_currency_daterange, METH_VARARGS},
+    {"currency_exponent", py_currency_exponent, METH_VARARGS},
     {NULL}  /* Sentinel */
 };
 
@@ -41,7 +40,6 @@ PyInit__ccore(void)
 {
     PyObject *m;
 
-    Currency_Type = PyType_FromSpec(&Currency_Type_Spec);
     Amount_Type = PyType_FromSpec(&Amount_Type_Spec);
 
     m = PyModule_Create(&CCoreDef);
@@ -49,7 +47,6 @@ PyInit__ccore(void)
         return NULL;
     }
 
-    PyModule_AddObject(m, "Currency", Currency_Type);
     PyModule_AddObject(m, "Amount", Amount_Type);
     return m;
 }

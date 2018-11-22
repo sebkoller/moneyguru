@@ -122,17 +122,17 @@ def parse_amount(
     m = re_currency.search(string)
     if m is not None:
         capture = m.group(0).upper()
-        try:
-            currency = Currencies.get(capture)
-        except ValueError:
+        if Currencies.has(capture):
+            currency = capture
+        else:
             if strict_currency:
                 raise UnsupportedCurrencyError(capture)
-        else:
-            string = re_currency.sub('', string)
+        string = re_currency.sub('', string)
     currency = currency or default_currency
-    if isinstance(currency, str):
-        currency = Currencies.get(currency)
-    exponent = currency.exponent if currency is not None else 2
+    if currency:
+        exponent = Currencies.exponent(currency)
+    else:
+        exponent = 2
     string = string.strip()
     # When we have an expression, we deal only with "simple" numbers. Turning expression off when
     # there's no sign of arithmetic operators allow for complex number parsing so that we can
@@ -152,8 +152,8 @@ def parse_amount(
         value = parse_amount_single(string, exponent, auto_decimal_place)
     if value == 0:
         return 0
-    elif currency is not None:
-        return Amount(value, currency.code)
+    elif currency:
+        return Amount(value, currency)
     else:
         raise ValueError('No currency given')
 

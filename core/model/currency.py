@@ -23,20 +23,12 @@ class RateProviderUnavailable(Exception):
 
 class Currencies:
     all = []
-    by_code = {}
+    codes = set()
     rates_db = None
 
     @classmethod
-    def get(cls, code):
-        """Returns the currency with the given code."""
-        code = code.upper()
-        try:
-            return cls.by_code[code]
-        except KeyError:
-            raise ValueError('Unknown currency code: %r' % code)
-
-    @staticmethod
-    def has(code):
+    def has(cls, code):
+        return code.upper() in cls.codes
         try:
             Currencies.get(code)
             return True
@@ -52,33 +44,31 @@ class Currencies:
         ``priority`` determines the order of currencies in :meth:`all`. Lower priority goes first.
         """
         code = code.upper()
-        if code in Currencies.by_code:
-            return Currencies.by_code[code]
+        if Currencies.has(code):
+            return
         _ccore.currency_register(
             code, exponent, start_date, start_rate, stop_date, latest_rate)
-        currency = _ccore.Currency(code)
-        Currencies.by_code[code] = currency
-        Currencies.all.append((currency, name, priority))
-        return currency
+        Currencies.codes.add(code)
+        Currencies.all.append((code, name, priority))
 
     @staticmethod
     def reset_currencies():
         # Clear all currencies except USD, EUR and CAD because these are directly imported in too
         # many modules and we depend on those instances being present at too many places.
         # For now, this is only called during testing.
-        Currencies.all = [(c, n, p) for (c, n, p) in Currencies.all if c.code in {'CAD', 'USD', 'EUR'}]
-        Currencies.by_code = {c.code: c for (c, n, p) in Currencies.all}
+        Currencies.codes = {'CAD', 'USD', 'EUR'}
+        Currencies.all = [(c, n, p) for (c, n, p) in Currencies.all if c in Currencies.codes]
         Currencies.rates_db = None
         Currencies.sort_currencies()
 
     @classmethod
     def display_list(cls):
-        return ['%s - %s' % (c.code, n) for c, n, p in cls.all]
+        return ['%s - %s' % (c, n) for c, n, p in cls.all]
 
     @classmethod
     def index(cls, code):
         for i, (c, n, p) in enumerate(cls.all):
-            if c.code == code:
+            if c == code:
                 return i
         raise IndexError()
 
@@ -86,7 +76,11 @@ class Currencies:
     def code_at_index(cls, index):
         if index < 0:
             raise IndexError()
-        return Currencies.all[index][0].code
+        return Currencies.all[index][0]
+
+    @staticmethod
+    def exponent(code):
+        return _ccore.currency_exponent(code)
 
     @staticmethod
     def set_rates_db(db):
@@ -104,7 +98,7 @@ class Currencies:
 
     @staticmethod
     def sort_currencies():
-        Currencies.all = sorted(Currencies.all, key=lambda t: (t[2], t[0].code))
+        Currencies.all = sorted(Currencies.all, key=lambda t: (t[2], t[0]))
 
 
 # For legacy purpose, we create USD, EUR and CAD in here, but all other currencies are app-defined.

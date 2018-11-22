@@ -4,15 +4,6 @@
 #include <stdbool.h>
 #include "currency.h"
 
-typedef struct {
-    PyObject_HEAD
-    Currency *currency;
-} PyCurrency;
-
-PyObject *Currency_Type;
-
-#define Currency_Check(v) (Py_TYPE(v) == (PyTypeObject *)Currency_Type)
-
 /* Utils */
 static bool
 pydate2tm(PyObject *pydate, struct tm *dest)
@@ -197,130 +188,20 @@ py_currency_daterange(PyObject *self, PyObject *args)
     return res;
 }
 
-/* Methods */
-
-static PyObject *
-PyCurrency_getcode(PyCurrency *self)
-{
-    return PyUnicode_FromString(self->currency->code);
-}
-
-static PyObject *
-PyCurrency_getexponent(PyCurrency *self)
-{
-    return PyLong_FromLong(self->currency->exponent);
-}
-
-static PyObject *
-PyCurrency_getlatest_rate(PyCurrency *self)
-{
-    return PyFloat_FromDouble(self->currency->latest_rate);
-}
-
-static int
-PyCurrency_init(PyCurrency *self, PyObject *args, PyObject *kwds)
+PyObject *
+py_currency_exponent(PyObject *self, PyObject *args)
 {
     char *code;
-    static char *kwlist[] = {"code", NULL};
+    Currency *c;
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &code)) {
-        return -1;
+    if (!PyArg_ParseTuple(args, "s", &code)) {
+        return NULL;
     }
-    self->currency = currency_get(code);
-    if (self->currency == NULL) {
-        PyErr_SetString(PyExc_ValueError, "Currency not registered");
-        return -1;
+
+    c = getcur(code);
+    if (c == NULL) {
+        return NULL;
     }
-    return 0;
+
+    return PyLong_FromLong(c->exponent);
 }
-
-static PyObject *
-PyCurrency_copy(PyObject *self)
-{
-    PyCurrency *r;
-    r = (PyCurrency *)PyType_GenericAlloc((PyTypeObject *)Currency_Type, 0);
-    r->currency = ((PyCurrency *)self)->currency;
-    return (PyObject *)r;
-}
-
-static PyObject *
-PyCurrency_deepcopy(PyObject *self, PyObject *args, PyObject *kwds)
-{
-    return PyCurrency_copy(self);
-}
-
-static PyObject *
-PyCurrency_repr(PyCurrency *self)
-{
-    PyObject *r, *fmt, *args, *code;
-
-    code = PyCurrency_getcode(self);
-    args = Py_BuildValue("(O)", code);
-    Py_DECREF(code);
-    fmt = PyUnicode_FromString("Currency(%r)");
-    r = PyUnicode_Format(fmt, args);
-    Py_DECREF(fmt);
-    Py_DECREF(args);
-    return r;
-}
-
-static Py_hash_t
-PyCurrency_hash(PyCurrency *self)
-{
-    PyObject *code;
-    Py_hash_t r;
-
-    code = PyCurrency_getcode(self);
-    r = PyObject_Hash(code);
-    Py_DECREF(code);
-    return r;
-}
-
-static PyObject *
-PyCurrency_richcompare(PyCurrency *self, PyObject *other, int op)
-{
-    if (op == Py_EQ) {
-        if (Currency_Check(other)) {
-            if (self->currency == ((PyCurrency *)other)->currency) {
-                Py_RETURN_TRUE;
-            } else {
-                Py_RETURN_FALSE;
-            }
-        }
-    }
-    Py_INCREF(Py_NotImplemented);
-    return Py_NotImplemented;
-}
-
-/* Defs */
-
-static PyMethodDef PyCurrency_methods[] = {
-    {"__copy__", (PyCFunction)PyCurrency_copy, METH_NOARGS, ""},
-    {"__deepcopy__", (PyCFunction)PyCurrency_deepcopy, METH_VARARGS, ""},
-    {0, 0, 0, 0},
-};
-
-static PyGetSetDef PyCurrency_getseters[] = {
-    {"code", (getter)PyCurrency_getcode, NULL, "code", NULL},
-    {"exponent", (getter)PyCurrency_getexponent, NULL, "exponent", NULL},
-    {"latest_rate", (getter)PyCurrency_getlatest_rate, NULL, "latest_rate", NULL},
-    {0, 0, 0, 0, 0},
-};
-
-static PyType_Slot Currency_Slots[] = {
-    {Py_tp_init, PyCurrency_init},
-    {Py_tp_repr, PyCurrency_repr},
-    {Py_tp_hash, PyCurrency_hash},
-    {Py_tp_richcompare, PyCurrency_richcompare},
-    {Py_tp_methods, PyCurrency_methods},
-    {Py_tp_getset, PyCurrency_getseters},
-    {0, 0},
-};
-
-PyType_Spec Currency_Type_Spec = {
-    "_ccore.Currency",
-    sizeof(PyCurrency),
-    0,
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
-    Currency_Slots,
-};
