@@ -78,7 +78,6 @@ create_amount(int64_t ival, Currency *currency)
     /* Create a new amount in a way that is faster than the normal init */
     PyAmount *r;
     double dtmp;
-    int exponent;
 
     r = (PyAmount *)PyType_GenericAlloc((PyTypeObject *)Amount_Type, 0);
     r->amount.val = ival;
@@ -286,7 +285,6 @@ static PyObject *
 PyAmount_add(PyObject *a, PyObject *b)
 {
     int64_t aval, bval;
-    PyObject *currency;
 
     if (!check_amounts(a, b, true)) {
         return NULL;
@@ -312,7 +310,6 @@ static PyObject *
 PyAmount_sub(PyObject *a, PyObject *b)
 {
     int64_t aval, bval;
-    PyObject *currency;
 
     if (!check_amounts(a, b, 1)) {
         return NULL;

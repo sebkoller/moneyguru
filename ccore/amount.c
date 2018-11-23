@@ -95,7 +95,6 @@ amount_format(
     int64_t val, left, right;
     int rc, seppos;
     unsigned int exp;
-    char buf[64];
 
     if (amount == NULL) {
         dest[0] = '\0';
@@ -171,11 +170,11 @@ amount_parse_single(
     // index of the first digit
     int istart = -1;
     // index of the last digit
-    int iend;
+    int iend = -1;
     int64_t val = 0;
     int last_digit_group_count = 0;
     char c;
-    char last_sep;
+    char last_sep = '\0';
     // first sep we encounter becomes the grouping sep. we then enforce
     // homogenity.
     char grouping_sep = '\0';
@@ -196,7 +195,7 @@ amount_parse_single(
         // no digit
         return false;
     }
-    if (istart > 0 && s[istart-1] == '.' || s[istart-1] == ',') {
+    if ((istart > 0 && s[istart-1] == '.') || s[istart-1] == ',') {
         // number starts with a . or ,. Do as if there was a "0" in front.
         istart--;
     }

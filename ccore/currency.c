@@ -60,7 +60,7 @@ sqlite_getsingle_text(const char *sql, char *result)
 {
     sqlite3_stmt *stmt;
     int rc;
-    const char *buf;
+    const unsigned char *buf;
 
     rc = sqlite3_prepare_v2(g_db, sql, -1, &stmt, NULL);
     if (rc != SQLITE_OK) {
@@ -76,7 +76,7 @@ sqlite_getsingle_text(const char *sql, char *result)
         sqlite3_finalize(stmt);
         return false;
     }
-    strncpy(result, buf, SQL_RES_LEN);
+    strncpy(result, (const char *)buf, SQL_RES_LEN);
     sqlite3_finalize(stmt);
     return true;
 }
@@ -89,7 +89,6 @@ seek_value_in_CAD(struct tm *date, Currency *currency, double *result)
     char *sqlfmt = "select rate from rates "
         "where date %s '%s' and currency = '%s' "
         "order by date %s limit 1";
-    int res;
     double rate;
 
     if (strncmp(currency->code, "CAD", CURRENCY_CODE_MAXLEN) == 0) {

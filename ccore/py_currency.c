@@ -77,7 +77,6 @@ py_currency_register(PyObject *self, PyObject *args)
     PyObject *py_startdate, *py_stopdate;
     time_t start_date, stop_date;
     double startrate, latestrate;
-    Currency *c;
 
     PyDateTime_IMPORT;
     if (!PyArg_ParseTuple(args, "siOdOd", &code, &exponent, &py_startdate, &startrate, &py_stopdate, &latestrate)) {
@@ -92,7 +91,7 @@ py_currency_register(PyObject *self, PyObject *args)
     if (stop_date == 1) {
         return NULL;
     }
-    c = currency_register(code, exponent, start_date, startrate, stop_date, latestrate);
+    currency_register(code, exponent, start_date, startrate, stop_date, latestrate);
     Py_INCREF(Py_None);
     return Py_None;
 }
