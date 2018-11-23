@@ -58,17 +58,31 @@ amount_format(
     char decimal_sep,
     char grouping_sep);
 
+/* Parse number in `s` and return its grouping separator
+ *
+ * Returns '\0' if it has no grouping separator or if the number is invalid.
+ *
+ * A grouping separator is a non-digit character that is in-between digits and
+ * stays consisten across the number. The only other non-digit char that can
+ * get in between digits without making it invalid is the decimal separator and
+ * it has to be last.
+ */
+char
+amount_parse_grouping_sep(const char *s);
+
 /* Parse number in `s` and sets its numerical value in `dest`.
  *
  * The returned value is a "floated integer", an integer that represents a
  * float, `exponent` being the digit where the decimal separator is. Example:
  * 1234 w/ exp 3 -> 1.234
  *
- * This function deals with grouping separators and spurious stuff that might
- * be around numbers (dollar signs etc.). Grouping seps can be any non-zero
- * char, but it has to stay the same all the way. Otherwise it's an error. If
- * the last non-digit character before the last chunk of digits is a "." or a
- * ",", then that's the decimal sep.
+ * If grouping_sep is not '\0', we properly ignore them. Otherwise, we only
+ * accept a single decimal separator in between numbers. Anything else makes
+ * the number invalid.
+ *
+ * This function deals with spurious stuff that might be around numbers (dollar
+ * signs etc.).  If the last non-digit character before the last chunk of
+ * digits is a "." or a ",", then that's the decimal sep.
  *
  * If auto_decimal_place is true and there's no decimal sep, then the amount is
  * going to be divided by 10 ** exponent. Typing a literal "1000" with exp 2
@@ -84,4 +98,9 @@ amount_format(
  */
 bool
 amount_parse_single(
-    int64_t *dest, const char *s, uint8_t exponent, bool auto_decimal_place);
+    int64_t *dest, const char *s, uint8_t exponent, bool auto_decimal_place,
+    char grouping_sep);
+
+bool
+amount_parse_expr(
+    int64_t *dest, const char *s, uint8_t exponent);

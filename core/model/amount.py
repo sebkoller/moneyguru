@@ -9,7 +9,7 @@ import re
 from .currency import Currencies
 from ._ccore import ( # noqa
     Amount, amount_format as format_amount,
-    amount_parse_single as parse_amount_single)
+    amount_parse_single as parse_amount_single, amount_parse_expr)
 
 
 class UnsupportedCurrencyError(ValueError):
@@ -95,14 +95,10 @@ def parse_amount(
     if with_expression and re_arithmetic_operators.search(string) is None:
         with_expression = False
     if with_expression:
-        string = parse_amount_expression(string, exponent)
         try:
-            value = eval(string)
-        except (SyntaxError, ZeroDivisionError):
+            value = amount_parse_expr(string, exponent)
+        except ValueError:
             raise ValueError('Invalid expression %r' % string)
-        if not isinstance(value, (float, int)):
-            raise ValueError('Invalid expression %r' % string)
-        value = round(value, exponent)
     else:
         value = parse_amount_single(string, exponent=exponent, auto_decimal_place=auto_decimal_place)
     if value == 0:

@@ -492,24 +492,56 @@ py_amount_parse_single(PyObject *self, PyObject *args, PyObject *kwds)
 {
     int rc;
     uint8_t exponent;
-    const char *s;
+    char *s;
     int auto_decimal_place;
     int parens_for_negatives = true;
+    char grouping_sep;
     int64_t val;
     double dtmp;
     static char *kwlist[] = {
         "string", "exponent", "auto_decimal_place", "parens_for_negatives",
         NULL};
 
+    // We encode as latin-1 for two reasons: first, we don't expect characters
+    // outside this range. Second, keeping the default utf-8 makes us end up
+    // with multi-byte characters in the case of the \xa0 non-beakable space.
+    // Let's avoid that trouble.
     rc = PyArg_ParseTupleAndKeywords(
-        args, kwds, "sbp|p", kwlist, &s, &exponent, &auto_decimal_place,
+        args, kwds, "esbp|p", kwlist, "latin-1", &s, &exponent, &auto_decimal_place,
         &parens_for_negatives);
     if (!rc) {
         return NULL;
     }
 
-    if (!amount_parse_single(&val, s, exponent, auto_decimal_place)) {
+    grouping_sep = amount_parse_grouping_sep(s);
+    if (!amount_parse_single(&val, s, exponent, auto_decimal_place, grouping_sep)) {
+        PyMem_Free(s);
         PyErr_SetString(PyExc_ValueError, "couldn't parse amount");
+        return NULL;
+    }
+    PyMem_Free(s);
+    dtmp = (double)val / pow(10, exponent);
+    return PyFloat_FromDouble(dtmp);
+}
+
+PyObject*
+py_amount_parse_expr(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    int rc;
+    uint8_t exponent;
+    const char *s;
+    int64_t val;
+    double dtmp;
+    static char *kwlist[] = {
+        "string", "exponent", NULL};
+
+    rc = PyArg_ParseTupleAndKeywords(args, kwds, "sb", kwlist, &s, &exponent);
+    if (!rc) {
+        return NULL;
+    }
+
+    if (!amount_parse_expr(&val, s, exponent)) {
+        PyErr_SetString(PyExc_ValueError, "couldn't parse expression");
         return NULL;
     }
     dtmp = (double)val / pow(10, exponent);

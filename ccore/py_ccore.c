@@ -5,6 +5,7 @@ PyType_Spec Amount_Type_Spec;
 PyObject *Amount_Type;
 PyObject* py_amount_format(PyObject *self, PyObject *args, PyObject *kwds);
 PyObject* py_amount_parse_single(PyObject *self, PyObject *args, PyObject *kwds);
+PyObject* py_amount_parse_expr(PyObject *self, PyObject *args, PyObject *kwds);
 
 PyObject* py_currency_global_init(PyObject *self, PyObject *args);
 PyObject* py_currency_register(PyObject *self, PyObject *args);
@@ -16,6 +17,7 @@ PyObject* py_currency_exponent(PyObject *self, PyObject *args);
 static PyMethodDef module_methods[] = {
     {"amount_format", (PyCFunction)py_amount_format, METH_VARARGS | METH_KEYWORDS},
     {"amount_parse_single", (PyCFunction)py_amount_parse_single, METH_VARARGS | METH_KEYWORDS},
+    {"amount_parse_expr", (PyCFunction)py_amount_parse_expr, METH_VARARGS | METH_KEYWORDS},
     {"currency_global_init", py_currency_global_init, METH_VARARGS},
     {"currency_register", py_currency_register, METH_VARARGS},
     {"currency_getrate", py_currency_getrate, METH_VARARGS},

@@ -162,9 +162,64 @@ amount_format(
     return true;
 }
 
+char
+amount_parse_grouping_sep(const char *s)
+{
+    int i = 0;
+    char res = '\0';
+    // We got an invalid char, but it's ok as long as there's no other digit
+    // after it.
+    bool invalid_if_other_digit = false;
+    // We encountered a decimal sep. it's fine, as long as it's the last.
+    bool had_decimal_sep = false;
+    // We have a result, but we need to encounter another digit before
+    // confirming it.
+    bool needs_a_digit = false;
+
+    // ignore everything before first digit
+    while (s[i] != '\0' && !isdigit(s[i])) i++;
+    while (s[i] != '\0') {
+        char c = s[i];
+        if ((unsigned char)c == 0xa0) {
+            // We consider 0xa0 and ' ' to be the same
+            c = ' ';
+        }
+        if (!isdigit(c)) {
+            if (res == '\0') {
+                // first encounter, that's possibly our result, if we encounter
+                // another digit.
+                res = c;
+                needs_a_digit = true;
+            } else if (had_decimal_sep) {
+                invalid_if_other_digit = true;
+            } else if (c == res) {
+                // grouping sep, everything normal
+            } else if (c == '.' || c == ',') {
+                had_decimal_sep = true;
+            } else {
+                // Some spurious stuff
+                invalid_if_other_digit = true;
+            }
+        } else if (invalid_if_other_digit) {
+            return '\0';
+        } else {
+            needs_a_digit = false;
+        }
+        i++;
+    }
+    if (needs_a_digit) {
+        // our result wasn't followed by a digit, so it's just a random suffix
+        // char. we have no grouping sep.
+        return '\0';
+    } else {
+        return res;
+    }
+}
+
 bool
 amount_parse_single(
-    int64_t *dest, const char *s, uint8_t exponent, bool auto_decimal_place)
+    int64_t *dest, const char *s, uint8_t exponent, bool auto_decimal_place,
+    char grouping_sep)
 {
     int i = 0;
     // index of the first digit
@@ -173,11 +228,7 @@ amount_parse_single(
     int iend = -1;
     int64_t val = 0;
     int last_digit_group_count = 0;
-    char c;
     char last_sep = '\0';
-    // first sep we encounter becomes the grouping sep. we then enforce
-    // homogenity.
-    char grouping_sep = '\0';
     bool last_sep_breaks_grouping = false;
     bool is_negative = false;
 
@@ -212,18 +263,9 @@ amount_parse_single(
 
     // 2. Second pass
     for (i=istart; i<=iend; i++) {
-        c = s[i];
-        if ((uint8_t)c == 0xc2) {
-            // special case: 0xc2. Our string comes from python
-            // utf8-encoded. This generally doesn't bother us, we still
-            // have one-byte characters. There's only the '\xa0' grouping
-            // sep that we want to support, and when it's encoded as utf-8,
-            // it's 0xc2a0. So, whenever we see 0xc2, we ignore it and
-            // process the next char.
-            i++;
-            continue;
-        } else if ((uint8_t)c == 0xa0) {
-            // See 0xc2: non-breakable space. treat it as a space.
+        char c = s[i];
+        if ((unsigned char)c == 0xa0) {
+            // We consider 0xa0 and ' ' to be the same
             c = ' ';
         }
         if (isdigit(c)) {
@@ -239,9 +281,6 @@ amount_parse_single(
                 // first one could have been the decimal sep, but now it's
                 // impossible. Error.
                 return false;
-            }
-            if (grouping_sep == '\0') {
-                grouping_sep = c;
             } else if (c != grouping_sep) {
                 if (c == '.' || c == ',') {
                     // `c` breaks the grouping seps, but it might be our
@@ -249,7 +288,7 @@ amount_parse_single(
                     // another sep, it's game over
                     last_sep_breaks_grouping = true;
                 } else {
-                    // error, heterogenous grouping seps.
+                    // invalid character, error.
                     return false;
                 }
             }
@@ -298,3 +337,168 @@ amount_parse_single(
     *dest = val;
     return true;
 }
+
+/* Expression parsing */
+/* Inspired by https://stackoverflow.com/a/9329509, with a personal twist...*/
+
+struct ExprParse {
+    const char *s;
+    // The exponent used to parse "amount" numbers
+    uint8_t amount_exponent;
+    // The exponent we use to parse decimal numbers. a constant set high to
+    // allow for better accuracy. We normalize amounts to this exponent after
+    // parsing so that we can apply operators on comparable numbers.
+    uint8_t exponent;
+    /* FIRST OPERAND RULE: There's an ambiguity with the '.' character. In an
+     * amount, it can be a thousands separator. Our solution is to only consider
+     * the first  operand as an amount. The other operands are considered as
+     * "decimals", which means that they can't possibly have a thousands
+     * separator. */
+    bool had_amount;
+    bool error;
+};
+
+static int64_t
+expr_addsubst(struct ExprParse *p);
+
+static int64_t
+expr_amount(struct ExprParse *p)
+{
+    static const char delimiters[] = "+-*/)";
+    static const char invalid[] = "(";
+    char buf[64];
+    int i = 0;
+    int64_t val;
+    // We have a special situation with '-': it's a delimiter for a binary
+    // digits, but also a unary operator on the digit. As long as we didn't see
+    // any digit yet, we ignore the '-'
+    bool had_digit = false;
+    char grouping_sep = '\0';
+    uint8_t exponent = p->exponent;
+
+    while (true) {
+        if (i == 64) {
+            // something's wrong
+            p->error = true;
+            return 0;
+        }
+        char c = p->s[i];
+        if (!had_digit && c == '-') {
+            // '-' is a unary operator. do nothing.
+        }
+        // delimiter's terminating \0 is part of the searched chars
+        else if (strchr(delimiters, c) != NULL) {
+            // We've reached the end, we have our buffer
+            buf[i] = '\0';
+            p->s += i;
+            if (!p->had_amount) {
+                grouping_sep = amount_parse_grouping_sep(buf);
+                exponent = p->amount_exponent;
+            }
+            if (amount_parse_single(&val, buf, exponent, false, grouping_sep)) {
+                if (exponent != p->exponent) {
+                    // we have to normalize our amount
+                    val *= pow(10, p->exponent - exponent);
+                }
+                p->had_amount = true;
+                return val;
+            } else {
+                p->error = true;
+                return 0;
+            }
+        } else if (strchr(invalid, c)) {
+            p->error = true;
+            return 0;
+        }
+        if isdigit(c) {
+            had_digit = true;
+        }
+        buf[i] = c;
+        i++;
+    }
+}
+
+static int64_t
+expr_parens(struct ExprParse *p)
+{
+    int64_t val = 0;
+    // Let's skip whitespace
+    while (p->s[0] != '\0' && p->s[0] == ' ') {
+        p->s++;
+    }
+    if (p->s[0] == '(') {
+        p->s++;
+        val = expr_addsubst(p);
+        if (p->error || p->s[0] != ')') {
+            p->error = true;
+            return 0;
+        }
+        p->s++;
+        return val;
+    } else {
+        return expr_amount(p);
+    }
+}
+
+static int64_t
+expr_multdiv(struct ExprParse *p)
+{
+    int64_t tmp;
+    int64_t val = expr_parens(p);
+    while (!p->error && (p->s[0] == '*' || p->s[0] == '/')) {
+        char c = *(p->s++);
+        if (c == '*') {
+            val *= expr_parens(p);
+            val /= pow(10, p->exponent);
+        }
+        else {
+            tmp = expr_parens(p);
+            if (tmp == 0) {
+                p->error = true;
+                return 0;
+            }
+            val *= pow(10, p->exponent);
+            val /= tmp;
+        }
+    }
+    return val;
+}
+
+static int64_t
+expr_addsubst(struct ExprParse *p)
+{
+    int64_t val = expr_multdiv(p);
+    while (!p->error && (p->s[0] == '+' || p->s[0] == '-')) {
+        char c = *(p->s++);
+        if (c == '+') {
+            val += expr_multdiv(p);
+        } else {
+            val -= expr_multdiv(p);
+        }
+    }
+    return val;
+}
+
+bool
+amount_parse_expr(
+    int64_t *dest, const char *s, uint8_t exponent)
+{
+    struct ExprParse p;
+    int64_t val;
+
+    p.s = s;
+    p.amount_exponent = exponent;
+    p.exponent = 5;
+    p.had_amount = false;
+    p.error = false;
+    val = expr_addsubst(&p);
+    // `val` is in p.exponent. normalize it to requested exponent
+    val /= pow(10, p.exponent - exponent);
+    if (!p.error) {
+        *dest = val;
+        return true;
+    } else {
+        return false;
+    }
+}
+
