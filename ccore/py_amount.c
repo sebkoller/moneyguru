@@ -124,7 +124,7 @@ static int
 PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
 {
     PyObject *amount, *tmp;
-    char *code;
+    const char *code;
     double dtmp;
     Currency *c;
 
@@ -424,12 +424,12 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
     int rc;
     Amount *amount;
     PyObject *pyamount;
-    char *default_currency = "";
-    char *zero_currency = "";
-    bool blank_zero = false;
+    const char *default_currency = "";
+    const char *zero_currency = "";
+    int blank_zero = false;
     bool show_currency = false;
-    char *decimal_sep = ".";
-    char *grouping_sep = "";
+    const char *decimal_sep = ".";
+    const char *grouping_sep = "";
     Currency *c = NULL;
     char result[64];
     static char *kwlist[] = {
@@ -496,33 +496,18 @@ py_amount_parse_single(PyObject *self, PyObject *args, PyObject *kwds)
     int rc;
     uint8_t exponent;
     const char *s;
-    bool auto_decimal_place;
-    bool parens_for_negatives = true;
+    int auto_decimal_place;
+    int parens_for_negatives = true;
     int64_t val;
     double dtmp;
-    PyObject *pys;
     static char *kwlist[] = {
         "string", "exponent", "auto_decimal_place", "parens_for_negatives",
         NULL};
 
     rc = PyArg_ParseTupleAndKeywords(
-        args, kwds, "Obp|p", kwlist, &pys, &exponent, &auto_decimal_place,
+        args, kwds, "sbp|p", kwlist, &s, &exponent, &auto_decimal_place,
         &parens_for_negatives);
     if (!rc) {
-        return NULL;
-    }
-    // `s` was previously fetches with the "s" format in
-    // PyArg_ParseTupleAndKeywords(), but in rare occastions, under py37, this
-    // led to strange segfaults. I had the same behavior with
-    // PyUnicode_AsUTF8(). I *think* it might be related to
-    // https://bugs.python.org/issue28769. Will look into it some time. For
-    // now, going through PyBytes makes the problem go away.
-    pys = PyUnicode_AsEncodedString(pys, "utf-8", NULL);
-    if (pys == NULL) {
-        return NULL;
-    }
-    s = PyBytes_AsString(pys);
-    if (s == NULL) {
         return NULL;
     }
 
@@ -530,7 +515,6 @@ py_amount_parse_single(PyObject *self, PyObject *args, PyObject *kwds)
         PyErr_SetString(PyExc_ValueError, "couldn't parse amount");
         return NULL;
     }
-    Py_DECREF(pys);
     dtmp = (double)val / pow(10, exponent);
     return PyFloat_FromDouble(dtmp);
 }
