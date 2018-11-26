@@ -19,34 +19,8 @@ class UnsupportedCurrencyError(ValueError):
         ValueError.__init__(self, "Unsupported currency: {}".format(currency))
 
 re_arithmetic_operators = re.compile(r"[+\-*/()]")
-re_not_arithmetic_operators = re.compile(r"[^+\-*/()]+")
 # 3 letters (capturing)
 re_currency = re.compile(r'([a-zA-Z]{3}\s*$)|(^\s*[a-zA-Z]{3})')
-
-def parse_amount_expression(string, exponent):
-    # Parse an expression. Before we can do that, we need to replace all amounts with their parsed
-    # and then reformatted counterparts.
-    # FIRST OPERAND RULE: There's an ambiguity with the '.' character. In an amount, it can be a
-    # thousands separator. See #379 for details, but our solution is to only consider the first
-    # operand as an amount. The other operands are considered as "decimals", which means that they
-    # can't possibly have a thousands separator.
-    def repl(match):
-        s = match.group(0).strip()
-        if not s:
-            return None
-        nonlocal hadfirstmatch
-        if hadfirstmatch:
-            repl_exponent = 10
-        else:
-            repl_exponent = exponent
-            hadfirstmatch = True
-        parsed = parse_amount_single(s, repl_exponent, auto_decimal_place=False, parens_for_negatives=False)
-        fmt = '{{:1.{}f}}'.format(repl_exponent)
-        return fmt.format(parsed)
-
-    hadfirstmatch = False
-    result = re_not_arithmetic_operators.sub(repl, string)
-    return result
 
 def parse_amount(
         string, default_currency=None, with_expression=True, auto_decimal_place=False,

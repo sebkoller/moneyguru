@@ -101,6 +101,24 @@ amount_parse_single(
     int64_t *dest, const char *s, uint8_t exponent, bool auto_decimal_place,
     char grouping_sep);
 
+/* Parse simple math expressions involving amounts.
+ *
+ * Parse and resolve stuff like "1+2*3" into 7 and also support the
+ * peculiarities of amount matching. Like `amount_parse_single()`, will return
+ * a "floated integer" that has the exponent `exponent`.
+ *
+ * Other than parsing expressions, it behaves similarly to
+ * `amount_parse_single()` (in fact, it calls it). Theres one little caveat:
+ *
+ * FIRST OPERAND RULE: There's an ambiguity with the '.' character. In an
+ * amount, it can be a thousands separator, but also as a decimal separator.
+ * We already have a disambiguation rule in `amount_parse_single()`, but we
+ * must go a step further here because we could want to multiply an amount by a
+ * decimal number that has a precision greater than `exponent`. Our solution is
+ * to only consider the first operand as an amount. The other operands are
+ * considered as "decimals", which means that they can't possibly have a
+ * thousands separator.
+ */
 bool
 amount_parse_expr(
     int64_t *dest, const char *s, uint8_t exponent);
