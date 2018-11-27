@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,13 +10,58 @@ import os
 import time
 import pytest
 import logging
+import datetime
 
 from hscommon.testutil import pytest_funcarg__app # noqa
+from _pytest.monkeypatch import monkeypatch
 
 from ..model.currency import RatesDB, Currencies
 from ..model import currency as currency_module
 
 logging.basicConfig(level=logging.DEBUG)
+
+def pytest_funcarg__monkeyplus(request):
+    result = monkeyplus()
+    request.addfinalizer(result.undo)
+    return result
+
+class monkeyplus(monkeypatch):
+    def patch_today(self, year, month, day):
+        """Patches today's date to date(year, month, day)
+        """
+        # For the patching to work system wide, time.time() must be patched. However, there is no way
+        # to get a time.time() value out of a datetime, so a timedelta must be used
+        new_today = datetime.date(year, month, day)
+        today = datetime.date.today()
+        time_now = time.time()
+        delta = today - new_today
+        self.setattr(time, 'time', lambda: time_now - (delta.days * 24 * 60 * 60))
+
+    def patch_time_ticking(self, force_int_diff=False):
+        """Patches time.time() and ensures that it never returns the same value each time it's
+        called.
+
+        If force_int_diff is True, the minimum difference between time() result is 1.
+        """
+        if hasattr(self, '_time_before_ticking_patch'):
+            # Already patched, do nothing.
+            return
+        self._last_time_tick = time.time()
+        if force_int_diff:
+            self._last_time_tick = int(self._last_time_tick)
+        self._time_before_ticking_patch = time.time
+
+        def fake_time():
+            result = self._time_before_ticking_patch()
+            if force_int_diff:
+                result = int(result)
+            if result <= self._last_time_tick:
+                result = self._last_time_tick + 1
+            self._last_time_tick = result
+            return result
+
+        self.setattr(time, 'time', fake_time)
+
 
 global_monkeypatch = None
 
