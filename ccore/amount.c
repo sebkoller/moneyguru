@@ -83,6 +83,18 @@ amount_check(Amount *first, Amount *second)
     }
 }
 
+int64_t
+amount_slide(int64_t val, uint8_t fromexp, uint8_t toexp)
+{
+    if (toexp == fromexp) {
+        return val;
+    } else if (toexp > fromexp) {
+        return val * pow(10, toexp - fromexp);
+    } else {
+        return val / pow(10, fromexp - toexp);
+    }
+}
+
 bool
 amount_format(
     char *dest,

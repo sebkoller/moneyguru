@@ -4,29 +4,11 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from .currency import Currencies
 from ._ccore import ( # noqa
     Amount, amount_format as format_amount, amount_parse as parse_amount,
+    amount_convert as convert_amount,
     UnsupportedCurrencyError)
 
-
-def convert_amount(amount, target_currency, date):
-    """Returns ``amount`` converted to ``target_currency`` using ``date`` exchange rates.
-
-    :param amount: :class:`Amount`
-    :param target_currency: :class:`.Currency`
-    :param date: ``datetime.date``
-    """
-    if amount == 0:
-        return amount
-    if hasattr(target_currency, 'code'):
-        target_currency = target_currency.code
-    currency = amount.currency_code
-    if currency == target_currency:
-        return amount
-    exchange_rate = Currencies.get_rates_db().get_rate(
-        date, currency, target_currency)
-    return Amount(amount.value * exchange_rate, target_currency)
 
 def prorate_amount(amount, spread_over_range, wanted_range):
     """Returns the prorated part of ``amount`` spread over ``spread_over_range`` for the ``wanted_range``.

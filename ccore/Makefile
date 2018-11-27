@@ -1,8 +1,7 @@
 PYTHON ?= python
 TARGET = _ccore.so
 
-PY_SRCS = py_currency.c py_amount.c py_ccore.c
-SRCS = currency.c amount.c $(PY_SRCS)
+SRCS = currency.c amount.c py_ccore.c
 OBJS = $(SRCS:%.c=%.o)
 
 CC = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CC'))")
