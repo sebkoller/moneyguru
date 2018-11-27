@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-07-06
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -148,7 +146,7 @@ class Graph(Chart):
         data_height = self.ymax - self.ymin
         y_labels_width = max(self.view.text_size(label['text'], FontID.AxisLabel)[0] for label in self.ylabels)
         labels_height = self.view.text_size('', FontID.AxisLabel)[1]
-        title = "{} ({})".format(self.title, self.currency.code)
+        title = "{} ({})".format(self.title, self.currency)
         title_width, title_height = self.view.text_size(title, FontID.Title)
         titley = view_rect.h - self.TITLE_PADDING - title_height
         graphx = y_labels_width + self.PADDING
