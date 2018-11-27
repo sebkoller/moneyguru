@@ -6,9 +6,9 @@ msgstr ""
 "Last-Translator: Virgil Dupras <hsoft@hardcoded.net>\n"
 "Language-Team: Czech (http://www.transifex.com/hsoft/moneyguru/language/"
 "cs/)\n"
+"Language: cs\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: utf-8\n"
-"Language: cs\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
 #: core/gui/balance_sheet.py:21 core/gui/budget_table.py:25
