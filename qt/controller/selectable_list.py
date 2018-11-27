@@ -15,7 +15,7 @@ class SelectableList(QAbstractListModel):
         self.view.setModel(self)
         self.model.view = self
 
-    #--- Override
+    # --- Override
     def data(self, index, role):
         if not index.isValid():
             return None
@@ -29,14 +29,14 @@ class SelectableList(QAbstractListModel):
             return 0
         return len(self.model)
 
-    #--- Virtual
+    # --- Virtual
     def _updateSelection(self):
         raise NotImplementedError()
 
     def _restoreSelection(self):
         raise NotImplementedError()
 
-    #--- model --> view
+    # --- model --> view
     def refresh(self):
         self._updating = True
         self.beginResetModel()
@@ -52,7 +52,7 @@ class ComboboxModel(SelectableList):
         super().__init__(model, view, **kwargs)
         self.view.currentIndexChanged[int].connect(self.selectionChanged)
 
-    #--- Override
+    # --- Override
     def _updateSelection(self):
         index = self.view.currentIndex()
         if index != self.model.selected_index:
@@ -63,7 +63,7 @@ class ComboboxModel(SelectableList):
         if index is not None:
             self.view.setCurrentIndex(index)
 
-    #--- Events
+    # --- Events
     def selectionChanged(self, index):
         if not self._updating:
             self._updateSelection()
@@ -74,7 +74,7 @@ class ListviewModel(SelectableList):
         self.view.selectionModel().selectionChanged[(QItemSelection, QItemSelection)].connect(
             self.selectionChanged)
 
-    #--- Override
+    # --- Override
     def _updateSelection(self):
         newIndexes = [modelIndex.row() for modelIndex in self.view.selectionModel().selectedRows()]
         if newIndexes != self.model.selected_indexes:
@@ -89,7 +89,7 @@ class ListviewModel(SelectableList):
             currentIndex = newSelection.indexes()[0]
             self.view.selectionModel().setCurrentIndex(currentIndex, QItemSelectionModel.Current)
             self.view.scrollTo(currentIndex)
-    #--- Events
+    # --- Events
     def selectionChanged(self, index):
         if not self._updating:
             self._updateSelection()

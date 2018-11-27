@@ -96,7 +96,7 @@ class TableBase(QAbstractTableModel):
             self.view.selectionModel().setCurrentIndex(currentIndex, QItemSelectionModel.Current)
             self.view.scrollTo(currentIndex)
 
-    #--- Data Model methods
+    # --- Data Model methods
     # Virtual
     def _getData(self, row, column, role):
         if role in (Qt.DisplayRole, Qt.EditRole):
@@ -171,17 +171,17 @@ class TableBase(QAbstractTableModel):
     def sort(self, section, order):
         column = self.model.columns.column_by_index(section)
         attrname = column.name
-        self.model.sort_by(attrname, desc=order==Qt.DescendingOrder)
+        self.model.sort_by(attrname, desc=(order == Qt.DescendingOrder))
 
     def submit(self):
         self.model.save_edits()
         return True
 
-    #--- Events
+    # --- Events
     def selectionChanged(self, selected, deselected):
         self._updateModelSelection()
 
-    #--- model --> view
+    # --- model --> view
     def refresh(self):
         self.beginResetModel()
         self.endResetModel()

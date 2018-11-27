@@ -23,7 +23,7 @@ class RadioBox(QWidget):
         self._layout = QHBoxLayout(self)
         self._update_buttons()
 
-    #--- Private
+    # --- Private
     def _update_buttons(self):
         if self._spacer is not None:
             self._layout.removeItem(self._spacer)
@@ -51,7 +51,7 @@ class RadioBox(QWidget):
         selected = self._buttons[self._selected_index]
         selected.setChecked(True)
 
-    #--- Event Handlers
+    # --- Event Handlers
     def buttonToggled(self):
         for i, button in enumerate(self._buttons):
             if button.isChecked():
@@ -59,10 +59,10 @@ class RadioBox(QWidget):
                 self.itemSelected.emit(i)
                 break
 
-    #--- Signals
+    # --- Signals
     itemSelected = pyqtSignal(int)
 
-    #--- Properties
+    # --- Properties
     @property
     def buttons(self):
         return self._buttons[:]

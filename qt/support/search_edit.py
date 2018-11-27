@@ -39,7 +39,7 @@ class ClearableEdit(QLineEdit):
             self._clearButton.clicked.connect(self._clearSearch)
         self.textChanged.connect(self._textChanged)
 
-    #--- Private
+    # --- Private
     def _clearSearch(self):
         self.clear()
 
@@ -49,7 +49,7 @@ class ClearableEdit(QLineEdit):
     def _hasClearableContent(self):
         return bool(self.text())
 
-    #--- QLineEdit overrides
+    # --- QLineEdit overrides
     def resizeEvent(self, event):
         if self._is_clearable:
             frameWidth = self.style().pixelMetric(QStyle.PM_DefaultFrameWidth)
@@ -59,7 +59,7 @@ class ClearableEdit(QLineEdit):
             rightY = (rect.bottom() - rightHint.height()) // 2
             self._clearButton.move(rightX, rightY)
 
-    #--- Event Handlers
+    # --- Event Handlers
     def _textChanged(self, text):
         if self._is_clearable:
             self._updateClearButton()
@@ -74,7 +74,7 @@ class SearchEdit(ClearableEdit):
 
         self.returnPressed.connect(self._returnPressed)
 
-    #--- Overrides
+    # --- Overrides
     def _clearSearch(self):
         ClearableEdit._clearSearch(self)
         self.searchChanged.emit()
@@ -105,11 +105,11 @@ class SearchEdit(ClearableEdit):
             painter.setPen(disabledColor)
             painter.drawText(textRect, Qt.AlignLeft|Qt.AlignVCenter, self.inactiveText)
 
-    #--- Event Handlers
+    # --- Event Handlers
     def _returnPressed(self):
         if not self.immediate:
             self.searchChanged.emit()
 
-    #--- Signals
+    # --- Signals
     searchChanged = pyqtSignal() # Emitted when return is pressed or when the test is cleared
 

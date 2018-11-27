@@ -6,7 +6,8 @@
 
 from PyQt5.QtCore import Qt, QCoreApplication
 from PyQt5.QtGui import QPixmap, QFont
-from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QSizePolicy, QHBoxLayout, QVBoxLayout,
+from PyQt5.QtWidgets import (
+    QDialog, QDialogButtonBox, QSizePolicy, QHBoxLayout, QVBoxLayout,
     QLabel, QApplication)
 
 from hscommon.trans import trget

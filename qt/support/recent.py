@@ -28,7 +28,7 @@ class Recent(QObject):
 
         self._app.willSavePrefs.connect(self._saveToPrefs)
 
-    #--- Private
+    # --- Private
     def _loadFromPrefs(self):
         items = getattr(self._app.prefs, self._prefName)
         if not isinstance(items, list):
@@ -59,7 +59,7 @@ class Recent(QObject):
     def _saveToPrefs(self):
         setattr(self._app.prefs, self._prefName, self._items)
 
-    #--- Public
+    # --- Public
     def addMenu(self, menu):
         menuEntry = MenuEntry(menu, len(menu.actions()))
         self._menuEntries.append(menuEntry)
@@ -78,7 +78,7 @@ class Recent(QObject):
     def isEmpty(self):
         return not bool(self._items)
 
-    #--- Event Handlers
+    # --- Event Handlers
     def menuItemWasClicked(self):
         action = self.sender()
         if action is not None:
@@ -86,7 +86,7 @@ class Recent(QObject):
             self.mustOpenItem.emit(item)
             self._refreshAllMenus()
 
-    #--- Signals
+    # --- Signals
     mustOpenItem = pyqtSignal(str)
     itemsChanged = pyqtSignal()
 
