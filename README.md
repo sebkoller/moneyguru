@@ -2,55 +2,66 @@
 
 [![Build Status](https://travis-ci.org/hsoft/moneyguru.svg?branch=master)](https://travis-ci.org/hsoft/moneyguru)
 
-[moneyGuru][moneyguru] is a personal finance management application. With it, you can evaluate your
-financial situation so you can make informed (and thus better) decisions. Most finance applications
-have the same goal, but moneyGuru's difference is in the way it achieves it. Rather than having
-reports which you have to configure (or find out which pre-configured report is the right one), your
-important financial data (net worth, profit) is constantly up-to-date and "in your face". This
-allows you to constantly make informed decision rather than doing so periodically.
-
-The Cocoa UI of moneyGuru is hosted in a separate repo: https://github.com/hsoft/moneyguru-cocoa
+[moneyGuru][moneyguru] is a personal finance management application. With it,
+you can evaluate your financial situation so you can make informed (and thus
+better) decisions. Most finance applications have the same goal, but
+moneyGuru's difference is in the way it achieves it. Rather than having reports
+which you have to configure (or find out which pre-configured report is the
+right one), your important financial data (net worth, profit) is constantly
+up-to-date and "in your face". This allows you to constantly make informed
+decision rather than doing so periodically.
 
 # Current status: People wanted
 
-moneyGuru has currently only one maintainer, me. This is a dangerous situation that needs to be
-corrected.
+moneyGuru has currently only one maintainer, me. This is a dangerous situation
+that needs to be corrected.
 
-The goal is to eventually have another active maintainer, but before we can get there, the project
-needs more contributors.
+The goal is to eventually have another active maintainer, but before we can get
+there, the project needs more contributors.
 
-Whatever your skills, if you are remotely interestested in being a contributor, I'm interested in
-mentoring you. If that's the case, please refer to [the open ticket on the subject][contrib-issue]
-and let's get started.
+Whatever your skills, if you are remotely interestested in being a contributor,
+I'm interested in mentoring you. If that's the case, please refer to [the open
+ticket on the subject][contrib-issue] and let's get started.
 
-## Windows maintainer wanted
+## Windows? Mac OS? gone
 
-As [described on my website][nowindows], v2.9.x serie of moneyGuru is the last one to support
-Windows unless someone steps up to maintain it. If you're a Windows developer and are interested
-in taking this task, [don't hesitate to let me know][contrib-issue].
+moneyGuru used to run on Windows and Mac OS, but I haven't had a Windows or
+MacOS setup in years, I can't (and don't want to) produce builds for these
+targets any more.
 
-## OS X maintainer wanted
+I don't purposefully remove platform-agnostic mechanics, but when they stand in
+my way, I scrap them (can't test? worthless code) and I've been doing that for
+a while now. As a result, this app pretty much became a GNU/Linux app.
 
-My Mac Mini is already a couple of years old and is likely to be my last Apple purchase. When it
-dies, I will be unable maintain the OS X version of moneyGuru. I've already stopped paying for the
-Mac Developer membership so I can't sign the apps anymore (in the "official way" I mean. The
-download is still PGP signed) If you're a Mac developer and are interested in taking this task,
-[don't hesitate to let me know][contrib-issue].
+There have been unsuccessful attempts from some people in the past to pick these
+platforms up. Didn't work. The challenge becomes greater as time passes.
+
+Still, if you're interested in reviving a platform, go ahead. If you get far
+enough, I'll be delighted to point to your builds as the official ones. I'll
+also be glad to reinstate platform-agnostic mechanics in the core code.
+
+What used to be the Cocoa UI of moneyGuru is hosted in a separate repo:
+https://github.com/hsoft/moneyguru-cocoa
+
+The Windows version used Qt, so it didn't have a separate UI codebase.
 
 # Contents of this folder
 
 This package contains the source for moneyGuru. Its documentation is
 [available online][documentation]. Here's how this source tree is organised:
 
+* ccore: The "very core" code of moneyGuru. Written in C. Introduced recently,
+         will expand with time. The goal could be to rewrite the whole of `core`
+         in C, but `core.gui` will be a big chunk. Might not be worth it.
 * core: Contains the core logic code for moneyGuru. It's Python code.
 * qt: UI code for the Qt toolkit. It's written in Python and uses PyQt.
 * images: Images used by the different UI codebases.
-* debian: Skeleton files required to create a .deb package.
 * help: Help document, written for [Sphinx][sphinx].
 * locale: .po files for localisation.
+* support: various files to help with the build process.
 
-There are also other sub-folder that comes from external repositories and are part of this repo as
-git submodules:
+There are also other sub-folder that comes from external repositories and are
+part of this repo as git submodules:
 
 * hscommon: A collection of helpers used across HS applications.
 * qtlib: A collection of helpers used across Qt UI codebases of HS applications.
@@ -59,8 +70,9 @@ git submodules:
 
 ### Prerequisites
 
-* [Python 3.4+][python]
+* Python 3.4+
 * PyQt5
+* GNU build environment
 
 On Ubuntu, the apt-get command to install all pre-requisites is:
 
@@ -70,10 +82,9 @@ On Arch, it's:
 
     $ pacman -S python-pyqt5
 
-On OS X, an easy way to install a "framework enabled" Python 3 is through [pyenv][pyenv]. Once
-pyenv in installed, run a command like:
+On Gentoo, it's:
 
-    env PYTHON_CONFIGURE_OPTS="--enable-framework" pyenv install 3.5.1
+    $ USE="gui widgets printsupport" emerge PyQt5
 
 ### make
 
@@ -84,28 +95,27 @@ moneyGuru is built with "make":
 
 # Running tests
 
-The complete test suite is ran with [Tox 1.7+][tox]. If you have it installed system-wide, you
-don't even need to set up a virtualenv. Just `cd` into the root project folder and run `tox`.
+The complete test suite is ran with [Tox 1.7+][tox]. If you have it installed
+system-wide, you don't even need to set up a virtualenv. Just `cd` into the
+root project folder and run `tox`.
 
-If you don't have Tox system-wide, install it in your virtualenv with `pip install tox` and then
-run `tox`.
+If you don't have Tox system-wide, install it in your virtualenv with `pip
+install tox` and then run `tox`.
 
-You can also run automated tests without Tox. Extra requirements for running tests are in
-`requirements-tests.txt`. So, you can do `pip install -r requirements-tests.txt` inside your
-virtualenv and then `py.test core hscommon`
+You can also run automated tests without Tox. Extra requirements for running
+tests are in `requirements-tests.txt`. So, you can do `pip install -r
+requirements-tests.txt` inside your virtualenv and then `py.test core hscommon`
 
 # Further documentation
 
-For further development-related documentation, there's a "moneyGuru Developer Documentation"
-section in the english version of the main documentation. This documentation is built with the app
-and is also [available online][documentation].
+For further development-related documentation, there's a "moneyGuru Developer
+Documentation" section in the english version of the main documentation. This
+documentation is built with the app and is also [available
+online][documentation].
 
 [moneyguru]: http://www.hardcoded.net/moneyguru/
-[contrib-issue]: https://github.com/hsoft/moneyguru/issues/425
-[nowindows]: https://www.hardcoded.net/archive2015#2015-11-01
 [documentation]: http://www.hardcoded.net/moneyguru/help/en/
-[python]: http://www.python.org/
-[pyenv]: https://github.com/yyuu/pyenv
+[contrib-issue]: https://github.com/hsoft/moneyguru/issues/425
 [pyqt]: http://www.riverbankcomputing.com
 [sphinx]: http://sphinx.pocoo.org/
 [tox]: https://tox.readthedocs.org/en/latest/
