@@ -1,17 +1,7 @@
 PYTHON ?= python3
+SHEBANG ?= /usr/bin/env $(PYTHON)
 REQ_MINOR_VERSION = 4
 PREFIX ?= /usr/local
-
-# Set this variable if all dependencies are already met on the system. We will then avoid the
-# whole vitualenv creation and pip install dance.
-NO_VENV ?=
-UBUNTU_VERSION ?= xenial
-
-ifdef NO_VENV
-	VENV_PYTHON = $(shell $(PYTHON) -c "import sys; print(sys.executable)")
-else
-	VENV_PYTHON = ./env/bin/python
-endif
 
 # If you're installing into a path that is not going to be the final path prefix (such as a
 # sandbox), set DESTDIR to that path.
@@ -28,7 +18,7 @@ mofiles = $(patsubst %.po,%.mo,$(pofiles))
 vpath %.po $(localedirs)
 vpath %.mo $(localedirs)
 
-all: qt/mg_rc.py run.py | env i18n ccore
+all: qt/mg_rc.py run.py | i18n ccore $(submodules_target) reqs
 	@echo "Build complete! You can run moneyGuru with 'make run'"
 
 run:
@@ -37,33 +27,19 @@ run:
 pyc:
 	${PYTHON} -m compileall ${packages}
 
-reqs :
+reqs:
 	@ret=`${PYTHON} -c "import sys; print(int(sys.version_info[:2] >= (3, ${REQ_MINOR_VERSION})))"`; \
 		if [ $${ret} -ne 1 ]; then \
 			echo "Python 3.${REQ_MINOR_VERSION}+ required. Aborting."; \
 			exit 1; \
 		fi
-ifndef NO_VENV
-	@${PYTHON} -m venv -h > /dev/null || \
-		echo "Creation of our virtualenv failed. If you're on Ubuntu, you probably need python3-venv."
-endif
 	@${PYTHON} -c 'import PyQt5' >/dev/null 2>&1 || \
 		{ echo "PyQt 5.4+ required. Install it and try again. Aborting"; exit 1; }
 
 # Ensure that submodules are initialized
-$(submodules_target) :
+$(submodules_target):
 	git submodule init
 	git submodule update
-
-env : | $(submodules_target) reqs
-ifndef NO_VENV
-	@echo "Creating our virtualenv"
-	${PYTHON} -m venv env
-	$(VENV_PYTHON) -m pip install -r requirements.txt
-# We can't use the "--system-site-packages" flag on creation because otherwise we end up with
-# the system's pip and that messes up things in some cases (notably in Gentoo).
-	${PYTHON} -m venv --upgrade --system-site-packages env
-endif
 
 help/en/changelog.rst: help/changelog help/en/changelog.head.rst
 	$(PYTHON) support/genchangelog.py help/changelog | cat help/en/changelog.head.rst - > $@
@@ -71,17 +47,14 @@ help/en/changelog.rst: help/changelog help/en/changelog.head.rst
 help/en/credits.rst: help/en/credits.head.rst help/credits.rst 
 	cat $+ > $@
 
-build/help : help/en/changelog.rst help/en/credits.rst | env
-ifndef NO_VENV
-	$(VENV_PYTHON) -m pip install -r requirements-docs.txt
-endif
-	$(VENV_PYTHON) -m sphinx help/en $@
+build/help: help/en/changelog.rst help/en/credits.rst
+	$(PYTHON) -m sphinx help/en $@
 
 qt/mg_rc.py : qt/mg.qrc
 	pyrcc5 $< > $@
 
 run.py: support/run.template.py
-	sed -e 's|@SHEBANG@|#!$(VENV_PYTHON)|' $< > $@
+	sed -e 's|@SHEBANG@|#!$(SHEBANG)|' $< > $@
 	chmod +x $@
 
 i18n: $(mofiles)
@@ -93,14 +66,14 @@ ccore:
 	make -C ccore PYTHON=$(PYTHON)
 	cp ccore/_ccore.so core/model
 
-mergepot :
+mergepot:
 	./support/mergepot.sh
 
 normpo:
 	find locale -name *.po -exec msgcat {} -o {} \;
 	find qtlib/locale -name *.po -exec msgcat {} -o {} \;
 
-srcpkg :
+srcpkg:
 	./support/srcpkg.sh
 
 install: all pyc
