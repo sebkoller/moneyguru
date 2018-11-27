@@ -94,10 +94,11 @@ ccore:
 	cp ccore/_ccore.so core/model
 
 mergepot :
-	$(VENV_PYTHON) build.py --mergepot
+	./support/mergepot.sh
 
 normpo:
 	find locale -name *.po -exec msgcat {} -o {} \;
+	find qtlib/locale -name *.po -exec msgcat {} -o {} \;
 
 srcpkg :
 	./support/srcpkg.sh
