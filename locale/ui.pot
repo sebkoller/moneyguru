@@ -1,4 +1,5 @@
-# 
+# #-#-#-#-#  ui.pot  #-#-#-#-#
+#
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=utf-8\n"
@@ -180,18 +181,15 @@ msgstr ""
 msgid "Today"
 msgstr ""
 
-#: qt/controller/date_range_selector.py:36
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:36 cocoa/en.lproj/Localizable.strings:0
 msgid "Month"
 msgstr ""
 
-#: qt/controller/date_range_selector.py:39
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:39 cocoa/en.lproj/Localizable.strings:0
 msgid "Quarter"
 msgstr ""
 
-#: qt/controller/date_range_selector.py:42
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:42 cocoa/en.lproj/Localizable.strings:0
 msgid "Year"
 msgstr ""
 
@@ -288,36 +286,30 @@ msgstr ""
 msgid "CSV Options"
 msgstr ""
 
-#: qt/controller/import_/csv_options.py:42
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:42 cocoa/en.lproj/Localizable.strings:0
 msgid ""
 "Specify which CSV columns correspond to which transaction fields. You must "
 "also uncheck the \"Import\" column for lines that don't represent a "
 "transaction (header, footer, comments)."
 msgstr ""
 
-#: qt/controller/import_/csv_options.py:51
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:51 cocoa/en.lproj/Localizable.strings:0
 msgid "Layout:"
 msgstr ""
 
-#: qt/controller/import_/csv_options.py:56
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:56 cocoa/en.lproj/Localizable.strings:0
 msgid "Delimiter:"
 msgstr ""
 
-#: qt/controller/import_/csv_options.py:73
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:73 cocoa/en.lproj/Localizable.strings:0
 msgid "Rescan"
 msgstr ""
 
-#: qt/controller/import_/csv_options.py:81
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:81 cocoa/en.lproj/Localizable.strings:0
 msgid "Encoding:"
 msgstr ""
 
-#: qt/controller/import_/csv_options.py:98
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:98 cocoa/en.lproj/Localizable.strings:0
 msgid "Continue Import"
 msgstr ""
 
@@ -618,8 +610,7 @@ msgstr ""
 msgid "Warning"
 msgstr ""
 
-#: qt/controller/mass_edition_panel.py:57
-#: qt/controller/transaction_panel.py:61
+#: qt/controller/mass_edition_panel.py:57 qt/controller/transaction_panel.py:61
 msgid "Date:"
 msgstr ""
 
@@ -758,8 +749,8 @@ msgstr ""
 
 #: qt/controller/schedule_scope_dialog.py:41
 msgid ""
-"You can force global scope (in other words, changing all future occurrences)"
-" by holding Shift when you perform the change."
+"You can force global scope (in other words, changing all future occurrences) "
+"by holding Shift when you perform the change."
 msgstr ""
 
 #: qt/controller/schedule_scope_dialog.py:53
@@ -837,7 +828,7 @@ msgstr ""
 msgid "Choose a view for this tab"
 msgstr ""
 
-#: cocoa/en.lproj/Localizable.strings:0
+#: cocoa/en.lproj/Localizable.strings:0 qtlib/error_report_dialog.py:64
 msgid "Close"
 msgstr ""
 
@@ -899,8 +890,7 @@ msgstr ""
 
 #: cocoa/en.lproj/Localizable.strings:0
 msgid ""
-"Do you want this change to affect all future occurrences of this "
-"transaction?"
+"Do you want this change to affect all future occurrences of this transaction?"
 msgstr ""
 
 #: cocoa/en.lproj/Localizable.strings:0
@@ -1059,7 +1049,7 @@ msgstr ""
 msgid "Save this custom range in slot:"
 msgstr ""
 
-#: cocoa/en.lproj/Localizable.strings:0
+#: cocoa/en.lproj/Localizable.strings:0 qtlib/search_edit.py:77
 msgid "Search..."
 msgstr ""
 
@@ -1173,4 +1163,107 @@ msgstr ""
 
 #: qt/controller/pluginlist_view.py:25
 msgid "moneyGuru has to be restarted for plugin changes to take effect."
+msgstr ""
+
+#: qtlib/about_box.py:29
+msgid "About {}"
+msgstr ""
+
+#: qtlib/about_box.py:49
+msgid "Version {}"
+msgstr ""
+
+#: qtlib/about_box.py:53
+msgid "Licensed under GPLv3"
+msgstr ""
+
+#: qtlib/error_report_dialog.py:39
+msgid "Error Report"
+msgstr ""
+
+#: qtlib/error_report_dialog.py:43
+msgid "Something went wrong. How about reporting the error?"
+msgstr ""
+
+#: qtlib/error_report_dialog.py:49
+msgid ""
+"Error reports should be reported as Github issues. You can copy the error "
+"traceback above and paste it in a new issue (bonus point if you run a search "
+"to make sure the issue doesn't already exist). What usually really helps is "
+"if you add a description of how you got the error. Thanks!\n"
+"\n"
+"Although the application should continue to run after this error, it may be "
+"in an unstable state, so it is recommended that you restart the application."
+msgstr ""
+
+#: qtlib/error_report_dialog.py:68
+msgid "Go to Github"
+msgstr ""
+
+#: qtlib/preferences.py:18
+msgid "English"
+msgstr ""
+
+#: qtlib/preferences.py:19
+msgid "French"
+msgstr ""
+
+#: qtlib/preferences.py:20
+msgid "German"
+msgstr ""
+
+#: qtlib/preferences.py:21
+msgid "Greek"
+msgstr ""
+
+#: qtlib/preferences.py:22
+msgid "Chinese (Simplified)"
+msgstr ""
+
+#: qtlib/preferences.py:23
+msgid "Czech"
+msgstr ""
+
+#: qtlib/preferences.py:24
+msgid "Italian"
+msgstr ""
+
+#: qtlib/preferences.py:25
+msgid "Armenian"
+msgstr ""
+
+#: qtlib/preferences.py:26
+msgid "Korean"
+msgstr ""
+
+#: qtlib/preferences.py:27
+msgid "Russian"
+msgstr ""
+
+#: qtlib/preferences.py:28
+msgid "Ukrainian"
+msgstr ""
+
+#: qtlib/preferences.py:29
+msgid "Dutch"
+msgstr ""
+
+#: qtlib/preferences.py:30
+msgid "Polish"
+msgstr ""
+
+#: qtlib/preferences.py:31
+msgid "Brazilian"
+msgstr ""
+
+#: qtlib/preferences.py:32
+msgid "Spanish"
+msgstr ""
+
+#: qtlib/preferences.py:33
+msgid "Vietnamese"
+msgstr ""
+
+#: qtlib/recent.py:53
+msgid "Clear List"
 msgstr ""

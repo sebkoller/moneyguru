@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-11-17
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -16,7 +14,7 @@ from hscommon.util import tryint
 
 from core.model.date import clean_format
 
-tr = trget('qtlib')
+tr = trget('ui')
 
 def normalize_for_serialization(v):
     # QSettings doesn't consider set/tuple as "native" typs for serialization, so if we don't

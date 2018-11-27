@@ -10,10 +10,7 @@ from PyQt5.QtWidgets import QToolButton, QLineEdit, QStyle, QStyleOptionFrame
 
 from hscommon.trans import trget
 
-tr = trget('qtlib')
-
-# IMPORTANT: For this widget to work propertly, you have to add "search_clear_13" from the
-# "images" folder in your resources.
+tr = trget('ui')
 
 class LineEditButton(QToolButton):
     def __init__(self, parent, **kwargs):

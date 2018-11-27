@@ -15,7 +15,7 @@ from hscommon.trans import trget
 from hscommon.desktop import open_url
 from ..util import horizontalSpacer
 
-tr = trget('qtlib')
+tr = trget('ui')
 
 class ErrorReportDialog(QDialog):
     def __init__(self, parent, github_url, error, **kwargs):

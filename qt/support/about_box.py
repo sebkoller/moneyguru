@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-05-09
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -13,7 +11,7 @@ from PyQt5.QtWidgets import (QDialog, QDialogButtonBox, QSizePolicy, QHBoxLayout
 
 from hscommon.trans import trget
 
-tr = trget('qtlib')
+tr = trget('ui')
 
 class AboutBox(QDialog):
     def __init__(self, parent, app, **kwargs):
