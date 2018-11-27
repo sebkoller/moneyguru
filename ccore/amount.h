@@ -70,6 +70,14 @@ amount_format(
 char
 amount_parse_grouping_sep(const char *s);
 
+/* Parse `s` and look for a currency code
+ *
+ * If it has one, returns the corresponding Currency. Otherwise, returns NULL.
+ */
+Currency *
+amount_parse_currency(
+    const char *s, const char *default_currency, bool strict_currency);
+
 /* Parse number in `s` and sets its numerical value in `dest`.
  *
  * The returned value is a "floated integer", an integer that represents a

@@ -22,6 +22,9 @@ typedef enum {
 CurrencyResult
 currency_global_init(char *dbpath);
 
+CurrencyResult
+currency_global_reset_currencies();
+
 void
 currency_global_deinit();
 

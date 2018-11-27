@@ -203,7 +203,6 @@ def test_parse_division_result_in_a_float():
 def test_parse_empty():
     eq_(parse_amount(''), 0)
     eq_(parse_amount(' '), 0)
-    eq_(parse_amount(None), 0)
 
 def test_parse_expressions():
     eq_(parse_amount('18 + 24 CAD'), Amount(42, 'CAD'))

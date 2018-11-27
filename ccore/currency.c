@@ -126,9 +126,9 @@ currency_global_init(char *dbpath)
     int res;
 
     if (g_currencies == NULL) {
-        g_currencies = calloc(CURRENCY_REGISTRY_INITIAL_SIZE, sizeof(Currency*));
-        if (g_currencies == NULL) {
-            return CURRENCY_ERROR;
+        res = currency_global_reset_currencies();
+        if (res != CURRENCY_OK) {
+            return res;
         }
     }
     if (g_db != NULL) {
@@ -153,6 +153,50 @@ currency_global_init(char *dbpath)
             "create unique index idx_rate on rates (date, currency)",
             NULL, NULL, NULL);
     }
+    return CURRENCY_OK;
+}
+
+CurrencyResult
+currency_global_reset_currencies()
+{
+    if (g_currencies != NULL) {
+        // Don't allocate a new list, we're probably in a test context and we
+        // want to keep our 3 main currency instances. Flush the rest of the
+        // list
+        Currency **c = &g_currencies[3];
+        while (*c != NULL) {
+            free(*c);
+            *c = NULL;
+            c++;
+        }
+        return CURRENCY_OK;
+    }
+    g_currencies = calloc(CURRENCY_REGISTRY_INITIAL_SIZE, sizeof(Currency*));
+    if (g_currencies == NULL) {
+        return CURRENCY_ERROR;
+    }
+    // Register our 3 base currencies
+    currency_register(
+        "USD",
+        2,
+        883717200, // 1998-01-02
+        1.425,
+        0,
+        1.0128);
+    currency_register(
+        "EUR",
+        2,
+        915426000, // 1999-01-04
+        1.8123,
+        0,
+        1.3298);
+    currency_register(
+        "CAD",
+        2,
+        0,
+        1,
+        0,
+        1);
     return CURRENCY_OK;
 }
 

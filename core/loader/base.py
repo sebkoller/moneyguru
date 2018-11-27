@@ -231,10 +231,10 @@ class Loader:
             return parse_amount(
                 string, currency, with_expression=False, strict_currency=cls.STRICT_CURRENCY
             )
-        except UnsupportedCurrencyError as e:
+        except UnsupportedCurrencyError:
             msg = tr(
                 "Unsupported currency: {}. Aborting load. Did you disable a currency plugin?"
-            ).format(e.currency)
+            ).format(currency)
             raise FileFormatError(msg)
 
     def load(self):

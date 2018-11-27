@@ -13,7 +13,7 @@ pydate2tm(PyObject *pydate, struct tm *dest)
         return false;
     }
     dest->tm_year = PyDateTime_GET_YEAR(pydate) - 1900;
-    dest->tm_mon = PyDateTime_GET_MONTH(pydate);
+    dest->tm_mon = PyDateTime_GET_MONTH(pydate) - 1;
     dest->tm_mday = PyDateTime_GET_DAY(pydate);
     return true;
 }
@@ -21,7 +21,7 @@ pydate2tm(PyObject *pydate, struct tm *dest)
 static PyObject*
 tm2pydate(struct tm *date)
 {
-    return PyDate_FromDate(date->tm_year + 1900, date->tm_mon, date->tm_mday);
+    return PyDate_FromDate(date->tm_year + 1900, date->tm_mon + 1, date->tm_mday);
 }
 
 static time_t
@@ -70,6 +70,14 @@ py_currency_global_init(PyObject *self, PyObject *args)
 }
 
 PyObject*
+py_currency_global_reset_currencies(PyObject *self, PyObject *args)
+{
+    currency_global_reset_currencies();
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+PyObject*
 py_currency_register(PyObject *self, PyObject *args)
 {
     char *code;
@@ -113,13 +121,11 @@ py_currency_getrate(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    c1 = getcur(code1);
-    if (c1 == NULL) {
-        return NULL;
-    }
-    c2 = getcur(code2);
-    if (c2 == NULL) {
-        return NULL;
+    c1 = currency_get(code1);
+    c2 = currency_get(code2);
+    if (c1 == NULL || c2 == NULL) {
+        // Something's wrong, let's just return 1
+        return PyLong_FromLong(1);
     }
     if (currency_getrate(&date, c1, c2, &rate) != CURRENCY_OK) {
         Py_INCREF(Py_None);
@@ -168,9 +174,11 @@ py_currency_daterange(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    c = getcur(code);
+    c = currency_get(code);
     if (c == NULL) {
-        return NULL;
+        // Invalid currency, return None
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
     if (!currency_daterange(c, &start, &stop)) {

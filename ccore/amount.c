@@ -216,6 +216,45 @@ amount_parse_grouping_sep(const char *s)
     }
 }
 
+Currency *
+amount_parse_currency(
+    const char *s, const char *default_currency, bool strict_currency)
+{
+    int i = 0;
+    int len = 0;
+    char buf[4] = {0};
+    Currency *currency = NULL;
+
+    while (true) {
+        char c = s[i];
+        if (isalpha(c)) {
+            len++;
+        } else {
+            if (len == 3) {
+                // We have 3 chars. Let's see if it's a currency.
+                buf[0] = toupper(s[i-3]);
+                buf[1] = toupper(s[i-2]);
+                buf[2] = toupper(s[i-1]);
+                currency = currency_get(buf);
+                if (currency != NULL) {
+                    return currency;
+                } else if (strict_currency) {
+                    return NULL;
+                }
+            }
+            len = 0;
+        }
+        if (s[i] == '\0') {
+            if (default_currency != NULL) {
+                return currency_get(default_currency);
+            } else {
+                return NULL;
+            }
+        }
+        i++;
+    }
+}
+
 bool
 amount_parse_single(
     int64_t *dest, const char *s, uint8_t exponent, bool auto_decimal_place,

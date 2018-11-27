@@ -2,6 +2,9 @@
 #include <math.h>
 #include "amount.h"
 
+// initialized in py_ccore.c
+PyObject *UnsupportedCurrencyError = NULL;
+
 typedef struct {
     PyObject_HEAD
     Amount amount;
@@ -88,6 +91,31 @@ create_amount(int64_t ival, Currency *currency)
         return NULL;
     }
     return (PyObject *)r;
+}
+
+static bool
+strisblank(const char *s)
+{
+    while (*s != '\0') {
+        if (!isblank(*s)) {
+            return false;
+        }
+        s++;
+    }
+    return true;
+}
+
+static bool
+strisexpr(const char *s)
+{
+    static const char exprchars[] = "+-/*()";
+    while (*s != '\0') {
+        if (strchr(exprchars, *s) != NULL) {
+            return true;
+        }
+        s++;
+    }
+    return false;
 }
 
 /* Methods */
@@ -487,65 +515,104 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
     return PyUnicode_DecodeUTF8(result, rc, NULL);
 }
 
+/* Returns an `Amount` from `string`.
+ *
+ * We can parse strings like "42.54 cad" or "CAD 42.54".
+ *
+ * If `default_currency` is set, we can parse amounts that don't contain a
+ * currency code and will give the amount that currency.
+ *
+ * If `with_expression` is true, we can parse stuff like "42*4 cad" or "usd
+ * (1+2)/3". If you know your string doesn't contain any expression, turn this
+ * flag off to greatly speed up parsing.
+ *
+ * `auto_decimal_place` allows for quick decimal-less typing. We assume that
+ * the number has been typed to the last precision digit and automatically
+ * place our decimal separator if there isn't one. For example, "1234" would be
+ * parsed as "12.34" in a CAD context (in BHD, a currency with 3 digits, it
+ * would be parsed as "1.234"). This doesn't work with expressions.
+ *
+ * With `strict_currency` enabled, `UnsupportedCurrencyError` is raised if an
+ * unsupported currency is specified. We still parse sucessfully if no currency
+ * is specified and `default_currency` is not `None`.
+ */
+
 PyObject*
-py_amount_parse_single(PyObject *self, PyObject *args, PyObject *kwds)
+py_amount_parse(PyObject *self, PyObject *args, PyObject *kwds)
 {
     int rc;
-    uint8_t exponent;
     char *s;
-    int auto_decimal_place;
-    int parens_for_negatives = true;
+    char *default_currency = NULL;
+    int with_expression = true;
+    int auto_decimal_place = false;
+    int strict_currency = false;
+    Currency *c;
+    uint8_t exponent;
     char grouping_sep;
     int64_t val;
     double dtmp;
     static char *kwlist[] = {
-        "string", "exponent", "auto_decimal_place", "parens_for_negatives",
-        NULL};
+        "string", "default_currency", "with_expression", "auto_decimal_place",
+        "strict_currency", NULL};
 
     // We encode as latin-1 for two reasons: first, we don't expect characters
     // outside this range. Second, keeping the default utf-8 makes us end up
     // with multi-byte characters in the case of the \xa0 non-beakable space.
     // Let's avoid that trouble.
     rc = PyArg_ParseTupleAndKeywords(
-        args, kwds, "esbp|p", kwlist, "latin-1", &s, &exponent, &auto_decimal_place,
-        &parens_for_negatives);
+        args, kwds, "es|zppp", kwlist, "latin-1", &s, &default_currency,
+        &with_expression, &auto_decimal_place, &strict_currency);
     if (!rc) {
         return NULL;
     }
 
-    grouping_sep = amount_parse_grouping_sep(s);
-    if (!amount_parse_single(&val, s, exponent, auto_decimal_place, grouping_sep)) {
+    if (strisblank(s)) {
         PyMem_Free(s);
-        PyErr_SetString(PyExc_ValueError, "couldn't parse amount");
+        return PyLong_FromLong(0);
+    }
+
+    c = amount_parse_currency(s, default_currency, strict_currency);
+    if ((c == NULL) && strict_currency) {
+        PyMem_Free(s);
+        PyErr_SetString(UnsupportedCurrencyError, "no specified currency");
         return NULL;
+    }
+
+    if (c != NULL) {
+        exponent = c->exponent;
+    } else {
+        // our only way not to error-out is to parse a zero
+        exponent = 2;
+    }
+
+    if (with_expression && !strisexpr(s)) {
+        with_expression = false;
+    }
+    if (with_expression) {
+        if (!amount_parse_expr(&val, s, exponent)) {
+            PyMem_Free(s);
+            PyErr_SetString(PyExc_ValueError, "couldn't parse expression");
+            return NULL;
+        }
+    } else {
+        grouping_sep = amount_parse_grouping_sep(s);
+        if (!amount_parse_single(&val, s, exponent, auto_decimal_place, grouping_sep)) {
+            PyMem_Free(s);
+            PyErr_SetString(PyExc_ValueError, "couldn't parse amount");
+            return NULL;
+        }
     }
     PyMem_Free(s);
-    dtmp = (double)val / pow(10, exponent);
-    return PyFloat_FromDouble(dtmp);
-}
-
-PyObject*
-py_amount_parse_expr(PyObject *self, PyObject *args, PyObject *kwds)
-{
-    int rc;
-    uint8_t exponent;
-    const char *s;
-    int64_t val;
-    double dtmp;
-    static char *kwlist[] = {
-        "string", "exponent", NULL};
-
-    rc = PyArg_ParseTupleAndKeywords(args, kwds, "sb", kwlist, &s, &exponent);
-    if (!rc) {
+    if ((c == NULL) && (val != 0)) {
+        PyErr_SetString(PyExc_ValueError, "No currency given");
         return NULL;
     }
 
-    if (!amount_parse_expr(&val, s, exponent)) {
-        PyErr_SetString(PyExc_ValueError, "couldn't parse expression");
-        return NULL;
+    if (val) {
+        return create_amount(val, c);
+    } else {
+        return PyLong_FromLong(0);
     }
-    dtmp = (double)val / pow(10, exponent);
-    return PyFloat_FromDouble(dtmp);
 }
 
 /* We need both __copy__ and __deepcopy__ methods for amounts to behave

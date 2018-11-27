@@ -22,8 +22,14 @@ class RateProviderUnavailable(Exception):
     """The rate provider is temporarily unavailable."""
 
 class Currencies:
-    all = []
-    codes = set()
+    # For legacy purpose, we create USD, EUR and CAD in here, but all other
+    # currencies are app-defined.
+    all = [
+        ('USD', 'U.S. dollar', 1),
+        ('EUR', 'European Euro', 2),
+        ('CAD', 'Canadian dollar', 4),
+    ]
+    codes = {t[0] for t in all}
     rates_db = None
 
     @classmethod
@@ -56,6 +62,7 @@ class Currencies:
         # Clear all currencies except USD, EUR and CAD because these are directly imported in too
         # many modules and we depend on those instances being present at too many places.
         # For now, this is only called during testing.
+        _ccore.currency_global_reset_currencies()
         Currencies.codes = {'CAD', 'USD', 'EUR'}
         Currencies.all = [(c, n, p) for (c, n, p) in Currencies.all if c in Currencies.codes]
         Currencies.rates_db = None
@@ -100,17 +107,6 @@ class Currencies:
     def sort_currencies():
         Currencies.all = sorted(Currencies.all, key=lambda t: (t[2], t[0]))
 
-
-# For legacy purpose, we create USD, EUR and CAD in here, but all other currencies are app-defined.
-Currencies.register(
-    'USD', 'U.S. dollar',
-    start_date=date(1998, 1, 2), start_rate=1.425, latest_rate=1.0128, priority=1
-)
-Currencies.register(
-    'EUR', 'European Euro',
-    start_date=date(1999, 1, 4), start_rate=1.8123, latest_rate=1.3298, priority=2
-)
-Currencies.register('CAD', 'Canadian dollar', latest_rate=1, priority=4)
 
 class RatesDB:
     """Stores exchange rates for currencies.
