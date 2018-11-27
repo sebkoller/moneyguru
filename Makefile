@@ -96,8 +96,8 @@ ccore:
 mergepot :
 	$(VENV_PYTHON) build.py --mergepot
 
-normpo :
-	$(VENV_PYTHON) build.py --normpo
+normpo:
+	find locale -name *.po -exec msgcat {} -o {} \;
 
 srcpkg :
 	./support/srcpkg.sh
