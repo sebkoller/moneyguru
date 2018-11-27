@@ -6,10 +6,6 @@ PREFIX ?= /usr/local
 # If you're installing into a path that is not going to be the final path prefix (such as a
 # sandbox), set DESTDIR to that path.
 
-# Our build scripts are not very "make like" yet and perform their task in a bundle. For now, we
-# use one of each file to act as a representative, a target, of these groups.
-submodules_target = hscommon/__init__.py
-
 packages = hscommon core qt
 localedirs = $(wildcard locale/*/LC_MESSAGES)
 pofiles = $(wildcard locale/*/LC_MESSAGES/*.po)
@@ -18,7 +14,7 @@ mofiles = $(patsubst %.po,%.mo,$(pofiles))
 vpath %.po $(localedirs)
 vpath %.mo $(localedirs)
 
-all: qt/mg_rc.py run.py | i18n ccore $(submodules_target) reqs
+all: qt/mg_rc.py run.py | i18n ccore reqs
 	@echo "Build complete! You can run moneyGuru with 'make run'"
 
 run:
@@ -35,11 +31,6 @@ reqs:
 		fi
 	@${PYTHON} -c 'import PyQt5' >/dev/null 2>&1 || \
 		{ echo "PyQt 5.4+ required. Install it and try again. Aborting"; exit 1; }
-
-# Ensure that submodules are initialized
-$(submodules_target):
-	git submodule init
-	git submodule update
 
 help/en/changelog.rst: help/changelog help/en/changelog.head.rst
 	$(PYTHON) support/genchangelog.py help/changelog | cat help/en/changelog.head.rst - > $@

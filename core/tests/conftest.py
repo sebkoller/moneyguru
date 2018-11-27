@@ -12,7 +12,7 @@ import pytest
 import logging
 import datetime
 
-from hscommon.testutil import pytest_funcarg__app # noqa
+from hscommon.testutil import app # noqa
 from _pytest.monkeypatch import MonkeyPatch
 
 from ..model.currency import RatesDB, Currencies

@@ -8,7 +8,6 @@ import os.path as op
 from datetime import date
 from operator import attrgetter
 
-from hscommon.path import Path
 from hscommon.testutil import eq_, CallLogger, TestApp as TestAppBase, TestData
 from hscommon.testutil import with_app # noqa
 from hscommon.gui.base import GUIObject
@@ -198,7 +197,7 @@ class TestApp(TestAppBase):
 
     def tmppath(self):
         assert _global_tmpdir is not None
-        return Path(str(_global_tmpdir))
+        return str(_global_tmpdir)
 
     def check_current_pane(self, pane_type, account_name=None):
         """Asserts that the currently selecte pane in the main window is of the specified type and,
@@ -433,7 +432,7 @@ class TestApp(TestAppBase):
         compare_apps(self.doc, newapp.doc)
 
     def do_test_qif_export_import(self):
-        filepath = str(self.tmppath() + 'foo.qif')
+        filepath = op.join(self.tmppath(), 'foo.qif')
         self.mainwindow.export()
         expanel = self.get_current_panel()
         expanel.export_path = filepath
@@ -497,7 +496,7 @@ class TestApp(TestAppBase):
 
     def save_and_load(self):
         # saves the current document and returns a new app with that document loaded
-        filepath = self.tmppath() + 'foo.xml'
+        filepath = op.join(self.tmppath(), 'foo.xml')
         self.doc.save_to_xml(str(filepath))
         self.doc.close()
         newapp = TestApp(app=self.app)
@@ -505,7 +504,7 @@ class TestApp(TestAppBase):
         return newapp
 
     def save_file(self):
-        filename = str(self.tmppath() + 'foo.xml')
+        filename = op.join(self.tmppath(), 'foo.xml')
         self.doc.save_to_xml(filename) # reset the dirty flag
         return filename
 
