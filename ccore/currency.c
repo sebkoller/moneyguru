@@ -9,13 +9,17 @@
 #include <time.h>
 #include "currency.h"
 
-#define CURRENCY_REGISTRY_INITIAL_SIZE 200
+#define CURRENCY_REGISTRY_BLOCK 100
 #define DATE_LEN 8
 #define MAX_SQL_LEN 512
 #define SQL_RES_LEN 512
 
 static sqlite3 *g_db = NULL;
-static Currency **g_currencies = NULL;
+// Currencies are allocated in block. Whether a "slot" is registered is
+// determined by whether its code starts with '\0'
+static Currency *g_currencies = NULL;
+static unsigned int g_currencies_count = 0;
+static unsigned int g_currencies_max = 0;
 
 // Private
 
@@ -163,18 +167,17 @@ currency_global_reset_currencies()
         // Don't allocate a new list, we're probably in a test context and we
         // want to keep our 3 main currency instances. Flush the rest of the
         // list
-        Currency **c = &g_currencies[3];
-        while (*c != NULL) {
-            free(*c);
-            *c = NULL;
-            c++;
+        for (unsigned int i=3; i<g_currencies_count; i++) {
+            g_currencies[i].code[0] = '\0';
         }
+        g_currencies_count = 3;
         return CURRENCY_OK;
     }
-    g_currencies = calloc(CURRENCY_REGISTRY_INITIAL_SIZE, sizeof(Currency*));
+    g_currencies = calloc(CURRENCY_REGISTRY_BLOCK, sizeof(Currency));
     if (g_currencies == NULL) {
         return CURRENCY_ERROR;
     }
+    g_currencies_max = CURRENCY_REGISTRY_BLOCK;
     // Register our 3 base currencies
     currency_register(
         "USD",
@@ -228,33 +231,34 @@ currency_register(
         return cur;
     }
 
-    cur = malloc(sizeof(Currency));
-    if (cur == NULL) {
-        return NULL;
+    if (g_currencies_count == g_currencies_max) {
+        // We need to allocate more currency space.
+        cur = realloc(
+            g_currencies,
+            (g_currencies_max + CURRENCY_REGISTRY_BLOCK) * sizeof(Currency));
+        if (cur == NULL) {
+            return NULL;
+        }
+        g_currencies = cur;
+        g_currencies_max += CURRENCY_REGISTRY_BLOCK;
+        for (unsigned int i=g_currencies_count; i<g_currencies_max; i++) {
+            g_currencies[i].code[0] = '\0';
+        }
     }
+    cur = &g_currencies[g_currencies_count];
     strncpy(cur->code, code, CURRENCY_CODE_MAXLEN);
     cur->exponent = exponent;
     cur->start_date = start_date;
     cur->start_rate = start_rate;
     cur->stop_date = stop_date;
     cur->latest_rate = latest_rate;
-
-    for (int i=0; i<CURRENCY_REGISTRY_INITIAL_SIZE; i++) {
-        if (g_currencies[i] == NULL) {
-            g_currencies[i] = cur;
-            return cur;
-        }
-    }
-    // something's wrong
-    free(cur);
-    return NULL;
+    g_currencies_count++;
+    return cur;
 }
 
 Currency*
 currency_get(const char *code)
 {
-    Currency **cur;
-
     if (g_currencies == NULL) {
         currency_global_init(":memory:");
     }
@@ -263,12 +267,10 @@ currency_get(const char *code)
         return NULL;
     }
 
-    cur = g_currencies;
-    while (*cur != NULL) {
-        if (strncmp(code, (*cur)->code, CURRENCY_CODE_MAXLEN) == 0) {
-            return *cur;
+    for (unsigned int i=0; i<g_currencies_count; i++) {
+        if (strncmp(code, g_currencies[i].code, CURRENCY_CODE_MAXLEN) == 0) {
+            return &g_currencies[i];
         }
-        cur++;
     }
     return NULL;
 }
