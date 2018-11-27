@@ -102,6 +102,12 @@ def pytest_configure(config):
         # We're on Windows. Oh, well...
         pass
 
+    from . import base
+    tmpdir = config.pluginmanager.getplugin('tmpdir')
+    tmp_path_factory = tmpdir.TempPathFactory.from_config(config)
+    base._global_tmpdir = tmp_path_factory.mktemp('mgtest')
+
+
 def pytest_unconfigure(config):
     global global_monkeypatch
     global_monkeypatch.undo()

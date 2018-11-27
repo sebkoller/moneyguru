@@ -10,6 +10,8 @@ import os.path as op
 
 from hscommon.testutil import eq_, log_calls
 
+import pytest
+
 from ..app import Application
 from ..model import currency
 from ..model.account import AccountType
@@ -19,7 +21,8 @@ from .base import ApplicationGUI, TestApp, with_app, compare_apps
 from .model.currency_test import set_ratedb_for_tests
 
 
-def pytest_funcarg__fake_server(request):
+@pytest.fixture
+def fake_server():
     set_ratedb_for_tests()
 
 # --- Pristine

@@ -6,6 +6,8 @@
 
 from hscommon.testutil import eq_
 
+import pytest
+
 from ...model.account import AccountType
 from ..base import TestApp, with_app
 
@@ -642,43 +644,37 @@ def test_sort_by_reconciliation_date_with_unreconciled_in_middle(app):
     eq_(app.etable[1].description, 'three')
     eq_(app.etable[2].description, 'two')
 
-# --- Generators
+# ---
 def app_with_account_of_type(account_type):
     app = TestApp()
     app.add_account(account_type=account_type)
     app.show_account()
     return app
 
-def test_amount_of_selected_entry():
-    def check(app, expected_increase, expected_decrease):
-        eq_(app.etable.selected_row.increase, expected_increase)
-        eq_(app.etable.selected_row.decrease, expected_decrease)
+@pytest.mark.parametrize(
+    'appfunc, expected_increase, expected_decrease', [
+        # The amount correctly stays in the decrease column
+        (app_entry_with_decrease, '', '42.00'),
+        # The amount correctly stays in the increase column, even though it's a
+        # credit
+        (app_entry_in_liability, '10.00', ''),
+    ])
+def test_amount_of_selected_entry(appfunc, expected_increase, expected_decrease):
+    app = appfunc()
+    eq_(app.etable.selected_row.increase, expected_increase)
+    eq_(app.etable.selected_row.decrease, expected_decrease)
 
-    # The amount correctly stays in the decrease column
-    app = app_entry_with_decrease()
-    yield check, app, '', '42.00'
-
-    # The amount correctly stays in the increase column, even though it's a credit
-    app = app_entry_in_liability()
-    yield check, app, '10.00', ''
-
-def test_should_show_balance_column():
-    def check(app, expected):
-        eq_(app.etable.columns.column_is_visible('balance'), expected)
-
-    # When a liability account is selected, we show the balance column.
-    app = app_with_account_of_type(AccountType.Liability)
-    yield check, app, True
-
-    # When an income account is selected, we don't show the balance column.
-    app = app_with_account_of_type(AccountType.Income)
-    yield check, app, False
-
-    # When an expense account is selected, we don't show the balance column.
-    app = app_with_account_of_type(AccountType.Expense)
-    yield check, app, False
-
-    # When an asset account is selected, we show the balance column.
-    app = app_with_account_of_type(AccountType.Asset)
-    yield check, app, True
-
+@pytest.mark.parametrize(
+    'account_type, expected', [
+        # When a liability account is selected, we show the balance column.
+        (AccountType.Liability, True),
+        # When an income account is selected, we don't show the balance column.
+        (AccountType.Income, False),
+        # When an expense account is selected, we don't show the balance column.
+        (AccountType.Expense, False),
+        # When an asset account is selected, we show the balance column.
+        (AccountType.Asset, True),
+    ])
+def test_should_show_balance_column(account_type, expected):
+    app = app_with_account_of_type(account_type)
+    eq_(app.etable.columns.column_is_visible('balance'), expected)

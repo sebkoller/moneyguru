@@ -7,6 +7,7 @@
 from io import BytesIO
 from datetime import date
 
+import pytest
 from pytest import raises
 from hscommon.testutil import eq_
 
@@ -18,7 +19,8 @@ from ...model.amount import Amount
 from ...model.currency import Currencies
 
 
-def pytest_funcarg__loader(request):
+@pytest.fixture
+def loader():
     return native.Loader('USD')
 
 def test_parse_non_xml(loader):

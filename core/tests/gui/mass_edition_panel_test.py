@@ -1,12 +1,12 @@
-# Created By: Virgil Dupras
-# Created On: 2008-07-25
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from hscommon.testutil import eq_
+
+import pytest
 
 from ...gui.mass_edition_panel import MassEditionPanel
 from ..base import TestApp, with_app
@@ -382,16 +382,15 @@ def test_set_currency_to_native_one_when_we_cant_choose_one_from_selection(app):
     mepanel = app.mw.edit_item()
     eq_(mepanel.currency_list.selected_index, 0) # USD
 
-# --- Generators
-def test_can_change_amount():
-    def check(app, expected):
-        mepanel = app.get_current_panel()
-        eq_(mepanel.can_change_amount, expected)
-
-    # Splits prevent the Amount field from being enabled
-    app = app_two_transactions_one_split()
-    yield check, app, False
-
-    # If a MCT is selected, amount is not editable
-    app = app_two_transactions_with_a_multi_currency_one()
-    yield check, app, False
+# ---
+@pytest.mark.parametrize(
+    'appfunc, expected', [
+        # Splits prevent the Amount field from being enabled
+        (app_two_transactions_one_split, False),
+        # If a MCT is selected, amount is not editable
+        (app_two_transactions_with_a_multi_currency_one, False),
+    ])
+def test_can_change_amount(appfunc, expected):
+    app = appfunc()
+    mepanel = app.get_current_panel()
+    eq_(mepanel.can_change_amount, expected)

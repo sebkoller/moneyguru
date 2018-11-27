@@ -8,6 +8,8 @@ import csv
 from datetime import date
 from io import StringIO
 
+import pytest
+
 from hscommon.testutil import eq_
 
 from ..base import TestApp, with_app, testdata
@@ -1212,40 +1214,36 @@ class TestWithBudget:
         assert app.mw.edit_item() is None # budget spawns can't be edited
 
 
-# --- Generators
-def test_attributes():
-    def check(app, index, expected):
-        row = app.ttable[index]
-        for attrname, value in expected.items():
-            eq_(getattr(row, attrname), value)
+@pytest.mark.parametrize(
+    'appfunc,index,expected', [
+        # Transactions with more than 2 splits are supported.
+        (app_three_way_transaction, 0, {'from_': 'first', 'to': 'second, third', 'amount': '42.00'}),
+        # When the 'to' side has more than one currency, convert everything to the account's currency.
+        # (42 + 22 + (20 / .8)) / 2
+        (app_three_way_multi_currency_transaction, 0, {'amount': '44.50'}),
+    ])
+def test_attributes(appfunc, index, expected):
+    app = appfunc()
+    row = app.ttable[index]
+    for attrname, value in expected.items():
+        eq_(getattr(row, attrname), value)
 
-    # Transactions with more than 2 splits are supported.
-    app = app_three_way_transaction()
-    yield check, app, 0, {'from_': 'first', 'to': 'second, third', 'amount': '42.00'}
-
-    # When the 'to' side has more than one currency, convert everything to the account's currency.
-    app = app_three_way_multi_currency_transaction()
-    # (42 + 22 + (20 / .8)) / 2
-    yield check, app, 0, {'amount': '44.50'}
-
-def test_can_edit():
-    def check(app, index, uneditable_fields):
-        for colname in ['date', 'description', 'payee', 'checkno', 'from', 'to', 'amount']:
-            if colname in uneditable_fields:
-                assert not app.ttable.can_edit_cell(colname, index)
-            else:
-                assert app.ttable.can_edit_cell(colname, index)
-        assert not app.ttable.can_edit_cell('unknown', index)
-
-    # All fields are editable except "to" which contains 2 accounts (from has only one so it's
-    # editable) and "amount" because there's more than one split.
-    app = app_three_way_transaction()
-    yield check, app, 0, ('to', 'amount')
-
-    # When the transaction is multi-currency, the amount can't be edited.
-    app = app_three_way_multi_currency_transaction()
-    yield check, app, 0, ('to', 'amount')
-
-    # All columns can be edited, except unknown ones
-    app = app_one_transaction()
-    yield check, app, 0, []
+@pytest.mark.parametrize(
+    'appfunc,index,uneditable_fields', [
+        # All fields are editable except "to" which contains 2 accounts (from
+        # has only one so it's editable) and "amount" because there's more than
+        # one split.
+        (app_three_way_transaction, 0, ('to', 'amount')),
+        # When the transaction is multi-currency, the amount can't be edited.
+        (app_three_way_multi_currency_transaction, 0, ('to', 'amount')),
+        # All columns can be edited, except unknown ones
+        (app_one_transaction, 0, ()),
+    ])
+def test_can_edit(appfunc, index, uneditable_fields):
+    app = appfunc()
+    for colname in ['date', 'description', 'payee', 'checkno', 'from', 'to', 'amount']:
+        if colname in uneditable_fields:
+            assert not app.ttable.can_edit_cell(colname, index)
+        else:
+            assert app.ttable.can_edit_cell(colname, index)
+    assert not app.ttable.can_edit_cell('unknown', index)

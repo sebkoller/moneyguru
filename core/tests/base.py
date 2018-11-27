@@ -8,8 +8,6 @@ import os.path as op
 from datetime import date
 from operator import attrgetter
 
-import pytest
-
 from hscommon.path import Path
 from hscommon.testutil import eq_, CallLogger, TestApp as TestAppBase, TestData
 from hscommon.testutil import with_app # noqa
@@ -27,6 +25,9 @@ from ..model.account import AccountType
 from ..model.date import DateFormat
 
 testdata = TestData(op.join(op.dirname(__file__), 'testdata'))
+
+# is set in conftest.py
+_global_tmpdir = None
 
 class PanelViewProvider:
     """Provide dummy views for panels during tests.
@@ -141,11 +142,11 @@ class DictLoader(base.Loader):
                 setattr(self.transaction_info, attr, value)
 
 class TestApp(TestAppBase):
-    def __init__(self, app=None, doc=None, tmppath=None, appargs=None):
+    __test__ = False
+    def __init__(self, app=None, doc=None, appargs=None):
         TestAppBase.__init__(self)
         self.panel_view_provider = PanelViewProvider()
         link_gui = self.link_gui
-        self._tmppath = tmppath
         if app is None:
             if not appargs:
                 appargs = {}
@@ -196,9 +197,8 @@ class TestApp(TestAppBase):
         return gui
 
     def tmppath(self):
-        if self._tmppath is None:
-            self._tmppath = Path(str(pytest.ensuretemp('mgtest')))
-        return self._tmppath
+        assert _global_tmpdir is not None
+        return Path(str(_global_tmpdir))
 
     def check_current_pane(self, pane_type, account_name=None):
         """Asserts that the currently selecte pane in the main window is of the specified type and,

@@ -109,7 +109,7 @@ def save(filename, document_id, properties, accounts, groups, transactions, sche
         attrib['start_date'] = date2str(budget.start_date)
         if budget.stop_date is not None:
             attrib['stop_date'] = date2str(budget.stop_date)
-    for elem in root.getiterator():
+    for elem in root.iter():
         attrib = elem.attrib
         for key, value in attrib.items():
             attrib[key] = remove_invalid_xml(value)

@@ -8,6 +8,8 @@ import copy
 import time
 from datetime import date
 
+import pytest
+
 from hscommon.testutil import eq_
 
 from ..const import PaneType
@@ -28,8 +30,9 @@ def copydoc(doc):
     newdoc.budgets = copy.deepcopy(newdoc.budgets)
     return newdoc
 
-def pytest_funcarg__checkstate(request):
-    app = request.getfuncargvalue('app')
+@pytest.fixture
+def checkstate(request):
+    app = request.getfixturevalue('app')
     previous_state = copydoc(app.doc)
     def docheck():
         before_undo = copydoc(app.doc)

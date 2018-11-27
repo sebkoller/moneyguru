@@ -6,6 +6,8 @@
 
 from datetime import date
 
+import pytest
+
 from hscommon.testutil import eq_
 
 from ...model.currency import Currencies
@@ -151,28 +153,28 @@ def test_loads_last_selected_transaction():
     tpanel = app.mw.edit_item()
     eq_(tpanel.description, 'desc1')
 
-def test_set_values():
+@pytest.mark.parametrize(
+    'attrname, newvalue, othervalue', [
+        ('date', '08/07/2008', '06/07/2008'),
+        ('description', 'new', 'desc1'),
+        ('payee', 'new', 'payee1'),
+        ('checkno', '44', '42'),
+        ('notes', 'foo\nbar', ''),
+    ])
+def test_set_values(attrname, newvalue, othervalue):
     # the load/save mechanism works for all attributes.
     # The reason why we select another entry is to make sure that the value we're testing isn't
     # simply a buffer in the gui layer.
     app = app_two_amountless_entries()
-
-    def set_and_test(attrname, newvalue, othervalue):
-        tpanel = app.mw.edit_item()
-        setattr(tpanel, attrname, newvalue)
-        tpanel.save()
-        app.etable.select([0])
-        tpanel = app.mw.edit_item()
-        eq_(getattr(tpanel, attrname), othervalue)
-        app.etable.select([1])
-        tpanel = app.mw.edit_item()
-        eq_(getattr(tpanel, attrname), newvalue)
-
-    yield set_and_test, 'date', '08/07/2008', '06/07/2008'
-    yield set_and_test, 'description', 'new', 'desc1'
-    yield set_and_test, 'payee', 'new', 'payee1'
-    yield set_and_test, 'checkno', '44', '42'
-    yield set_and_test, 'notes', 'foo\nbar', ''
+    tpanel = app.mw.edit_item()
+    setattr(tpanel, attrname, newvalue)
+    tpanel.save()
+    app.etable.select([0])
+    tpanel = app.mw.edit_item()
+    eq_(getattr(tpanel, attrname), othervalue)
+    app.etable.select([1])
+    tpanel = app.mw.edit_item()
+    eq_(getattr(tpanel, attrname), newvalue)
 
 # --- Multi-Currency Transaction
 def app_multi_currency_transaction():
@@ -334,17 +336,17 @@ def test_assign_imbalance_nothing_selected(app):
     tpanel.assign_imbalance() # no crash
     eq_(stable[3].credit, '15.00')
 
-# --- Generators (tests with more than one setup)
-def test_is_multi_currency():
-    def check(setupfunc, expected):
-        app = setupfunc()
-        tpanel = app.mw.edit_item()
-        eq_(tpanel.is_multi_currency, expected)
-
-    # doesn't crash if there is no split with amounts
-    yield check, app_amountless_entry_panel_loaded, False
-    # the mct balance button is enabled if the txn is a MCT
-    yield check, app_entry_with_amount_panel_loaded, False
-    # the mct balance button is enabled if the txn is a MCT
-    yield check, app_multi_currency_transaction, True
+@pytest.mark.parametrize(
+    'setupfunc, expected', [
+        # doesn't crash if there is no split with amounts
+        (app_amountless_entry_panel_loaded, False),
+        # the mct balance button is enabled if the txn is a MCT
+        (app_entry_with_amount_panel_loaded, False),
+        # the mct balance button is enabled if the txn is a MCT
+        (app_multi_currency_transaction, True),
+    ])
+def test_is_multi_currency(setupfunc, expected):
+    app = setupfunc()
+    tpanel = app.mw.edit_item()
+    eq_(tpanel.is_multi_currency, expected)
 

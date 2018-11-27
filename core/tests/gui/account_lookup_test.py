@@ -1,12 +1,12 @@
-# Created By: Virgil Dupras
-# Created On: 2010-02-25
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2018 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from hscommon.testutil import eq_
+
+import pytest
 
 from ...const import PaneType
 from ...model.account import AccountType
@@ -114,15 +114,14 @@ def app_accounts_with_number():
     app.mainwindow.jump_to_account()
     return app
 
-# --- Generators
-def test_account_order():
-    def check(app, expected):
-        eq_(app.alookup.names, expected)
-    
-    # Accounts are sorted in alphabetical order
-    app = app_accounts()
-    yield check, app, ['bar', 'bo--o-f', 'foo', 'Zo-of']
-    
-    # Accounts with numbers are sorted according to their combined display
-    app = app_accounts_with_number()
-    yield check, app, ['007 - foo', 'bar']
+# ---
+@pytest.mark.parametrize(
+    'appfunc, expected', [
+        # Accounts are sorted in alphabetical order
+        (app_accounts, ['bar', 'bo--o-f', 'foo', 'Zo-of']),
+        # Accounts with numbers are sorted according to their combined display
+        (app_accounts_with_number, ['007 - foo', 'bar']),
+    ])
+def test_account_order(appfunc, expected):
+    app = appfunc()
+    eq_(app.alookup.names, expected)
