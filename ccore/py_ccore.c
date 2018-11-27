@@ -10,7 +10,6 @@ static PyObject *UnsupportedCurrencyError = NULL;
 typedef struct {
     PyObject_HEAD
     Amount amount;
-    PyObject *rval; /* Real value, as a python float instance */
 } PyAmount;
 
 static PyObject *Amount_Type;
@@ -134,11 +133,6 @@ create_amount(int64_t ival, Currency *currency)
     r = (PyAmount *)PyType_GenericAlloc((PyTypeObject *)Amount_Type, 0);
     r->amount.val = ival;
     r->amount.currency = currency;
-    dtmp = (double)ival / pow(10, r->amount.currency->exponent);
-    r->rval = PyFloat_FromDouble(dtmp);
-    if (r->rval == NULL) {
-        return NULL;
-    }
     return (PyObject *)r;
 }
 
@@ -329,13 +323,6 @@ py_currency_exponent(PyObject *self, PyObject *args)
 
 /* Amount Methods */
 
-static void
-PyAmount_dealloc(PyAmount *self)
-{
-    Py_XDECREF(self->rval);
-    PyObject_Del(self);
-}
-
 static PyObject *
 PyAmount_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
@@ -347,26 +334,18 @@ PyAmount_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
     }
     self->amount.val = 0;
     self->amount.currency = NULL;
-    self->rval = PyFloat_FromDouble(0);
-    if (self->rval == NULL) {
-        Py_DECREF(self);
-        return NULL;
-    }
-
     return (PyObject *)self;
 }
 
 static int
 PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *amount, *tmp;
+    PyObject *amount;
     const char *code;
     double dtmp;
     Currency *c;
 
     static char *kwlist[] = {"amount", "currency", NULL};
-
-    self->rval = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "Os", kwlist, &amount, &code)) {
         return -1;
@@ -383,24 +362,6 @@ PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
         return -1;
     }
     self->amount.val = round(dtmp * pow(10, self->amount.currency->exponent));
-    tmp = self->rval;
-    Py_INCREF(amount);
-    self->rval = amount;
-    Py_XDECREF(tmp);
-    return 0;
-}
-
-static int
-PyAmount_traverse(PyAmount *self, visitproc visit, void *arg)
-{
-    Py_VISIT(self->rval);
-    return 0;
-}
-
-static int
-PyAmount_clear(PyAmount *self)
-{
-    Py_CLEAR(self->rval);
     return 0;
 }
 
@@ -424,8 +385,8 @@ PyAmount_repr(PyAmount *self)
     PyObject *r, *fmt, *args;
 
     args = Py_BuildValue(
-        "(iOs)", self->amount.val, self->rval, self->amount.currency->code);
-    fmt = PyUnicode_FromString("Amount(%r, %r, %r)");
+        "(is)", self->amount.val, self->amount.currency->code);
+    fmt = PyUnicode_FromString("Amount(%r, %r)");
     r = PyUnicode_Format(fmt, args);
     Py_DECREF(fmt);
     Py_DECREF(args);
@@ -515,7 +476,14 @@ PyAmount_abs(PyAmount* self)
 static PyObject *
 PyAmount_float(PyAmount* self)
 {
-    return PyNumber_Float(self->rval);
+    double dtmp;
+
+    if (self->amount.val) {
+        dtmp = (double)self->amount.val / pow(10, self->amount.currency->exponent);
+    } else {
+        dtmp = 0;
+    }
+    return PyFloat_FromDouble(dtmp);
 }
 
 static PyObject *
@@ -618,7 +586,21 @@ PyAmount_true_divide(PyObject *a, PyObject *b)
             return NULL;
         }
         // Return both rval divided together
-        return PyNumber_TrueDivide(((PyAmount *)a)->rval, ((PyAmount *)b)->rval);
+        PyObject *rval1, *rval2;
+        rval1 = PyAmount_float((PyAmount *)a);
+        if (rval1 == NULL) {
+            return NULL;
+        }
+        rval2 = PyAmount_float((PyAmount *)b);
+        if (rval2 == NULL) {
+            Py_DECREF(rval1);
+            return NULL;
+        }
+
+        PyObject *res = PyNumber_TrueDivide(rval1, rval2);
+        Py_DECREF(rval1);
+        Py_DECREF(rval2);
+        return res;
     }
     else {
         dval = PyFloat_AsDouble(b);
@@ -642,13 +624,6 @@ PyAmount_getcurrency_code(PyAmount *self)
     int len;
     len = strlen(self->amount.currency->code);
     return PyUnicode_DecodeASCII(self->amount.currency->code, len, NULL);
-}
-
-static PyObject *
-PyAmount_getvalue(PyAmount *self)
-{
-    Py_INCREF(self->rval);
-    return self->rval;
 }
 
 /* Amount Functions */
@@ -876,18 +851,14 @@ static PyMethodDef PyAmount_methods[] = {
 
 static PyGetSetDef PyAmount_getseters[] = {
     {"currency_code", (getter)PyAmount_getcurrency_code, NULL, "currency_code", NULL},
-    {"value", (getter)PyAmount_getvalue, NULL, "value", NULL},
     {0, 0, 0, 0, 0},
 };
 
 static PyType_Slot Amount_Slots[] = {
     {Py_tp_new, PyAmount_new},
     {Py_tp_init, PyAmount_init},
-    {Py_tp_dealloc, PyAmount_dealloc},
     {Py_tp_repr, PyAmount_repr},
     {Py_tp_hash, PyAmount_hash},
-    {Py_tp_traverse, PyAmount_traverse},
-    {Py_tp_clear, PyAmount_clear},
     {Py_tp_richcompare, PyAmount_richcompare},
     {Py_tp_methods, PyAmount_methods},
     {Py_tp_getset, PyAmount_getseters},

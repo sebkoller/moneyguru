@@ -320,7 +320,7 @@ def test_parse_divide_rounding():
     # currency, not more (otherwise, we end up with errors when balancing them out).
     # we test for either 6.19 or 6.18 because we don't care about the details of rounding and we
     # wouldn't want a specific python implementation to come and create a false failure.
-    assert parse_amount('12.37/2', 'USD').value in {6.18, 6.19}
+    assert float(parse_amount('12.37/2', 'USD')) in {6.18, 6.19}
 
 def test_parse_negative_amount():
     # Test that a negative amount is correctly parsed

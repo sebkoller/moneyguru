@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -674,10 +674,7 @@ def compare_apps(first, second, qif_mode=False):
                 account2 = split2.account.name if split2.account else ''
                 eq_(account1, account2)
                 if qif_mode:
-                    if split1.amount and split2.amount:
-                        eq_(split1.amount.value, split2.amount.value)
-                    else:
-                        eq_(split1.amount, split2.amount)
+                    eq_(split1.amount, split2.amount)
                 else:
                     eq_(split1.memo, split2.memo)
                     eq_(split1.amount, split2.amount)

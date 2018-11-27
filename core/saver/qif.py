@@ -1,9 +1,7 @@
-# Created By: Virgil Dupras
-# Created On: 2010-01-11
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2018 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from ..model.account import AccountType
@@ -11,8 +9,8 @@ from ..model.date import format_date
 
 def save(filename, accounts, daterange=None):
     def format_amount_for_qif(amount):
-        return '%1.2f' % amount.value if amount else '0.00'
-    
+        return '%1.2f' % float(amount) if amount else '0.00'
+
     accounts = [a for a in accounts if a.is_balance_sheet_account()]
     lines = []
     for account in accounts:

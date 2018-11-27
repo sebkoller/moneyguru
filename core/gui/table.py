@@ -1,6 +1,4 @@
-# Created By: Eric Mc Sween
-# Created On: 2008-05-29
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -156,7 +154,7 @@ class Row(RowBase):
         if isinstance(value, str):
             value = sort_string(value)
         elif isinstance(value, Amount):
-            value = value.value
+            value = float(value)
         return value
 
 

@@ -17,7 +17,7 @@ from .base import ViewChild, SheetViewNotificationsMixin, MESSAGES_DOCUMENT_CHAN
 # used in both bsheet and istatement
 def get_delta_perc(delta_amount, start_amount):
     if start_amount:
-        return '%+1.1f%%' % (delta_amount.value / abs(start_amount.value) * 100)
+        return '%+1.1f%%' % (delta_amount / abs(start_amount) * 100)
     else:
         return '---'
 

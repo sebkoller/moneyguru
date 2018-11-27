@@ -50,7 +50,7 @@ class ChangeStructure(ImportActionPlugin):
                     amount_value = 0
                     amount_currency = import_document.default_currency
                 else:
-                    amount_value = txn_copy.splits[0].amount.value
+                    amount_value = float(txn_copy.splits[0].amount)
                     amount_currency = txn_copy.splits[0].amount.currency_code
                 first_split_new_amount = Amount(amount_value+1, amount_currency)
                 new_split_amount = Amount(-1.0, amount_currency)

@@ -271,7 +271,7 @@ class Transaction:
         if currency is not NOEDIT:
             tochange = (s for s in self.splits if s.amount and s.amount.currency_code != currency)
             for split in tochange:
-                split.amount = Amount(split.amount.value, currency)
+                split.amount = Amount(float(split.amount), currency)
                 split.reconciliation_date = None
         # Reconciliation can never be lower than txn date
         for split in self.splits:
@@ -317,9 +317,9 @@ class Transaction:
                     return True
         query_amount = query.get('amount')
         if query_amount is not None:
-            query_value = query_amount.value if query_amount else 0
+            query_value = float(query_amount) if query_amount else 0
             for split in self.splits:
-                split_value = split.amount.value if split.amount else 0
+                split_value = float(split.amount) if split.amount else 0
                 if query_value == abs(split_value):
                     return True
         query_account = query.get('account')
