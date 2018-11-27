@@ -4,7 +4,8 @@ msgstr ""
 "Project-Id-Version: moneyGuru\n"
 "PO-Revision-Date: 2016-02-07 20:52+0000\n"
 "Last-Translator: Virgil Dupras <hsoft@hardcoded.net>\n"
-"Language-Team: Italian (http://www.transifex.com/hsoft/moneyguru/language/it/)\n"
+"Language-Team: Italian (http://www.transifex.com/hsoft/moneyguru/language/"
+"it/)\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: utf-8\n"
 "Language: it\n"
@@ -188,18 +189,15 @@ msgstr ""
 msgid "Today"
 msgstr ""
 
-#: qt/controller/date_range_selector.py:36
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:36 cocoa/en.lproj/Localizable.strings:0
 msgid "Month"
 msgstr "Mese"
 
-#: qt/controller/date_range_selector.py:39
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:39 cocoa/en.lproj/Localizable.strings:0
 msgid "Quarter"
 msgstr "Quarto"
 
-#: qt/controller/date_range_selector.py:42
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:42 cocoa/en.lproj/Localizable.strings:0
 msgid "Year"
 msgstr "Anno"
 
@@ -296,8 +294,7 @@ msgstr ""
 msgid "CSV Options"
 msgstr ""
 
-#: qt/controller/import_/csv_options.py:42
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:42 cocoa/en.lproj/Localizable.strings:0
 msgid ""
 "Specify which CSV columns correspond to which transaction fields. You must "
 "also uncheck the \"Import\" column for lines that don't represent a "
@@ -307,28 +304,23 @@ msgstr ""
 "Deselezionare inoltre la colonna\"Importa\" per le linee che non "
 "rappresentano una Transazione (intestazioni, commenti)."
 
-#: qt/controller/import_/csv_options.py:51
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:51 cocoa/en.lproj/Localizable.strings:0
 msgid "Layout:"
 msgstr "Disposizione:"
 
-#: qt/controller/import_/csv_options.py:56
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:56 cocoa/en.lproj/Localizable.strings:0
 msgid "Delimiter:"
 msgstr "Delimitatore:"
 
-#: qt/controller/import_/csv_options.py:73
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:73 cocoa/en.lproj/Localizable.strings:0
 msgid "Rescan"
 msgstr "Rianalizza"
 
-#: qt/controller/import_/csv_options.py:81
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:81 cocoa/en.lproj/Localizable.strings:0
 msgid "Encoding:"
 msgstr "Codifica:"
 
-#: qt/controller/import_/csv_options.py:98
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:98 cocoa/en.lproj/Localizable.strings:0
 msgid "Continue Import"
 msgstr "Prosegui Importa"
 
@@ -629,8 +621,7 @@ msgstr ""
 msgid "Warning"
 msgstr ""
 
-#: qt/controller/mass_edition_panel.py:57
-#: qt/controller/transaction_panel.py:61
+#: qt/controller/mass_edition_panel.py:57 qt/controller/transaction_panel.py:61
 msgid "Date:"
 msgstr "Data:"
 
@@ -769,8 +760,8 @@ msgstr ""
 
 #: qt/controller/schedule_scope_dialog.py:41
 msgid ""
-"You can force global scope (in other words, changing all future occurrences)"
-" by holding Shift when you perform the change."
+"You can force global scope (in other words, changing all future occurrences) "
+"by holding Shift when you perform the change."
 msgstr ""
 
 #: qt/controller/schedule_scope_dialog.py:53
@@ -910,8 +901,7 @@ msgstr "Descrizione"
 
 #: cocoa/en.lproj/Localizable.strings:0
 msgid ""
-"Do you want this change to affect all future occurrences of this "
-"transaction?"
+"Do you want this change to affect all future occurrences of this transaction?"
 msgstr "Vuoi modificare tutte le occorrenze future della Transazione?"
 
 #: cocoa/en.lproj/Localizable.strings:0

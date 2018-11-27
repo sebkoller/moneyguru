@@ -4,7 +4,8 @@ msgstr ""
 "Project-Id-Version: moneyGuru\n"
 "PO-Revision-Date: 2016-02-07 20:52+0000\n"
 "Last-Translator: Virgil Dupras <hsoft@hardcoded.net>\n"
-"Language-Team: Spanish (http://www.transifex.com/hsoft/moneyguru/language/es/)\n"
+"Language-Team: Spanish (http://www.transifex.com/hsoft/moneyguru/language/"
+"es/)\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: utf-8\n"
 "Language: es\n"
@@ -86,8 +87,8 @@ msgid ""
 "You're about to delete a non-empty account. Select an account to re-assign "
 "its transactions to."
 msgstr ""
-"Está a punto de eliminar una cuenta que no está vacía. Seleccione una cuenta"
-" a la que reasignar las operaciones."
+"Está a punto de eliminar una cuenta que no está vacía. Seleccione una cuenta "
+"a la que reasignar las operaciones."
 
 #: qt/controller/account_reassign_panel.py:61
 #: qt/controller/import_/csv_options.py:95
@@ -188,18 +189,15 @@ msgstr "Anterior"
 msgid "Today"
 msgstr "Hoy"
 
-#: qt/controller/date_range_selector.py:36
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:36 cocoa/en.lproj/Localizable.strings:0
 msgid "Month"
 msgstr "Mes"
 
-#: qt/controller/date_range_selector.py:39
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:39 cocoa/en.lproj/Localizable.strings:0
 msgid "Quarter"
 msgstr "Trimestre"
 
-#: qt/controller/date_range_selector.py:42
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/date_range_selector.py:42 cocoa/en.lproj/Localizable.strings:0
 msgid "Year"
 msgstr "Año"
 
@@ -296,8 +294,7 @@ msgstr "{0} Archivos (*.{1})"
 msgid "CSV Options"
 msgstr "Opciones CSV"
 
-#: qt/controller/import_/csv_options.py:42
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:42 cocoa/en.lproj/Localizable.strings:0
 msgid ""
 "Specify which CSV columns correspond to which transaction fields. You must "
 "also uncheck the \"Import\" column for lines that don't represent a "
@@ -307,28 +304,23 @@ msgstr ""
 "columna de \"Importar\" para las líneas que no contengan información válida "
 "(encabezados, pies de página, comentarios)."
 
-#: qt/controller/import_/csv_options.py:51
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:51 cocoa/en.lproj/Localizable.strings:0
 msgid "Layout:"
 msgstr "Configuración:"
 
-#: qt/controller/import_/csv_options.py:56
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:56 cocoa/en.lproj/Localizable.strings:0
 msgid "Delimiter:"
 msgstr "Delimitador:"
 
-#: qt/controller/import_/csv_options.py:73
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:73 cocoa/en.lproj/Localizable.strings:0
 msgid "Rescan"
 msgstr "Reexploración"
 
-#: qt/controller/import_/csv_options.py:81
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:81 cocoa/en.lproj/Localizable.strings:0
 msgid "Encoding:"
 msgstr "Codificación:"
 
-#: qt/controller/import_/csv_options.py:98
-#: cocoa/en.lproj/Localizable.strings:0
+#: qt/controller/import_/csv_options.py:98 cocoa/en.lproj/Localizable.strings:0
 msgid "Continue Import"
 msgstr "Continuar la importación"
 
@@ -629,8 +621,7 @@ msgstr "No se puede importar el archivo"
 msgid "Warning"
 msgstr "Advertencia"
 
-#: qt/controller/mass_edition_panel.py:57
-#: qt/controller/transaction_panel.py:61
+#: qt/controller/mass_edition_panel.py:57 qt/controller/transaction_panel.py:61
 msgid "Date:"
 msgstr "Fecha:"
 
@@ -771,8 +762,8 @@ msgstr ""
 
 #: qt/controller/schedule_scope_dialog.py:41
 msgid ""
-"You can force global scope (in other words, changing all future occurrences)"
-" by holding Shift when you perform the change."
+"You can force global scope (in other words, changing all future occurrences) "
+"by holding Shift when you perform the change."
 msgstr ""
 "Puede forzar la aplicación a nivel global (cambiar todas las ocurrencias) "
 "manteniendo pulsado la tecla Mayúsculas (Shift) al hacer el cambio."
@@ -914,11 +905,9 @@ msgstr "Descripción"
 
 #: cocoa/en.lproj/Localizable.strings:0
 msgid ""
-"Do you want this change to affect all future occurrences of this "
-"transaction?"
+"Do you want this change to affect all future occurrences of this transaction?"
 msgstr ""
-"¿Desea aplicar esta modificación a las ocurrencias futuras de esta "
-"operación?"
+"¿Desea aplicar esta modificación a las ocurrencias futuras de esta operación?"
 
 #: cocoa/en.lproj/Localizable.strings:0
 msgid "Document"
@@ -1129,8 +1118,8 @@ msgid ""
 "This is your first time running moneyGuru. Do you want to open the example "
 "file?"
 msgstr ""
-"Esta es la primera vez que abres moneyGuru. ¿Te gustaría abrir un archivo de"
-" ejemplo?"
+"Esta es la primera vez que abres moneyGuru. ¿Te gustaría abrir un archivo de "
+"ejemplo?"
 
 #: cocoa/en.lproj/Localizable.strings:0
 msgid "To"

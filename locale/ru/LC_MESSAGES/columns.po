@@ -5,11 +5,14 @@ msgstr ""
 "Project-Id-Version: moneyGuru\n"
 "PO-Revision-Date: 2016-02-07 21:09+0000\n"
 "Last-Translator: Igor Fokusov <igor@fokusov.com>\n"
-"Language-Team: Russian (http://www.transifex.com/hsoft/moneyguru/language/ru/)\n"
+"Language-Team: Russian (http://www.transifex.com/hsoft/moneyguru/language/"
+"ru/)\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: utf-8\n"
 "Language: ru\n"
-"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n%100>=11 && n%100<=14)? 2 : 3);\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || (n"
+"%100>=11 && n%100<=14)? 2 : 3);\n"
 
 #: core/gui/balance_sheet.py:21 core/gui/budget_table.py:25
 #: core/gui/export_account_table.py:18 core/gui/income_statement.py:17
