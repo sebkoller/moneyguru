@@ -13,7 +13,7 @@ import logging
 import datetime
 
 from hscommon.testutil import pytest_funcarg__app # noqa
-from _pytest.monkeypatch import monkeypatch
+from _pytest.monkeypatch import MonkeyPatch
 
 from ..model.currency import RatesDB, Currencies
 from ..model import currency as currency_module
@@ -25,7 +25,7 @@ def pytest_funcarg__monkeyplus(request):
     request.addfinalizer(result.undo)
     return result
 
-class monkeyplus(monkeypatch):
+class monkeyplus(MonkeyPatch):
     def patch_today(self, year, month, day):
         """Patches today's date to date(year, month, day)
         """
@@ -88,7 +88,7 @@ def pytest_configure(config):
 
     global global_monkeypatch
     monkeypatch = config.pluginmanager.getplugin('monkeypatch')
-    global_monkeypatch = monkeypatch.monkeypatch()
+    global_monkeypatch = monkeypatch.MonkeyPatch()
     # The vast majority of moneyGuru's tests require that ensure_rates is patched to nothing to
     # avoid hitting the currency server during tests. However, some tests still need it. This is
     # why we keep it around so that those tests can re-patch it.
@@ -107,6 +107,6 @@ def pytest_unconfigure(config):
     global_monkeypatch.undo()
 
 def pytest_funcarg__monkeypatch(request):
-    monkeyplus = request.getfuncargvalue('monkeyplus')
+    monkeyplus = request.getfixturevalue('monkeyplus')
     return monkeyplus
 
