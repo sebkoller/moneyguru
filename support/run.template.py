@@ -16,9 +16,9 @@ from PyQt5.QtWidgets import QApplication
 
 import hscommon.trans
 from hscommon.plat import ISLINUX
-from qtlib.error_report_dialog import install_excepthook
-from qtlib.util import setupQtLogging
-from qtlib.preferences import adjust_after_deserialization
+from qt.support.error_report_dialog import install_excepthook
+from qt.util import setupQtLogging
+from qt.preferences import adjust_after_deserialization
 import qt.mg_rc # noqa
 from qt.plat import BASE_PATH
 from qt.args import get_parser

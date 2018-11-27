@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-11-27
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -12,7 +10,7 @@ class FilterBar(QObject):
     BUTTONS = [] # (Title, FilterID)
 
     def __init__(self, model, view):
-        # the view is a qtlib.RadioBox
+        # the view is a support.RadioBox
         QObject.__init__(self, None)
         self.model = model
         self.view = view

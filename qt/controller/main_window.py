@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-10-31
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -17,9 +15,6 @@ from PyQt5.QtWidgets import (
     QStackedWidget, QLabel
 )
 
-from qtlib.recent import Recent
-from qtlib.search_edit import SearchEdit
-from qtlib.util import horizontalSpacer, setAccelKeys, getAppData, escapeamp
 from hscommon.trans import trget
 from hscommon.plat import ISLINUX
 from core.const import PaneType, PaneArea
@@ -28,7 +23,10 @@ from core.gui.custom_date_range_panel import CustomDateRangePanel as CustomDateR
 from core.exception import FileFormatError
 
 from ..support.date_range_selector_view import DateRangeSelectorView
+from ..support.recent import Recent
+from ..support.search_edit import SearchEdit
 from ..print_ import ViewPrinter
+from ..util import horizontalSpacer, setAccelKeys, getAppData, escapeamp
 from .account.view import EntryView
 from .budget.view import BudgetView
 from .networth.view import NetWorthView

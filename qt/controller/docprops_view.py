@@ -1,5 +1,4 @@
-# Created On: 2011/10/13
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,9 +7,9 @@
 from PyQt5.QtWidgets import QFormLayout, QComboBox, QSizePolicy
 
 from hscommon.trans import trget
-from qtlib.selectable_list import ComboboxModel
 
 from .base_view import BaseView
+from .selectable_list import ComboboxModel
 
 tr = trget('ui')
 

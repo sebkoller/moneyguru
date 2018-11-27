@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-02-26
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,7 +9,8 @@ from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QShortcut, QVBoxLayout, QListWidget, QAbstractItemView
 
 from hscommon.trans import trget
-from qtlib.search_edit import SearchEdit
+
+from ..support.search_edit import SearchEdit
 
 tr = trget('ui')
 

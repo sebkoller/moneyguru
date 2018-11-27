@@ -10,7 +10,7 @@ PREFIX ?= /usr/local
 # use one of each file to act as a representative, a target, of these groups.
 submodules_target = hscommon/__init__.py
 
-packages = hscommon qtlib core qt
+packages = hscommon core qt
 localedirs = $(wildcard locale/*/LC_MESSAGES)
 pofiles = $(wildcard locale/*/LC_MESSAGES/*.po)
 mofiles = $(patsubst %.po,%.mo,$(pofiles))
@@ -71,7 +71,6 @@ mergepot:
 
 normpo:
 	find locale -name *.po -exec msgcat {} -o {} \;
-	find qtlib/locale -name *.po -exec msgcat {} -o {} \;
 
 srcpkg:
 	./support/srcpkg.sh

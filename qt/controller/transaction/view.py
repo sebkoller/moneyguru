@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-10-31
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,9 +9,9 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QSizePolicy, QAbstractItemView
 )
 
-from qtlib.radio_box import RadioBox
 
 from ...support.item_view import TableView
+from ...support.radio_box import RadioBox
 from ..base_transaction_view import BaseTransactionView
 from .filter_bar import TransactionFilterBar
 from .table import TransactionTable

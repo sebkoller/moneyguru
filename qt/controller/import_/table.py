@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-11-13
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,7 +7,7 @@
 from PyQt5.QtCore import Qt, QMimeData, QByteArray
 from PyQt5.QtGui import QPixmap
 
-from qtlib.column import Column
+from ..column import Column
 from ..table import Table, NO_EDIT
 
 MIME_INDEXES = 'application/moneyguru.rowindexes'

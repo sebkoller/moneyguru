@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-10-31
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,29 +6,31 @@
 
 import os.path as op
 
-from PyQt5.QtCore import pyqtSignal, QCoreApplication, QLocale, QUrl, QStandardPaths
+from PyQt5.QtCore import (
+    pyqtSignal, QCoreApplication, QLocale, QUrl, QStandardPaths, QTimer,
+    QObject)
 from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtWidgets import QDialog, QApplication, QMessageBox
 
-from qtlib.about_box import AboutBox
-from qtlib.app import Application as ApplicationBase
-from qtlib.util import getAppData
 
 from core.app import Application as MoneyGuruModel
 
 from .controller.document import Document
 from .controller.main_window import MainWindow
 from .controller.preferences_panel import PreferencesPanel
+from .support.about_box import AboutBox
 from .support.date_edit import DateEdit
 from .preferences import Preferences
 from .plat import HELP_PATH
+from .util import getAppData
 
-class MoneyGuru(ApplicationBase):
+class MoneyGuru(QObject):
     VERSION = MoneyGuruModel.VERSION
     LOGO_NAME = 'logo'
 
     def __init__(self, filepath=None):
-        ApplicationBase.__init__(self)
+        QObject.__init__(self)
+        QTimer.singleShot(0, self.__launchTimerTimedOut)
         self.prefs = Preferences()
         self.prefs.load()
         global APP_PREFS
@@ -96,6 +96,10 @@ class MoneyGuru(ApplicationBase):
         self.model.shutdown()
 
     # --- Signals
+    def __launchTimerTimedOut(self):
+        self.finishedLaunching.emit()
+
+    finishedLaunching = pyqtSignal()
     willSavePrefs = pyqtSignal()
 
     # --- model --> view

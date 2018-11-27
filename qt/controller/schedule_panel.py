@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-11-21
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -14,13 +12,13 @@ from PyQt5.QtWidgets import (
     QPushButton
 )
 
-from qtlib.selectable_list import ComboboxModel
 from hscommon.trans import trget
 
 from ..support.item_view import TableView
 from ..support.date_edit import DateEdit
 from ..support.completable_edit import PayeeEdit, DescriptionEdit
 from .panel import Panel
+from .selectable_list import ComboboxModel
 from .split_table import SplitTable
 
 tr = trget('ui')

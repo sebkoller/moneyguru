@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-11-01
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,13 +8,13 @@ from PyQt5.QtCore import Qt, QMimeData, QByteArray, QItemSelection
 from PyQt5.QtGui import QPixmap, QPalette, QFont
 
 from hscommon.util import nonone
-from qtlib.column import Columns
-from qtlib.tree_model import TreeNode, TreeModel
 
 from ..const import (
     MIME_NODEPATHS, INDENTATION_OFFSET_ROLE, EXTRA_ROLE, EXTRA_UNDERLINED, EXTRA_UNDERLINED_DOUBLE
 )
 from ..support.item_delegate import ItemDelegate, ItemDecoration
+from .column import Columns
+from .tree_model import TreeNode, TreeModel
 
 class Node(TreeNode):
     def __init__(self, model, parent, ref, row):

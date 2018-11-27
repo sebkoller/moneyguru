@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-12-02
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,11 +9,11 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QSizePolicy, QSpacerItem, QPushButton
 )
 
-from qtlib.selectable_list import ComboboxModel
 from hscommon.trans import trget
 from hscommon.plat import ISWINDOWS
 
 from .panel import Panel
+from .selectable_list import ComboboxModel
 
 tr = trget('ui')
 

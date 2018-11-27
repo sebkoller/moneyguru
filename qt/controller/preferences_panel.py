@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-11-28
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -13,11 +11,31 @@ from PyQt5.QtWidgets import (
 )
 
 from hscommon.trans import trget
-from qtlib.preferences import get_langnames
-from qtlib.util import verticalSpacer, horizontalWrap
 from core.model.date import clean_format
 
+from ..util import verticalSpacer, horizontalWrap
+
 tr = trget('ui')
+
+def get_langnames():
+    return {
+        'en': tr("English"),
+        'fr': tr("French"),
+        'de': tr("German"),
+        'el': tr("Greek"),
+        'zh_CN': tr("Chinese (Simplified)"),
+        'cs': tr("Czech"),
+        'it': tr("Italian"),
+        'hy': tr("Armenian"),
+        'ko': tr("Korean"),
+        'ru': tr("Russian"),
+        'uk': tr("Ukrainian"),
+        'nl': tr('Dutch'),
+        'pl_PL': tr("Polish"),
+        'pt_BR': tr("Brazilian"),
+        'es': tr("Spanish"),
+        'vi': tr("Vietnamese"),
+    }
 
 SUPPORTED_LANGUAGES = ['en', 'fr', 'de', 'it', 'cs', 'nl', 'es', 'ru']
 

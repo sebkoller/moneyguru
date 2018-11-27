@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-11-01
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -15,12 +13,12 @@ from PyQt5.QtWidgets import (
 from core.const import PaneArea
 
 from hscommon.trans import trget
-from qtlib.radio_box import RadioBox
-from qtlib.util import horizontalSpacer
 
 from ...support.item_view import TableView
 from ...support.line_graph_view import LineGraphView
 from ...support.bar_graph_view import BarGraphView
+from ...support.radio_box import RadioBox
+from ...util import horizontalSpacer
 from ..base_transaction_view import BaseTransactionView
 from ..chart import Chart
 from .filter_bar import EntryFilterBar

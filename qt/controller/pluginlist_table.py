@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -6,7 +6,7 @@
 
 from PyQt5.QtCore import Qt
 
-from qtlib.column import Column
+from .column import Column
 from .table import Table
 
 class PluginListTable(Table):

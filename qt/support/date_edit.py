@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-# Created By: Virgil Dupras
-# Created On: 2009-11-05
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,7 +6,7 @@
 
 from PyQt5.QtCore import Qt, QTimer
 
-from qtlib.search_edit import ClearableEdit
+from .search_edit import ClearableEdit
 from core.gui.date_widget import DateWidget
 
 class DateEdit(ClearableEdit):
