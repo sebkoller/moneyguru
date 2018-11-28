@@ -4,6 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
+import pytest
 from pytest import raises
 from hscommon.testutil import eq_
 
@@ -367,12 +368,17 @@ def test_format_dot_grouping_sep_and_comma_decimal_sep():
     # Previously, there was a bug causing comma to be placed everywhere
     eq_(format_amount(Amount(1234.99, 'CAD'), 'CAD', grouping_sep='.', decimal_sep=','), '1.234,99')
 
-def test_format_grouping_sep():
+@pytest.mark.parametrize(
+    'value, expected', [
+        (12.99, '12.99'),
+        (1234.99, '1 234.99'),
+        (1234567.99, '1 234 567.99'),
+        (1234567890.99, '1 234 567 890.99'),
+        (23060.44, '23 060.44'),
+    ])
+def test_format_grouping_sep(value, expected):
     # It's possible to specify an alternate grouping separator
-    eq_(format_amount(Amount(12.99, 'CAD'), 'CAD', grouping_sep=' '), '12.99')
-    eq_(format_amount(Amount(1234.99, 'CAD'), 'CAD', grouping_sep=' '), '1 234.99')
-    eq_(format_amount(Amount(1234567.99, 'CAD'), 'CAD', grouping_sep=' '), '1 234 567.99')
-    eq_(format_amount(Amount(1234567890.99, 'CAD'), 'CAD', grouping_sep=' '), '1 234 567 890.99')
+    eq_(format_amount(Amount(value, 'CAD'), 'CAD', grouping_sep=' '), expected)
 
 def test_format_negative_with_grouping():
     # Grouping separation ignore the negative sign

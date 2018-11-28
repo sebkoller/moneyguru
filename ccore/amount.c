@@ -15,8 +15,10 @@ group_intfmt(char *dest, uint64_t val, char grouping_sep) {
     int64_t left;
     int written = 0;
     int rc;
+    bool leftmost;
 
     if (val >= 1000) {
+        leftmost = false;
         left = val / 1000;
         rc = group_intfmt(dest, left, grouping_sep);
         if (rc < 0) {
@@ -26,8 +28,10 @@ group_intfmt(char *dest, uint64_t val, char grouping_sep) {
         written += rc + 1;
         dest = &(dest[written]);
         val -= (left * 1000);
+    } else {
+        leftmost = true;
     }
-    rc = sprintf(dest, "%ld", val);
+    rc = sprintf(dest, leftmost ? "%ld" : "%03ld", val);
     if (rc < 0) {
         return rc;
     } else {
