@@ -55,7 +55,7 @@ i18n: $(mofiles)
 	msgfmt -o $@ $<	
 
 ccore:
-	make -C ccore PYTHON=$(PYTHON)
+	$(MAKE) -C ccore
 	cp ccore/_ccore.so core/model
 
 mergepot:
