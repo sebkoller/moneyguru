@@ -57,6 +57,10 @@ i18n: $(mofiles)
 ccore:
 	$(MAKE) -C ccore
 	cp ccore/_ccore.so core/model
+	# don't leave .o that might be incompatible with the version of python it's
+	# going to be built for next (for example, with tox runs).
+	# TODO: don't require clean to avoid python ABI mismatch.
+	$(MAKE) -C ccore clean
 
 mergepot:
 	./support/mergepot.sh
@@ -93,7 +97,7 @@ uninstall :
 	rm -f "${DESTDIR}${PREFIX}/share/pixmaps/moneyguru.png"
 
 clean:
-	make -C ccore clean
+	$(MAKE) -C ccore clean
 	-rm -rf build env
 	-rm -rf locale/*/LC_MESSAGES/*.mo
 	-rm -rf core/model/*.so
