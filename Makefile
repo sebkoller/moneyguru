@@ -2,6 +2,7 @@ PYTHON ?= python3
 SHEBANG ?= /usr/bin/env $(PYTHON)
 REQ_MINOR_VERSION = 4
 PREFIX ?= /usr/local
+DESTSHARE = $(DESTDIR)$(PREFIX)/share/moneyguru
 
 # If you're installing into a path that is not going to be the final path prefix (such as a
 # sandbox), set DESTDIR to that path.
@@ -67,23 +68,23 @@ srcpkg:
 	./support/srcpkg.sh
 
 install: all pyc
-	mkdir -p ${DESTDIR}${PREFIX}/share/moneyguru
-	cp -rf ${packages} locale ${DESTDIR}${PREFIX}/share/moneyguru
-	cp -f run.py ${DESTDIR}${PREFIX}/share/moneyguru/run.py
-	chmod 755 ${DESTDIR}${PREFIX}/share/moneyguru/run.py
+	install -D run.py $(DESTSHARE)/run.py
 	mkdir -p ${DESTDIR}${PREFIX}/bin
-	ln -sf ${PREFIX}/share/moneyguru/run.py ${DESTDIR}${PREFIX}/bin/moneyguru
+	ln -sf $(DESTSHARE)/run.py ${DESTDIR}${PREFIX}/bin/moneyguru
+	cp -rf ${packages} $(DESTSHARE)
 	mkdir -p ${DESTDIR}${PREFIX}/share/applications
-	cp -f share/moneyguru.desktop ${DESTDIR}${PREFIX}/share/applications
+	install -D -m644 support/moneyguru.desktop \
+		${DESTDIR}${PREFIX}/share/applications/moneyguru.desktop
 	sed -i -e 's#^Icon=/usr/share/moneyguru/#Icon='${PREFIX}'/share/moneyguru/#' \
 		${DESTDIR}${PREFIX}/share/applications/moneyguru.desktop
-	mkdir -p ${DESTDIR}${PREFIX}/share/pixmaps
-	cp -f images/logo_big.png ${DESTDIR}${PREFIX}/share/pixmaps/moneyguru.png
-	cp -f images/logo_big.png ${DESTDIR}${PREFIX}/share/moneyguru/logo_big.png
+	install -D -m644 images/logo_big.png \
+		${DESTDIR}${PREFIX}/share/pixmaps/moneyguru.png
+	install -m644 images/logo_big.png $(DESTSHARE)/logo_big.png
+	find locale -name *.mo -exec install -D {} $(DESTSHARE)/{} \;
 
 installdocs: build/help
-	mkdir -p ${DESTDIR}${PREFIX}/share/moneyguru
-	cp -rf build/help ${DESTDIR}${PREFIX}/share/moneyguru
+	mkdir -p $(DESTSHARE)
+	cp -rf build/help $(DESTSHARE)
 
 uninstall :
 	rm -rf "${DESTDIR}${PREFIX}/share/moneyguru"
