@@ -3,6 +3,7 @@ SHEBANG ?= /usr/bin/env $(PYTHON)
 REQ_MINOR_VERSION = 4
 PREFIX ?= /usr/local
 DESTSHARE = $(DESTDIR)$(PREFIX)/share/moneyguru
+CCORE = core/model/_ccore.so
 
 # If you're installing into a path that is not going to be the final path prefix (such as a
 # sandbox), set DESTDIR to that path.
@@ -15,7 +16,7 @@ mofiles = $(patsubst %.po,%.mo,$(pofiles))
 vpath %.po $(localedirs)
 vpath %.mo $(localedirs)
 
-all: qt/mg_rc.py run.py | i18n ccore reqs
+all: qt/mg_rc.py run.py $(CCORE) | i18n reqs
 	@echo "Build complete! You can run moneyGuru with 'make run'"
 
 run:
@@ -54,7 +55,11 @@ i18n: $(mofiles)
 %.mo : %.po
 	msgfmt -o $@ $<	
 
-ccore:
+$(CCORE):
+	$(MAKE) -C ccore
+	cp ccore/_ccore.so core/model
+
+ccore: 
 	$(MAKE) -C ccore
 	cp ccore/_ccore.so core/model
 	# don't leave .o that might be incompatible with the version of python it's
