@@ -15,13 +15,12 @@ from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QApplication
 
 import hscommon.trans
-from hscommon.plat import ISLINUX
+from core.args import get_parser
 from qt.support.error_report_dialog import install_excepthook
 from qt.util import setupQtLogging
 from qt.preferences import adjust_after_deserialization
 import qt.mg_rc # noqa
 from qt.plat import BASE_PATH
-from qt.args import get_parser
 
 def main():
     parser = get_parser()
@@ -35,12 +34,9 @@ def main():
         LOGGING_LEVEL = logging.DEBUG
     else:
         LOGGING_LEVEL = logging.DEBUG if adjust_after_deserialization(settings.value('DebugMode')) else logging.WARNING
-    setupQtLogging(level=LOGGING_LEVEL, log_to_stdout=args.log_to_stdout)
+    setupQtLogging(level=LOGGING_LEVEL)
     logging.debug('started in debug mode')
-    if ISLINUX:
-        stylesheetFile = QFile(':/stylesheet_lnx')
-    else:
-        stylesheetFile = QFile(':/stylesheet_win')
+    stylesheetFile = QFile(':/stylesheet_lnx')
     stylesheetFile.open(QFile.ReadOnly)
     textStream = QTextStream(stylesheetFile)
     style = textStream.readAll()

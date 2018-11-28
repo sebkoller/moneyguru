@@ -81,25 +81,12 @@ class SysWrapper(io.IOBase):
         if s.strip(): # don't log empty stuff
             logging.warning(s)
 
-def setupQtLogging(level=logging.WARNING, log_to_stdout=False):
-    # Under Qt, we log in "debug.log" in appdata. Moreover, when under cx_freeze, we have a
-    # problem because sys.stdout and sys.stderr are None, so we need to replace them with a
-    # wrapper that logs with the logging module.
-    appdata = getAppData()
-    if not op.exists(appdata):
-        os.makedirs(appdata)
-    # Setup logging
-    # Have to use full configuration over basicConfig as FileHandler encoding was not being set.
-    filename = op.join(appdata, 'debug.log') if not log_to_stdout else None
+def setupQtLogging(level=logging.WARNING):
     log = logging.getLogger()
-    handler = logging.FileHandler(filename, 'a', 'utf-8')
+    handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     log.addHandler(handler)
-    if sys.stderr is None: # happens under a cx_freeze environment
-        sys.stderr = SysWrapper()
-    if sys.stdout is None:
-        sys.stdout = SysWrapper()
 
 def escapeamp(s):
     # Returns `s` with escaped ampersand (& --> &&). QAction text needs to have & escaped because
