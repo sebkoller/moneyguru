@@ -23,10 +23,10 @@ CurrencyResult
 currency_global_init(char *dbpath);
 
 CurrencyResult
-currency_global_reset_currencies();
+currency_global_reset_currencies(void);
 
 void
-currency_global_deinit();
+currency_global_deinit(void);
 
 Currency*
 currency_register(

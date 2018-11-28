@@ -128,7 +128,6 @@ create_amount(int64_t ival, Currency *currency)
 {
     /* Create a new amount in a way that is faster than the normal init */
     PyAmount *r;
-    double dtmp;
 
     r = (PyAmount *)PyType_GenericAlloc((PyTypeObject *)Amount_Type, 0);
     r->amount.val = ival;
@@ -734,7 +733,6 @@ py_amount_parse(PyObject *self, PyObject *args, PyObject *kwds)
     uint8_t exponent;
     char grouping_sep;
     int64_t val;
-    double dtmp;
     static char *kwlist[] = {
         "string", "default_currency", "with_expression", "auto_decimal_place",
         "strict_currency", NULL};

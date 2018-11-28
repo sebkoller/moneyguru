@@ -64,7 +64,7 @@ amount_free(Amount *amount)
 }
 
 Amount*
-amount_zero()
+amount_zero(void)
 {
     if (g_zero == NULL) {
         g_zero = amount_init(0, NULL);

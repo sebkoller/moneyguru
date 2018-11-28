@@ -16,7 +16,7 @@ void
 amount_free(Amount *amount);
 
 Amount*
-amount_zero();
+amount_zero(void);
 
 int64_t
 amount_slide(int64_t val, uint8_t fromexp, uint8_t toexp);

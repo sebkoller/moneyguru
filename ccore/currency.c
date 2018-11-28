@@ -161,7 +161,7 @@ currency_global_init(char *dbpath)
 }
 
 CurrencyResult
-currency_global_reset_currencies()
+currency_global_reset_currencies(void)
 {
     if (g_currencies != NULL) {
         // Don't allocate a new list, we're probably in a test context and we
@@ -204,7 +204,7 @@ currency_global_reset_currencies()
 }
 
 void
-currency_global_deinit()
+currency_global_deinit(void)
 {
     if (g_db != NULL) {
         sqlite3_close(g_db);
