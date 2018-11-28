@@ -1,6 +1,5 @@
-# Created By: Nelson Brown
-# Created On: 2014-02-01
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2014 Nelson Brown
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -97,7 +96,10 @@ class AmountPainter:
                 cur_width = option.fontMetrics.width("XXX")
         val_width = option.fontMetrics.width(amount.value)
 
-        return cur_width, val_width
+        # It seems that it some cases, our width is too tight. After a Qt
+        # update, amounts started to not draw entirely in some rare cases.
+        # Rounding problems? maybe. Adding 1 fixes the problem. See #501
+        return cur_width + 1, val_width + 1
 
     def sizeHint(self, option, index):
         """sizeHint returns a QSize of the required size to draw the amount.
