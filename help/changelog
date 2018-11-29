@@ -1,3 +1,15 @@
+=== 2.12.0 (2018-11-29)
+
+* Drop Mac OS support. moneyGuru is now a GNU/Linux application. See README.
+* Rewrite ``Amount`` and ``Currency`` in C into a new ``ccore`` module.
+* Improve Makefile so it behaves more like a typical project.
+* Remove debian packaging content. It belongs elsewhere.
+* Add support for Python 3.7.
+* Add transaction panel keyboard shortcuts. (#490)
+* Plugin: add ENABLED_BY_DEFAULT attribute. (#493)
+* Fix crash in ``Currency.ensure_rates()``. (#497)
+* Add Fuzzy Date plugin. (#496)
+
 === 2.11.0 (2017-08-23)
 
 * Avoid duplicate logging to both stderr and NSLog. [cocoa] (#476)
