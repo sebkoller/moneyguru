@@ -8,9 +8,9 @@ from PyQt5.QtCore import Qt, QRect, QSize
 from PyQt5.QtPrintSupport import QPrintDialog
 from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
 from PyQt5.QtWidgets import (
-    QMainWindow, QMessageBox, QTabBar, QSizePolicy, QHBoxLayout, QPushButton, QMenu, QAction,
-    QMenuBar, QShortcut, QFileDialog, QApplication, QToolButton, QWidget, QVBoxLayout, QSpacerItem,
-    QStackedWidget, QLabel
+    QMainWindow, QMessageBox, QSizePolicy, QHBoxLayout, QPushButton, QMenu,
+    QAction, QMenuBar, QShortcut, QFileDialog, QApplication, QWidget,
+    QVBoxLayout, QSpacerItem, QStackedWidget, QLabel
 )
 
 from hscommon.trans import trget
@@ -22,6 +22,7 @@ from core.exception import FileFormatError
 from ..support.date_range_selector_view import DateRangeSelectorView
 from ..support.recent import Recent
 from ..support.search_edit import SearchEdit
+from ..support.tab_bar import TabBarPlus
 from ..print_ import ViewPrinter
 from ..util import horizontalSpacer, setAccelKeys, escapeamp
 from .account.view import EntryView
@@ -121,7 +122,7 @@ class MainWindow(QMainWindow):
         self.searchLineEdit.setMaximumSize(QSize(240, 16777215))
         self.horizontalLayout_2.addWidget(self.searchLineEdit)
         self.verticalLayout.addWidget(self.topBar)
-        self.tabBar = QTabBar(self.centralwidget)
+        self.tabBar = TabBarPlus(self.centralwidget)
         self.tabBar.setMinimumSize(QSize(0, 20))
         self.verticalLayout.addWidget(self.tabBar)
         self.mainView = QStackedWidget(self.centralwidget)
@@ -332,6 +333,7 @@ class MainWindow(QMainWindow):
         self.tabBar.currentChanged.connect(self.currentTabChanged)
         self.tabBar.tabCloseRequested.connect(self.tabCloseRequested)
         self.tabBar.tabMoved.connect(self.tabMoved)
+        self.tabBar.plusClicked.connect(self.model.new_tab)
 
         # Views
         self.actionShowNetWorth.triggered.connect(self.showNetWorthTriggered)
@@ -658,13 +660,6 @@ class MainWindow(QMainWindow):
         while self.tabBar.count() > self.model.pane_count:
             self.tabBar.removeTab(self.tabBar.count()-1)
         self.tabBar.setTabsClosable(self.model.pane_count > 1)
-        # Add the "new tab" tab
-        last_tab_index = self.tabBar.addTab('')
-        self.tabBar.setTabEnabled(last_tab_index, False)
-        newTabButton = QToolButton()
-        newTabButton.setText("+")
-        newTabButton.clicked.connect(self.model.new_tab)
-        self.tabBar.setTabButton(last_tab_index, QTabBar.RightSide, newTabButton)
 
     def refresh_status_line(self):
         self.statusLabel.setText(self.model.status_line)
