@@ -35,7 +35,7 @@ class SplitTable(GUITable):
 
     def _is_edited_new(self):
         split = self.edited.split
-        return split not in split.transaction.splits
+        return split not in self.panel.transaction.splits
 
     def _fill(self):
         transaction = self.panel.transaction
@@ -48,8 +48,9 @@ class SplitTable(GUITable):
 
     # --- Public
     def move_split(self, from_index, to_index):
+        transaction = self.panel.transaction
         row = self[from_index]
-        row.split.move_to_index(to_index)
+        transaction.move_split(row.split, to_index)
         self.refresh(refresh_view=False)
         self.select([to_index])
         self.view.refresh()
@@ -71,8 +72,9 @@ class SplitTableRow(Row, RowWithDebitAndCreditMixIn):
         self.load()
 
     def _parse_amount(self, value):
-        if self.split.transaction.amount:
-            currency = self.split.transaction.amount.currency_code
+        transaction = self.table.panel.transaction
+        if transaction.amount:
+            currency = transaction.amount.currency_code
         else:
             currency = self.table.document.default_currency
         return self.table.document.parse_amount(value, default_currency=currency)

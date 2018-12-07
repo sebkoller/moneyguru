@@ -37,7 +37,7 @@ def create_entry(entry_date, description, amount):
     if not isinstance(description, str):
         raise TypeError("description must be of type str!")
     split = txn.splits[0]
-    return Entry(split, split.amount, 0, 0, 0)
+    return Entry(split, txn, split.amount, 0, 0, 0)
 
 
 def test_internal_create_entry_argument_fencing():

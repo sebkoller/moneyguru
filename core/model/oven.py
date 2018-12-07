@@ -60,14 +60,15 @@ class Oven:
         balance = start_balance
         result = {} # split: reconciliation balance
 
-        def recdate_key(s):
-            t = s.transaction
+        def recdate_key(splitpair):
+            t, s = splitpair
             rdate = s.reconciliation_date
             if rdate is None:
                 rdate = t.date
             return (rdate, t.date, t.position)
+
         by_recdate = sorted(splits, key=recdate_key)
-        for split in by_recdate:
+        for txn, split in by_recdate:
             if split.reconciled:
                 balance += split.amount
             result[split] = balance
@@ -78,14 +79,14 @@ class Oven:
         balance = entries.balance()
         balance_with_budget = entries.balance_with_budget()
         split2reconciledbal = self._cook_reconciliation_balances(splits, entries.balance_of_reconciled())
-        for split in splits:
+        for txn, split in splits:
             amount = split.amount
-            converted_amount = convert_amount(amount, account.currency, split.transaction.date)
+            converted_amount = convert_amount(amount, account.currency, txn.date)
             balance_with_budget += converted_amount
-            if not isinstance(split.transaction, BudgetSpawn):
+            if not isinstance(txn, BudgetSpawn):
                 balance += converted_amount
             reconciled_balance = split2reconciledbal[split]
-            entries.add_entry(Entry(split, amount, balance, reconciled_balance, balance_with_budget))
+            entries.add_entry(Entry(split, txn, amount, balance, reconciled_balance, balance_with_budget))
 
     def continue_cooking(self, until_date):
         """Cooks from where we stop last time until ``until_date``.
@@ -115,11 +116,11 @@ class Oven:
             # it's possible that we have to reduce from_date a bit. If a split from before as a
             # reconciled date >= from_date, we have to set from_date to that split's normal date
             # We reverse the transactions to correctly detect chained overlappings in date/recdate
-            splits = flatten(t.splits for t in reversed(self.transactions)) # splits from *cooked* txns
-            for split in splits:
-                rdate = split.reconciliation_date
-                if rdate is not None and rdate >= from_date:
-                    from_date = min(from_date, split.transaction.date)
+            for txn in reversed(self.transactions): # splits from *cooked* txns
+                for split in txn.splits:
+                    rdate = split.reconciliation_date
+                    if rdate is not None and rdate >= from_date:
+                        from_date = min(from_date, txn.date)
         self._transactions.sort(key=attrgetter('date', 'position')) # needed in case until_date is None
         if until_date is None:
             until_date = self._transactions[-1].date if self._transactions else from_date
@@ -143,12 +144,16 @@ class Oven:
         # XXX now that budget's base date is the start date, isn't this untrue?
         tocook = [t for t in txns if from_date <= t.date]
         tocook.sort(key=attrgetter('date'))
-        splits = flatten(t.splits for t in tocook)
+
+        def splitpairs(t):
+            return ((t, s) for s in t.splits)
+
+        splits = flatten(splitpairs(t) for t in tocook)
         account2splits = defaultdict(list)
-        for split in splits:
+        for txn, split in splits:
             account = split.account
             if account is not None:
-                account2splits[account].append(split)
+                account2splits[account].append((txn, split))
         for account, splits in account2splits.items():
             self._cook_splits(account, splits)
         self.transactions += tocook

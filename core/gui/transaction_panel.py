@@ -44,11 +44,11 @@ class PanelWithTransaction(MainWindowPanel):
         self.view.refresh_for_multi_currency()
 
     def delete_split(self, split):
-        split.remove()
+        self.transaction.remove_split(split)
         self.view.refresh_for_multi_currency()
 
     def new_split(self):
-        return Split(self.transaction, None, 0)
+        return Split(None, 0)
 
     def select_splits(self, splits):
         self._selected_splits = splits

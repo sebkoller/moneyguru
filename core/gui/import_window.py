@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-07
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -577,7 +575,9 @@ class ImportWindow(MainWindowGUIObject):
                     split.account = copy_account(split.account)
 
                 split = transaction.splits[split_indx]
-                new_entry = Entry(split, e.amount, e.balance, e.reconciled_balance, e.balance_with_budget)
+                new_entry = Entry(
+                    split, transaction, e.amount, e.balance,
+                    e.reconciled_balance, e.balance_with_budget)
                 new_matches.append((new_entry, ref))
 
 

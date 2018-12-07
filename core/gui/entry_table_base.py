@@ -412,7 +412,7 @@ class EntryTableBase(TransactionTableBase):
         date = transactions[0].date if transactions else datetime.date.today()
         transaction = Transaction(date, account=account, amount=0)
         split = transaction.splits[0]
-        return Entry(split, 0, 0, 0, 0)
+        return Entry(split, transaction, 0, 0, 0, 0)
 
     # --- Public
     def get_totals(self):

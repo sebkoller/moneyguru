@@ -18,7 +18,7 @@ def create_entry(entry_date, description, reference):
     txn = Transaction(entry_date, description=description, amount=Amount(1, 'USD'))
     split = txn.splits[0]
     split.reference = reference
-    return Entry(split, split.amount, 0, 0, 0)
+    return Entry(split, txn, split.amount, 0, 0, 0)
 
 def test_typical_situation():
     # Verify that ReferenceBind.match_entries() return expected entried in a typical situation

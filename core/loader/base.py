@@ -255,7 +255,7 @@ class Loader:
                 if split_info.amount_reversed:
                     amount = -amount
                 memo = nonone(split_info.memo, '')
-                split = Split(transaction, account, amount)
+                split = Split(account, amount)
                 split.memo = memo
                 if account is None or not of_currency(amount, account.currency):
                     # fix #442: off-currency transactions shouldn't be reconciled
@@ -267,7 +267,7 @@ class Loader:
                 split.reference = split_info.reference
                 transaction.splits.append(split)
             while len(transaction.splits) < 2:
-                transaction.splits.append(Split(transaction, None, 0))
+                transaction.splits.append(Split(None, 0))
             transaction.balance()
             transaction.mtime = info.mtime
             if info.reference is not None:

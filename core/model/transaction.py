@@ -40,7 +40,7 @@ class Transaction:
         #: Freeform note about the transaction.
         self.notes = ''
         if amount is not None:
-            self.splits = [Split(self, account, amount), Split(self, None, -amount)]
+            self.splits = [Split(account, amount), Split(None, -amount)]
         else:
             #: The list of :class:`Split` affecting this transaction. These splits always balance.
             self.splits = []
@@ -165,7 +165,7 @@ class Transaction:
             if unassigned is not None:
                 unassigned.amount -= imbalance
             else:
-                self.splits.append(Split(self, None, -imbalance))
+                self.splits.append(Split(None, -imbalance))
         for split in self.splits[:]:
             if is_unassigned(split) and split.amount == 0:
                 self.splits.remove(split)
@@ -207,7 +207,7 @@ class Transaction:
                     else:
                         split.amount -= amount # adjust
                 else:
-                    self.splits.append(Split(self, None, -amount))
+                    self.splits.append(Split(None, -amount))
 
     def change(
             self, date=NOEDIT, description=NOEDIT, payee=NOEDIT, checkno=NOEDIT, from_=NOEDIT,
@@ -353,7 +353,11 @@ class Transaction:
             if target is not None:
                 target.amount -= converted_total
             else:
-                self.splits.append(Split(self, None, -converted_total))
+                self.splits.append(Split(None, -converted_total))
+
+    def move_split(self, split, index):
+        self.splits.remove(split)
+        self.splits.insert(index, split)
 
     def reassign_account(self, account, reassign_to=None):
         """Reassign all splits from ``account`` to ``reassign_to``.
@@ -367,6 +371,10 @@ class Transaction:
             if split.account is account:
                 split.reconciliation_date = None
                 split.account = reassign_to
+
+    def remove_split(self, split):
+        self.splits.remove(split)
+        self.balance()
 
     def replicate(self):
         """Returns a copy of self using :meth:`from_transaction`."""
@@ -446,7 +454,7 @@ class Transaction:
         credit = first(s for s in self.splits if s.credit)
         debit_account = debit.account if debit is not None else None
         credit_account = credit.account if credit is not None else None
-        self.splits = [Split(self, debit_account, value), Split(self, credit_account, -value)]
+        self.splits = [Split(debit_account, value), Split(credit_account, -value)]
 
     @property
     def can_set_amount(self):
@@ -478,9 +486,7 @@ class Transaction:
 
 class Split:
     """Assignment of money to an :class:`.Account` within a :class:`Transaction`."""
-    def __init__(self, transaction, account, amount):
-        #: Transaction within which our split lives.
-        self.transaction = transaction
+    def __init__(self, account, amount):
         self._account = account
         #: Freeform memo about that split.
         self.memo = ''
@@ -496,14 +502,6 @@ class Split:
     # --- Public
     def is_on_same_side(self, other_split):
         return (self.amount >= 0) == (other_split.amount >= 0)
-
-    def move_to_index(self, index):
-        self.transaction.splits.remove(self)
-        self.transaction.splits.insert(index, self)
-
-    def remove(self):
-        self.transaction.splits.remove(self)
-        self.transaction.balance()
 
     # --- Properties
     @property

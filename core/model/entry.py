@@ -27,9 +27,10 @@ class Entry:
     Most entries are created by the :class:`.Oven`, which does the necessary calculations to compute
     running total information that the entry needs on init.
     """
-    def __init__(self, split, amount, balance, reconciled_balance, balance_with_budget):
+    def __init__(self, split, transaction, amount, balance, reconciled_balance, balance_with_budget):
         #: The :class:`.Split` our entry wraps.
         self.split = split
+        self.transaction = transaction
         #: :class:`.Amount`. The amount of money that the entry moves.
         self.amount = amount
         #: :class:`.Amount`. The running total of all preceding entries in the account.
@@ -117,12 +118,7 @@ class Entry:
     @property
     def splits(self):
         """*readonly*. A list of all other splits in :attr:`transaction` except the one we wrap."""
-        return [s for s in self.split.transaction.splits if s is not self.split]
-
-    @property
-    def transaction(self):
-        """*readonly*. Proxy to :attr:`.Split.transaction`."""
-        return self.split.transaction
+        return [s for s in self.transaction.splits if s is not self.split]
 
     @property
     def transfer(self):

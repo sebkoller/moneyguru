@@ -1,5 +1,3 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-08
 # Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
@@ -55,7 +53,7 @@ class ChangeStructure(ImportActionPlugin):
                 first_split_new_amount = Amount(amount_value+1, amount_currency)
                 new_split_amount = Amount(-1.0, amount_currency)
                 txn_copy.splits[0].amount = first_split_new_amount
-                txn_copy.splits.append(Split(txn_copy, imbalance_account, new_split_amount))
+                txn_copy.splits.append(Split(imbalance_account, new_split_amount))
                 import_document.change_transaction(transaction, txn_copy)
 
 class ChangeTransfer(ImportActionPlugin):

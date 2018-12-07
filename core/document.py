@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -501,15 +501,15 @@ class Document(BaseDocument, Repeater, GUIObject):
         else:
             return False
 
-    def _reconcile_spawn_split(self, split, reconciliation_date):
+    def _reconcile_spawn_split(self, entry, reconciliation_date):
         # returns a reference to the corresponding materialized split
-        split.transaction.recurrence.delete(split.transaction)
-        materialized = split.transaction.replicate()
+        entry.transaction.recurrence.delete(entry.transaction)
+        materialized = entry.transaction.replicate()
         self.transactions.add(materialized)
-        split_index = split.transaction.splits.index(split)
+        split_index = entry.transaction.splits.index(entry.split)
         materialized_split = materialized.splits[split_index]
         materialized_split.reconciliation_date = reconciliation_date
-        return materialized_split
+        return materialized, materialized_split
 
     def _refresh_date_range(self):
         """Refreshes the date range to make sure that it's in accordance with the current date
@@ -924,11 +924,13 @@ class Document(BaseDocument, Repeater, GUIObject):
             global_scope = False # It doesn't make sense to set a reconciliation date globally
         action = self._get_action_from_changed_transactions([entry.transaction], global_scope)
         self._undoer.record(action)
-        if reconciliation_date is not NOEDIT and isinstance(entry.split.transaction, Spawn):
+        if reconciliation_date is not NOEDIT and isinstance(entry.transaction, Spawn):
             # At this point we have to hijack the entry so we modify the materialized transaction
             # It's a little hackish, but well... it takes what it takes
-            entry.split = self._reconcile_spawn_split(entry.split, reconciliation_date)
-            action.added_transactions.add(entry.split.transaction)
+            newtxn, newsplit = self._reconcile_spawn_split(entry, reconciliation_date)
+            entry.transaction = newtxn
+            entry.split = newsplit
+            action.added_transactions.add(newtxn)
         BaseDocument.change_entry(
             self, entry, date=date, reconciliation_date=reconciliation_date,
             description=description, payee=payee, checkno=checkno, transfer=transfer,
@@ -951,21 +953,21 @@ class Document(BaseDocument, Repeater, GUIObject):
         action = Action(tr('Change reconciliation'))
         action.change_splits([e.split for e in entries])
         min_date = min(entry.date for entry in entries)
-        splits = [entry.split for entry in entries]
-        spawns, splits = extract(lambda s: isinstance(s.transaction, Spawn), splits)
+        spawns, entries = extract(lambda e: isinstance(e.transaction, Spawn), entries)
         for spawn in spawns:
             action.change_schedule(spawn.transaction.recurrence)
         self._undoer.record(action)
         if newvalue:
-            for split in splits:
-                split.reconciliation_date = split.transaction.date
+            for entry in entries:
+                entry.split.reconciliation_date = entry.transaction.date
             for spawn in spawns:
                 # XXX update transaction selection
-                materialized_split = self._reconcile_spawn_split(spawn, spawn.transaction.date)
-                action.added_transactions.add(materialized_split.transaction)
+                newtxn, newsplit = self._reconcile_spawn_split(
+                    spawn, spawn.transaction.date)
+                action.added_transactions.add(newtxn)
         else:
-            for split in splits:
-                split.reconciliation_date = None
+            for entry in entries:
+                entry.split.reconciliation_date = None
         self._cook(from_date=min_date)
         self.notify('transaction_changed')
 
