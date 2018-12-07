@@ -21,12 +21,13 @@ from .controller.preferences_panel import PreferencesPanel
 from .support.about_box import AboutBox
 from .support.date_edit import DateEdit
 from .preferences import Preferences
-from .plat import HELP_PATH
 from .util import getAppData
 
 class MoneyGuru(QObject):
     VERSION = MoneyGuruModel.VERSION
     LOGO_NAME = 'logo'
+    DOC_PATH = '/usr/share/doc/moneyguru/index.html'
+    DOC_URL = 'https://www.hardcoded.net/moneyguru/help/en'
 
     def __init__(self, filepath=None):
         QObject.__init__(self)
@@ -66,11 +67,10 @@ class MoneyGuru(QObject):
         self.aboutBox.show()
 
     def showHelp(self):
-        help_path = op.abspath(op.join(HELP_PATH, 'index.html'))
-        if op.exists(help_path):
-            url = QUrl.fromLocalFile(help_path)
+        if op.exists(self.DOC_PATH):
+            url = QUrl.fromLocalFile(self.DOC_PATH)
         else:
-            url = QUrl("https://www.hardcoded.net/moneyguru/help/en")
+            url = QUrl(self.DOC_URL)
         QDesktopServices.openUrl(url)
 
     def showPreferences(self):

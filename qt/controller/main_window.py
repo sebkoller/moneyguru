@@ -4,11 +4,9 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import os.path as op
-
-from PyQt5.QtCore import Qt, QProcess, QUrl, QRect, QSize
+from PyQt5.QtCore import Qt, QRect, QSize
 from PyQt5.QtPrintSupport import QPrintDialog
-from PyQt5.QtGui import QIcon, QPixmap, QDesktopServices, QKeySequence
+from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
 from PyQt5.QtWidgets import (
     QMainWindow, QMessageBox, QTabBar, QSizePolicy, QHBoxLayout, QPushButton, QMenu, QAction,
     QMenuBar, QShortcut, QFileDialog, QApplication, QToolButton, QWidget, QVBoxLayout, QSpacerItem,
@@ -16,7 +14,6 @@ from PyQt5.QtWidgets import (
 )
 
 from hscommon.trans import trget
-from hscommon.plat import ISLINUX
 from core.const import PaneType, PaneArea
 from core.gui.main_window import MainWindow as MainWindowModel
 from core.gui.custom_date_range_panel import CustomDateRangePanel as CustomDateRangePanelModel
@@ -26,7 +23,7 @@ from ..support.date_range_selector_view import DateRangeSelectorView
 from ..support.recent import Recent
 from ..support.search_edit import SearchEdit
 from ..print_ import ViewPrinter
-from ..util import horizontalSpacer, setAccelKeys, getAppData, escapeamp
+from ..util import horizontalSpacer, setAccelKeys, escapeamp
 from .account.view import EntryView
 from .budget.view import BudgetView
 from .networth.view import NetWorthView
@@ -252,8 +249,6 @@ class MainWindow(QMainWindow):
         self.actionRedo.setShortcut("Ctrl+Y")
         self.actionShowHelp = QAction(tr("moneyGuru Help"), self)
         self.actionShowHelp.setShortcut("F1")
-        self.actionCheckForUpdate = QAction(tr("Check for update"), self)
-        self.actionOpenDebugLog = QAction(tr("Open Debug Log"), self)
         self.actionDuplicateTransaction = QAction(tr("Duplicate Transaction"), self)
         self.actionDuplicateTransaction.setShortcut("Ctrl+D")
         self.actionJumpToAccount = QAction(tr("Jump to Account..."), self)
@@ -308,8 +303,6 @@ class MainWindow(QMainWindow):
         self.menuEdit.addAction(self.actionUndo)
         self.menuEdit.addAction(self.actionRedo)
         self.menuHelp.addAction(self.actionShowHelp)
-        self.menuHelp.addAction(self.actionCheckForUpdate)
-        self.menuHelp.addAction(self.actionOpenDebugLog)
         self.menuHelp.addAction(self.actionAbout)
         mainmenus = [self.menuFile, self.menuEdit, self.menuView, self.menuHelp]
         for menu in mainmenus:
@@ -324,10 +317,6 @@ class MainWindow(QMainWindow):
         self._shortcutNextTab = QShortcut(seq, self)
         seq = QKeySequence(Qt.CTRL + Qt.SHIFT + Qt.Key_Left)
         self._shortcutPrevTab = QShortcut(seq, self)
-
-        # Linux setup
-        if ISLINUX:
-            self.actionCheckForUpdate.setVisible(False) # This only works on Windows
 
     def _bindSignals(self):
         self.newItemButton.clicked.connect(self.actionNewItem.trigger)
@@ -389,9 +378,7 @@ class MainWindow(QMainWindow):
         self.actionToggleAccountExclusion.triggered.connect(self.toggleAccountExclusionTriggered)
         self.actionPrint.triggered.connect(self._print)
         self.actionShowHelp.triggered.connect(self.app.showHelp)
-        self.actionCheckForUpdate.triggered.connect(self.checkForUpdateTriggered)
         self.actionAbout.triggered.connect(self.aboutTriggered)
-        self.actionOpenDebugLog.triggered.connect(self.openDebugLogTriggered)
         self.actionQuit.triggered.connect(self.close)
 
         # Extra Shortcuts
@@ -584,16 +571,8 @@ class MainWindow(QMainWindow):
             index = action.data()
             self.model.toggle_column_menu_item(index)
 
-    def checkForUpdateTriggered(self):
-        QProcess.execute('updater.exe', ['/checknow'])
-
     def aboutTriggered(self):
         self.app.showAboutBox()
-
-    def openDebugLogTriggered(self):
-        debugLogPath = op.join(getAppData(), 'debug.log')
-        url = QUrl.fromLocalFile(debugLogPath)
-        QDesktopServices.openUrl(url)
 
     def importDocument(self):
         title = tr("Select a document to import")

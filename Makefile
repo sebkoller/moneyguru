@@ -2,13 +2,14 @@ PYTHON ?= python3
 SHEBANG ?= /usr/bin/env $(PYTHON)
 REQ_MINOR_VERSION = 4
 PREFIX ?= /usr/local
-DESTSHARE = $(DESTDIR)$(PREFIX)/share/moneyguru
+DESTLIB ?= $(PREFIX)/lib/moneyguru
+DESTSHARE ?= $(PREFIX)/share/moneyguru
+DESTDOC ?= $(PREFIX)/share/doc/moneyguru
 CCORE = core/model/_ccore.so
 
 # If you're installing into a path that is not going to be the final path prefix (such as a
 # sandbox), set DESTDIR to that path.
 
-packages = hscommon core qt
 localedirs = $(wildcard locale/*/LC_MESSAGES)
 pofiles = $(wildcard locale/*/LC_MESSAGES/*.po)
 mofiles = $(patsubst %.po,%.mo,$(pofiles))
@@ -23,7 +24,7 @@ run:
 	./run.py
 
 pyc:
-	${PYTHON} -m compileall ${packages}
+	${PYTHON} -m compileall hscommon core qt
 
 reqs:
 	@ret=`${PYTHON} -c "import sys; print(int(sys.version_info[:2] >= (3, ${REQ_MINOR_VERSION})))"`; \
@@ -47,7 +48,10 @@ qt/mg_rc.py : qt/mg.qrc
 	pyrcc5 $< > $@
 
 run.py: support/run.template.py
-	sed -e 's|@SHEBANG@|#!$(SHEBANG)|' $< > $@
+	sed -e 's|@SHEBANG@|#!$(SHEBANG)|' \
+		-e 's|@SHAREPATH@|$(DESTSHARE)|' \
+		-e 's|@DOCPATH@|$(DESTDOC)|' \
+		$< > $@
 	chmod +x $@
 
 i18n: $(mofiles)
@@ -77,35 +81,17 @@ srcpkg:
 	./support/srcpkg.sh
 
 install: all pyc
-	install -D run.py $(DESTSHARE)/run.py
-	mkdir -p ${DESTDIR}${PREFIX}/bin
-	ln -sf $(DESTSHARE)/run.py ${DESTDIR}${PREFIX}/bin/moneyguru
-	cp -rf ${packages} $(DESTSHARE)
-	mkdir -p ${DESTDIR}${PREFIX}/share/applications
-	install -D -m644 support/moneyguru.desktop \
-		${DESTDIR}${PREFIX}/share/applications/moneyguru.desktop
-	sed -i -e 's#^Icon=/usr/share/moneyguru/#Icon='${PREFIX}'/share/moneyguru/#' \
-		${DESTDIR}${PREFIX}/share/applications/moneyguru.desktop
-	install -D -m644 images/logo_big.png \
-		${DESTDIR}${PREFIX}/share/pixmaps/moneyguru.png
-	install -m644 images/logo_big.png $(DESTSHARE)/logo_big.png
-	find locale -name *.mo -exec install -D {} $(DESTSHARE)/{} \;
+	./support/install.sh "$(DESTDIR)" "$(PREFIX)" "$(DESTLIB)" "$(DESTSHARE)"
 
 installdocs: build/help
-	mkdir -p $(DESTSHARE)
-	cp -rf build/help $(DESTSHARE)
-
-uninstall :
-	rm -rf "${DESTDIR}${PREFIX}/share/moneyguru"
-	rm -f "${DESTDIR}${PREFIX}/bin/moneyguru"
-	rm -f "${DESTDIR}${PREFIX}/share/applications/moneyguru.desktop"
-	rm -f "${DESTDIR}${PREFIX}/share/pixmaps/moneyguru.png"
+	mkdir -p $(DESTDIR)$(DESTDOC)
+	cp -rf $^/* $(DESTDIR)$(DESTDOC)
 
 clean:
 	$(MAKE) -C ccore clean
-	-rm -rf build env
-	-rm -rf locale/*/LC_MESSAGES/*.mo
-	-rm -rf core/model/*.so
-	-rm -rf run.py
+	-rm -rf build
+	find locale -name *.mo -delete
+	-rm -f core/model/*.so
+	-rm -f run.py
 
 .PHONY : clean srcpkg normpo mergepot ccore i18n reqs run pyc install uninstall all
