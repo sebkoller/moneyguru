@@ -15,6 +15,9 @@ amount_init(int64_t val, Currency *currency);
 void
 amount_free(Amount *amount);
 
+void
+amount_copy(Amount *dest, Amount *src);
+
 Amount*
 amount_zero(void);
 
@@ -133,3 +136,10 @@ amount_parse_single(
 bool
 amount_parse_expr(
     int64_t *dest, const char *s, uint8_t exponent);
+
+/* Convert src's value into dest using rate at specified date.
+ *
+ * We expect dest to already have a currency set.
+ */
+bool
+amount_convert(Amount *dest, Amount *src, struct tm *date);

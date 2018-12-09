@@ -63,6 +63,13 @@ amount_free(Amount *amount)
     }
 }
 
+void
+amount_copy(Amount *dest, Amount *src)
+{
+    dest->val = src->val;
+    dest->currency = src->currency;
+}
+
 Amount*
 amount_zero(void)
 {
@@ -557,3 +564,21 @@ amount_parse_expr(
     }
 }
 
+bool
+amount_convert(Amount *dest, Amount *src, struct tm *date)
+{
+    double rate;
+
+    if (!src->val) {
+        dest->val = 0;
+        return true;
+    }
+    if (currency_getrate(date, src->currency, dest->currency, &rate) != CURRENCY_OK) {
+        return false;
+    }
+    dest->val = amount_slide(
+        src->val * rate,
+        src->currency->exponent,
+        dest->currency->exponent);
+    return true;
+}

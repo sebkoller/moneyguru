@@ -3,6 +3,8 @@
 #include <math.h>
 #include <stdbool.h>
 #include "amount.h"
+#include "split.h"
+#include "transaction.h"
 
 /* Types */
 static PyObject *UnsupportedCurrencyError = NULL;
@@ -13,8 +15,15 @@ typedef struct {
 } PyAmount;
 
 static PyObject *Amount_Type;
-
 #define Amount_Check(v) (Py_TYPE(v) == (PyTypeObject *)Amount_Type)
+
+typedef struct {
+    PyObject_HEAD
+    Split split;
+} PySplit;
+
+static PyObject *Split_Type;
+#define Split_Check(v) (Py_TYPE(v) == (PyTypeObject *)Split_Type)
 
 /* Utils */
 static bool
@@ -158,6 +167,17 @@ strisexpr(const char *s)
         s++;
     }
     return false;
+}
+
+static PyObject *
+create_split(int account_id, Amount *amount)
+{
+    PySplit *r;
+
+    r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
+    r->split.account_id = account_id;
+    amount_copy(&r->split.amount, amount);
+    return (PyObject *)r;
 }
 
 /* Currency functions */
@@ -805,7 +825,7 @@ py_amount_convert(PyObject *self, PyObject *args)
     PyObject *pydate;
     struct tm date = {0};
     Amount *amount;
-    Currency *currency;
+    Amount dest;
     double rate;
 
     if (!PyArg_ParseTuple(args, "OsO", &pyamount, &code, &pydate)) {
@@ -817,27 +837,191 @@ py_amount_convert(PyObject *self, PyObject *args)
         Py_INCREF(pyamount);
         return pyamount;
     }
-    currency = getcur(code);
-    if (currency == NULL) {
+    dest.currency = getcur(code);
+    if (dest.currency == NULL) {
         return NULL;
     }
-    if (currency == amount->currency) {
+    if (dest.currency == amount->currency) {
         Py_INCREF(pyamount);
         return pyamount;
     }
     if (!pydate2tm(pydate, &date)) {
         return NULL;
     }
-    if (currency_getrate(&date, amount->currency, currency, &rate) != CURRENCY_OK) {
+    if (!amount_convert(&dest, amount, &date)) {
         PyErr_SetString(PyExc_ValueError, "problems getting a rate");
         return NULL;
     }
-    int64_t res = amount_slide(
-        amount->val * rate,
-        amount->currency->exponent,
-        currency->exponent);
-    return create_amount(res, currency);
+    return create_amount(dest.val, dest.currency);
 }
+
+/* Split Methods */
+static int
+PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *pyamount;
+    int account_id;
+    Amount *amount;
+
+    static char *kwlist[] = {"account_id", "amount", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "iO", kwlist, &account_id, &pyamount)) {
+        return -1;
+    }
+
+    amount = get_amount(pyamount);
+    self->split.account_id = account_id;
+    amount_copy(&self->split.amount, amount);
+    return 0;
+}
+
+static PyObject *
+PySplit_copy(PyObject *self)
+{
+    return create_split(
+        ((PySplit *)self)->split.account_id,
+        &((PySplit *)self)->split.amount);
+}
+
+static PyObject *
+PySplit_deepcopy(PyObject *self, PyObject *args, PyObject *kwds)
+{
+    return PySplit_copy(self);
+}
+
+static PyObject *
+PySplit_amount(PyAmount *self)
+{
+    Split *split = &((PySplit *)self)->split;
+    return create_amount(split->amount.val, split->amount.currency);
+}
+
+/* Oven functions */
+
+/* "Cook" splits into Entry with running balances
+ *
+ * This takes a list of (txn, split) pairs to cook as well as the account to
+ * cook for. Returns a tuple (txn, split, balance)
+ */
+static PyObject*
+py_oven_cook_splits(PyObject *self, PyObject *args)
+{
+    PyObject *splitpairs, *account, *tmp, *tmp2;
+    Amount amount;
+    Amount balance;
+    Amount balance_with_budget;
+
+    if (!PyArg_ParseTuple(args, "OO", &splitpairs, &account)) {
+        return NULL;
+    }
+
+    tmp = PyObject_GetAttrString(account, "entries");
+    if (tmp == NULL) {
+        return NULL;
+    }
+    tmp2 = PyObject_CallMethod(tmp, "balance", NULL);
+    if (tmp2 == NULL) {
+        Py_DECREF(tmp);
+        return NULL;
+    }
+    amount_copy(&balance, get_amount(tmp2));
+    Py_DECREF(tmp2);
+    tmp2 = PyObject_CallMethod(tmp, "balance_with_budget", NULL);
+    Py_DECREF(tmp);
+    if (tmp2 == NULL) {
+        return NULL;
+    }
+    amount_copy(&balance_with_budget, get_amount(tmp2));
+    Py_DECREF(tmp2);
+
+    if (balance.currency == NULL) {
+        tmp = PyObject_GetAttrString(account, "currency");
+        if (tmp == NULL) {
+            return NULL;
+        }
+        balance.currency = currency_get(PyUnicode_AsUTF8(tmp));
+        Py_DECREF(tmp);
+        if (balance.currency == NULL) {
+            return NULL;
+        }
+    }
+    balance_with_budget.currency = balance.currency;
+    amount.currency = balance.currency;
+
+    PyObject *iter = PyObject_GetIter(splitpairs);
+    if (iter == NULL) {
+        return NULL;
+    }
+    PyObject *res = PyList_New(PySequence_Length(splitpairs));
+    int index = 0;
+    PyObject *item;
+    while (item = PyIter_Next(iter)) {
+        /* Even though we use "item" below, we simplify our logic my decrefing
+         * it right now. We can do this because "splitpairs" holds onto it so
+         * we know it's not going to be freed.
+         */
+        Py_DECREF(item);
+        PyObject *txn = PyTuple_GetItem(item, 0); // borrowed
+        if (txn == NULL) {
+            break;
+        }
+        PyObject *split_p = PyTuple_GetItem(item, 1); // borrowed
+        if (split_p == NULL) {
+            break;
+        }
+        tmp = PyObject_GetAttrString(txn, "TYPE");
+        if (tmp == NULL) {
+            break;
+        }
+        int txn_type = PyLong_AsLong(tmp);
+        Py_DECREF(tmp);
+        tmp = PyObject_GetAttrString(txn, "date");
+        if (tmp == NULL) {
+            break;
+        }
+        struct tm date = {0};
+        if (!pydate2tm(tmp, &date)) {
+            return NULL;
+        }
+        Py_DECREF(tmp);
+
+        tmp = PyObject_GetAttrString(split_p, "_inner");
+        if (tmp == NULL) {
+            break;
+        }
+        Split *split = &((PySplit *)tmp)->split;
+        Py_DECREF(tmp);
+        if (!amount_convert(&amount, &split->amount, &date)) {
+            break;
+        }
+        if (txn_type != TXN_TYPE_BUDGET) {
+            balance.val += amount.val;
+        }
+        balance_with_budget.val += amount.val;
+        PyObject *balance_p = create_amount(balance.val, balance.currency);
+        if (balance_p == NULL) {
+            break;
+        }
+        PyObject *balance_with_budget_p = create_amount(
+            balance_with_budget.val, balance_with_budget.currency);
+        if (balance_with_budget_p == NULL) {
+            break;
+        }
+        tmp = PyTuple_Pack(4, txn, split_p, balance_p, balance_with_budget_p);
+        Py_DECREF(balance_p);
+        Py_DECREF(balance_with_budget_p);
+        PyList_SetItem(res, index, tmp);
+        index++;
+    }
+    Py_DECREF(iter);
+    if (PyErr_Occurred()) {
+        return NULL;
+    } else {
+        return res;
+    }
+}
+
+/* Python Boilerplate */
 
 /* We need both __copy__ and __deepcopy__ methods for amounts to behave
  * correctly in undo_test. */
@@ -879,6 +1063,32 @@ PyType_Spec Amount_Type_Spec = {
     Amount_Slots,
 };
 
+static PyMethodDef PySplit_methods[] = {
+    {"__copy__", (PyCFunction)PySplit_copy, METH_NOARGS, ""},
+    {"__deepcopy__", (PyCFunction)PySplit_deepcopy, METH_VARARGS, ""},
+    {0, 0, 0, 0},
+};
+
+static PyGetSetDef PySplit_getseters[] = {
+    {"amount", (getter)PySplit_amount, NULL, "amount", NULL},
+    {0, 0, 0, 0, 0},
+};
+
+static PyType_Slot Split_Slots[] = {
+    {Py_tp_init, PySplit_init},
+    {Py_tp_methods, PySplit_methods},
+    {Py_tp_getset, PySplit_getseters},
+    {0, 0},
+};
+
+PyType_Spec Split_Type_Spec = {
+    "_ccore.Split",
+    sizeof(PySplit),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    Split_Slots,
+};
+
 static PyMethodDef module_methods[] = {
     {"amount_format", (PyCFunction)py_amount_format, METH_VARARGS | METH_KEYWORDS},
     {"amount_parse", (PyCFunction)py_amount_parse, METH_VARARGS | METH_KEYWORDS},
@@ -890,6 +1100,7 @@ static PyMethodDef module_methods[] = {
     {"currency_set_CAD_value", py_currency_set_CAD_value, METH_VARARGS},
     {"currency_daterange", py_currency_daterange, METH_VARARGS},
     {"currency_exponent", py_currency_exponent, METH_VARARGS},
+    {"oven_cook_splits", py_oven_cook_splits, METH_VARARGS},
     {NULL}  /* Sentinel */
 };
 
@@ -910,13 +1121,12 @@ PyInit__ccore(void)
 {
     PyObject *m;
 
-    Amount_Type = PyType_FromSpec(&Amount_Type_Spec);
-
     m = PyModule_Create(&CCoreDef);
     if (m == NULL) {
         return NULL;
     }
 
+    Amount_Type = PyType_FromSpec(&Amount_Type_Spec);
     PyModule_AddObject(m, "Amount", Amount_Type);
 
     UnsupportedCurrencyError = PyErr_NewExceptionWithDoc(
@@ -930,6 +1140,9 @@ PyInit__ccore(void)
     }
 
     PyModule_AddObject(m, "UnsupportedCurrencyError", UnsupportedCurrencyError);
+
+    Split_Type = PyType_FromSpec(&Split_Type_Spec);
+    PyModule_AddObject(m, "Split", Split_Type);
     return m;
 }
 

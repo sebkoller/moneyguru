@@ -13,6 +13,7 @@ from hscommon.util import allsame, first, nonone, stripfalse
 
 from ..const import NOEDIT
 from .amount import Amount, convert_amount, same_currency, of_currency
+from ._ccore import Split as _Split
 
 class Transaction:
     """A movement of money between two or more accounts at a specific date.
@@ -28,6 +29,9 @@ class Transaction:
     we initialize what would otherwise be an empty split list with two splits: One adding ``amount``
     to ``account``, and the other adding ``-amount`` to ``None`` (an unassigned split).
     """
+
+    TYPE = 1 # Used in CCore
+
     def __init__(self, date, description=None, payee=None, checkno=None, account=None, amount=None):
         #: Date at which the transation occurs.
         self.date = date
@@ -487,10 +491,10 @@ class Transaction:
 class Split:
     """Assignment of money to an :class:`.Account` within a :class:`Transaction`."""
     def __init__(self, account, amount):
+        self._inner = _Split(account.id if account else 0, amount)
         self._account = account
         #: Freeform memo about that split.
         self.memo = ''
-        self._amount = amount
         #: Date at which the user reconciled this split with an external source.
         self.reconciliation_date = None
         #: Unique reference from an external source.
@@ -519,6 +523,7 @@ class Split:
         if value is self._account:
             return
         self._account = value
+        self._inner = _Split(value.id if value else 0, self.amount)
         self.reconciliation_date = None
 
     @property
@@ -536,23 +541,23 @@ class Split:
 
         Setting this resets :attr:`reconciliation_date` to ``None``.
         """
-        return self._amount
+        return self._inner.amount
 
     @amount.setter
     def amount(self, value):
-        if not same_currency(value, self._amount):
+        if not same_currency(value, self._inner.amount):
             self.reconciliation_date = None
-        self._amount = value
+        self._inner = _Split(self._account.id if self._account else 0, value)
 
     @property
     def credit(self):
         """*readonly*. Returns :attr:`amount` (reverted so it's positive) if < 0. Otherwise, 0."""
-        return -self._amount if self._amount < 0 else 0
+        return -self._inner.amount if self._inner.amount < 0 else 0
 
     @property
     def debit(self):
         """*readonly*. Returns :attr:`amount` if > 0. Otherwise, 0."""
-        return self._amount if self._amount > 0 else 0
+        return self._inner.amount if self._inner.amount > 0 else 0
 
     @property
     def reconciled(self):

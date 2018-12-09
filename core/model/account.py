@@ -49,7 +49,11 @@ class Account:
     Initialization argument simply set initial values for their relevant attributes, :attr:`name`,
     :attr:`currency` and :attr:`type`.
     """
+    COUNTER = 1
+
     def __init__(self, name, currency, type):
+        self.id = Account.COUNTER
+        Account.COUNTER += 1
         #: Name of the account. Must be unique in the whole document.
         self.name = name
         #: Default currency of the account. Mostly determines how amounts are displayed when viewing

@@ -18,6 +18,7 @@ class BudgetSpawn(Spawn):
 
     The only difference with a normal spawn is that its ``is_budget`` attribute is true.
     """
+    TYPE = 3 # Used in CCore
     is_budget = True
 
 class Budget(Recurrence):

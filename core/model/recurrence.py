@@ -116,6 +116,9 @@ class Spawn(Transaction):
 
     Subclasses :class:`.Transaction`.
     """
+
+    TYPE = 2 # Used in CCore
+
     def __init__(self, recurrence, ref, recurrence_date, date=None):
         date = date or recurrence_date
         Transaction.__init__(self, date, ref.description, ref.payee, ref.checkno)

@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-09-14
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -13,9 +11,8 @@ from operator import attrgetter
 
 from hscommon.util import flatten
 
-from .amount import convert_amount
 from .entry import Entry
-from .budget import BudgetSpawn
+from ._ccore import oven_cook_splits
 
 class Oven:
     """Computes raw data from transactions, schedules, budgets.
@@ -76,15 +73,9 @@ class Oven:
 
     def _cook_splits(self, account, splits):
         entries = account.entries
-        balance = entries.balance()
-        balance_with_budget = entries.balance_with_budget()
         split2reconciledbal = self._cook_reconciliation_balances(splits, entries.balance_of_reconciled())
-        for txn, split in splits:
+        for txn, split, balance, balance_with_budget in oven_cook_splits(splits, account):
             amount = split.amount
-            converted_amount = convert_amount(amount, account.currency, txn.date)
-            balance_with_budget += converted_amount
-            if not isinstance(txn, BudgetSpawn):
-                balance += converted_amount
             reconciled_balance = split2reconciledbal[split]
             entries.add_entry(Entry(split, txn, amount, balance, reconciled_balance, balance_with_budget))
 

@@ -1,13 +1,4 @@
-#include <time.h>
-
-typedef struct {
-    Account *account;
-    Amount *amount;
-} Split;
-
-typedef struct {
-    struct tm date;
-    Split *splits;
-}
-
-
+#pragma once
+#define TXN_TYPE_NORMAL 1
+#define TXN_TYPE_RECURRENCE 2
+#define TXN_TYPE_BUDGET 3
