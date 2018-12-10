@@ -12,8 +12,8 @@ import datetime
 from hscommon.util import allsame, first, nonone, stripfalse
 
 from ..const import NOEDIT
-from .amount import Amount, convert_amount, same_currency, of_currency
-from ._ccore import Split as _Split
+from .amount import Amount, convert_amount, of_currency
+from ._ccore import Split
 
 class Transaction:
     """A movement of money between two or more accounts at a specific date.
@@ -71,7 +71,6 @@ class Transaction:
         result.mtime = txn.mtime
         for split in txn.splits:
             newsplit = copy(split)
-            newsplit.transaction = result
             result.splits.append(newsplit)
         return result
 
@@ -397,16 +396,13 @@ class Transaction:
             if len(splits) < len(self.splits):
                 del self.splits[len(splits):]
             for split, newsplit in zip(self.splits, splits):
-                split.__dict__.update(newsplit.__dict__)
-                split.transaction = self
+                split.copy_from(newsplit)
             for split in splits[len(self.splits):]:
-                split.transaction = self
                 self.splits.append(split)
         else:
             self.splits = []
             for split in splits:
                 newsplit = copy(split)
-                newsplit.transaction = self
                 self.splits.append(newsplit)
 
     def splitted_splits(self):
@@ -486,81 +482,3 @@ class Transaction:
     def is_null(self):
         """*readonly*. ``bool``. Whether our splits all have null amounts."""
         return all(not s.amount for s in self.splits)
-
-
-class Split:
-    """Assignment of money to an :class:`.Account` within a :class:`Transaction`."""
-    def __init__(self, account, amount):
-        self._inner = _Split(account.id if account else 0, amount)
-        self._account = account
-        #: Freeform memo about that split.
-        self.memo = ''
-        #: Date at which the user reconciled this split with an external source.
-        self.reconciliation_date = None
-        #: Unique reference from an external source.
-        self.reference = None
-
-    def __repr__(self):
-        return '<Split %r %s>' % (self.account_name, self.amount)
-
-    # --- Public
-    def is_on_same_side(self, other_split):
-        return (self.amount >= 0) == (other_split.amount >= 0)
-
-    # --- Properties
-    @property
-    def account(self):
-        """*get/set*. :class:`.Account` our split is assigned to.
-
-        Can be ``None``. We are then considered an "unassigned split".
-
-        Setting this resets :attr:`reconciliation_date` to ``None``.
-        """
-        return self._account
-
-    @account.setter
-    def account(self, value):
-        if value is self._account:
-            return
-        self._account = value
-        self._inner = _Split(value.id if value else 0, self.amount)
-        self.reconciliation_date = None
-
-    @property
-    def account_name(self):
-        """*readonly*. Name for :attr:`account` or an empty string if ``None``."""
-        return self.account.name if self.account is not None else ''
-
-    @property
-    def amount(self):
-        """*get/set*. :class:`.Amount` by which we affect our :attr:`account`.
-
-        * A value higher than ``0`` makes this a "debit split".
-        * A value lower than ``0`` makes this a "credit split".
-        * A value of ``0`` makes this a "null split".
-
-        Setting this resets :attr:`reconciliation_date` to ``None``.
-        """
-        return self._inner.amount
-
-    @amount.setter
-    def amount(self, value):
-        if not same_currency(value, self._inner.amount):
-            self.reconciliation_date = None
-        self._inner = _Split(self._account.id if self._account else 0, value)
-
-    @property
-    def credit(self):
-        """*readonly*. Returns :attr:`amount` (reverted so it's positive) if < 0. Otherwise, 0."""
-        return -self._inner.amount if self._inner.amount < 0 else 0
-
-    @property
-    def debit(self):
-        """*readonly*. Returns :attr:`amount` if > 0. Otherwise, 0."""
-        return self._inner.amount if self._inner.amount > 0 else 0
-
-    @property
-    def reconciled(self):
-        """*readonly*. ``bool``. Whether :attr:`reconciliation_date` is set to something."""
-        return self.reconciliation_date is not None
-

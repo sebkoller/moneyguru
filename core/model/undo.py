@@ -164,8 +164,6 @@ class Undoer:
         for txn, old in action.changed_transactions:
             self._remove_auto_created_account(txn)
             swapvalues(txn, old, TRANSACTION_SWAP_ATTRS)
-            for split in txn.splits:
-                split.transaction = txn
             self._add_auto_created_accounts(txn)
         for split, old in action.changed_splits:
             swapvalues(split, old, SPLIT_SWAP_ATTRS)
