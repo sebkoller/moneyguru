@@ -33,6 +33,40 @@ typedef struct {
 static PyObject *Split_Type;
 #define Split_Check(v) (Py_TYPE(v) == (PyTypeObject *)Split_Type)
 
+/* Wrapper around a Split to show in an Account ledger.
+ *
+ * The two main roles of the entre as a wrapper is to handle user edits and
+ * show running totals for the account.
+ *
+ * All initialization arguments are directly assigned to their relevant
+ * attributes in the entry. Most entries are created by the Oven, which does
+ * the necessary calculations to compute running total information that the
+ * entry needs on init.
+ */
+typedef struct {
+    PyObject_HEAD
+    // The split that we wrap
+    PySplit *split;
+    // The txn it's associated to
+    PyObject *transaction;
+    // Amount that we move. Entry has its own `amount` because we might have to
+    // convert `Split.amount` in another currency (the currency of the account,
+    // in which we'll want to display that amount).
+    Amount amount;
+    // The running total of all preceding entries in the account.
+    Amount balance;
+    // The running total of all preceding *reconciled* entries in the account.
+    Amount reconciled_balance;
+    // Running balance which includes all Budget spawns.
+    Amount balance_with_budget;
+    // Index in the EntryList. Set by `EntryList.add_entry` and used as a tie
+    // breaker in case we have more than one entry from the same transaction.
+    int index;
+} PyEntry;
+
+static PyObject *Entry_Type;
+#define Entry_Check(v) (Py_TYPE(v) == (PyTypeObject *)Entry_Type)
+
 /* Utils */
 static bool
 pydate2tm(PyObject *pydate, struct tm *dest)
@@ -140,18 +174,6 @@ check_amounts(PyObject *a, PyObject *b, bool seterr)
     return true;
 }
 
-static PyObject *
-create_amount(int64_t ival, Currency *currency)
-{
-    /* Create a new amount in a way that is faster than the normal init */
-    PyAmount *r;
-
-    r = (PyAmount *)PyType_GenericAlloc((PyTypeObject *)Amount_Type, 0);
-    r->amount.val = ival;
-    r->amount.currency = currency;
-    return (PyObject *)r;
-}
-
 static bool
 strisblank(const char *s)
 {
@@ -175,6 +197,17 @@ strisexpr(const char *s)
         s++;
     }
     return false;
+}
+
+static bool
+same_currency(Amount *a, Amount *b)
+{
+    // Weird rules, but well...
+    if (a->currency == NULL || b->currency == NULL) {
+        return true;
+    } else {
+        return a->currency == b->currency;
+    }
 }
 
 /* Currency functions */
@@ -338,6 +371,18 @@ py_currency_exponent(PyObject *self, PyObject *args)
 }
 
 /* Amount Methods */
+
+static PyObject *
+create_amount(int64_t ival, Currency *currency)
+{
+    /* Create a new amount in a way that is faster than the normal init */
+    PyAmount *r;
+
+    r = (PyAmount *)PyType_GenericAlloc((PyTypeObject *)Amount_Type, 0);
+    r->amount.val = ival;
+    r->amount.currency = currency;
+    return (PyObject *)r;
+}
 
 static PyObject *
 PyAmount_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
@@ -1107,6 +1152,405 @@ PySplit_deepcopy(PySplit *self, PyObject *args, PyObject *kwds)
     return PySplit_copy(self);
 }
 
+/* Entry Methods */
+static int
+PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *amount_p, *balance, *reconciled_balance, *balance_with_budget;
+    Amount *amount;
+
+    static char *kwlist[] = {"split", "transaction", "amount", "balance",
+        "reconciled_balance", "balance_with_budget", NULL};
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args, kwds, "OOOOOO", kwlist, &self->split, &self->transaction,
+        &amount_p, &balance, &reconciled_balance, &balance_with_budget);
+    if (!res) {
+        return -1;
+    }
+
+    Py_INCREF(self->split);
+    Py_INCREF(self->transaction);
+    amount = get_amount(amount_p);
+    amount_copy(&self->amount, amount);
+    amount = get_amount(balance);
+    amount_copy(&self->balance, amount);
+    amount = get_amount(reconciled_balance);
+    amount_copy(&self->reconciled_balance, amount);
+    amount = get_amount(balance_with_budget);
+    amount_copy(&self->balance_with_budget, amount);
+    self->index = -1;
+    return 0;
+}
+
+static PyObject *
+PyEntry_richcompare(PyEntry *a, PyObject *b, int op)
+{
+    if (op != Py_EQ) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+    if (!Entry_Check(b)) {
+        Py_RETURN_FALSE;
+    }
+    if (a->split == ((PyEntry *)b)->split) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static Py_hash_t
+PyEntry_hash(PyEntry *self)
+{
+    return PyObject_Hash((PyObject *)self->split);
+}
+
+static PyObject *
+PyEntry_repr(PyEntry *self)
+{
+    PyObject *r, *fmt, *args;
+
+    PyObject *tdate = PyObject_GetAttrString(self->transaction, "date");
+    if (tdate == NULL) {
+        return NULL;
+    }
+    PyObject *tdesc = PyObject_GetAttrString(self->transaction, "description");
+    if (tdesc == NULL) {
+        Py_DECREF(tdate);
+        return NULL;
+    }
+    args = Py_BuildValue("(OO)", tdate, tdesc);
+    Py_DECREF(tdate);
+    Py_DECREF(tdesc);
+    fmt = PyUnicode_FromString("Entry(%s %s))");
+    r = PyUnicode_Format(fmt, args);
+    Py_DECREF(fmt);
+    Py_DECREF(args);
+    return r;
+}
+
+static PyObject *
+PyEntry_account(PyEntry *self)
+{
+    return PySplit_account(self->split);
+}
+
+static PyObject *
+PyEntry_amount(PyEntry *self)
+{
+    return create_amount(self->amount.val, self->amount.currency);
+}
+
+static PyObject *
+PyEntry_balance(PyEntry *self)
+{
+    return create_amount(self->balance.val, self->balance.currency);
+}
+
+static PyObject *
+PyEntry_balance_with_budget(PyEntry *self)
+{
+    return create_amount(self->balance_with_budget.val, self->balance_with_budget.currency);
+}
+
+static PyObject *
+PyEntry_checkno(PyEntry *self)
+{
+    return PyObject_GetAttrString(self->transaction, "checkno");
+}
+
+static PyObject *
+PyEntry_date(PyEntry *self)
+{
+    return PyObject_GetAttrString(self->transaction, "date");
+}
+
+static PyObject *
+PyEntry_description(PyEntry *self)
+{
+    return PyObject_GetAttrString(self->transaction, "description");
+}
+
+static PyObject *
+PyEntry_index(PyEntry *self)
+{
+    return PyLong_FromLong(self->index);
+}
+
+static int
+PyEntry_index_set(PyEntry *self, PyObject *value)
+{
+    self->index = PyLong_AsLong(value);
+    if (PyErr_Occurred()) {
+        return -1;
+    } else {
+        return 0;
+    }
+}
+
+static PyObject *
+PyEntry_payee(PyEntry *self)
+{
+    return PyObject_GetAttrString(self->transaction, "payee");
+}
+
+static PyObject *
+PyEntry_mtime(PyEntry *self)
+{
+    return PyObject_GetAttrString(self->transaction, "mtime");
+}
+
+static PyObject *
+PyEntry_reconciled(PyEntry *self)
+{
+    return PySplit_reconciled(self->split);
+}
+
+static PyObject *
+PyEntry_reconciled_balance(PyEntry *self)
+{
+    return create_amount(self->reconciled_balance.val, self->reconciled_balance.currency);
+}
+
+static PyObject *
+PyEntry_reconciliation_date(PyEntry *self)
+{
+    return PySplit_reconciliation_date(self->split);
+}
+
+static PyObject *
+PyEntry_reconciliation_key(PyEntry *self)
+{
+    PyObject *recdate = PySplit_reconciliation_date(self->split);
+    if (recdate == Py_None) {
+        Py_DECREF(recdate);
+        PyObject *mod = PyImport_ImportModule("datetime");
+        if (mod == NULL) {
+            return NULL;
+        }
+        PyObject *tmp = PyObject_GetAttrString(mod, "date");
+        Py_DECREF(mod);
+        if (tmp == NULL) {
+            return NULL;
+        }
+        recdate = PyObject_GetAttrString(tmp, "min");
+        Py_DECREF(tmp);
+        if (recdate == NULL) {
+            return NULL;
+        }
+    }
+    PyObject *position = PyObject_GetAttrString(self->transaction, "position");
+    if (position == NULL) {
+        Py_DECREF(recdate);
+        return NULL;
+    }
+    PyObject *date = PyEntry_date(self);
+    PyObject *index = PyLong_FromLong(self->index);
+    PyObject *tuple = PyTuple_Pack(4, recdate, date, position, index);
+    Py_DECREF(recdate);
+    Py_DECREF(date);
+    Py_DECREF(position);
+    Py_DECREF(index);
+    return tuple;
+}
+
+static PyObject *
+PyEntry_reference(PyEntry *self)
+{
+    return PySplit_reference(self->split);
+}
+
+static PyObject *
+PyEntry_split(PyEntry *self)
+{
+    Py_INCREF(self->split);
+    return (PyObject *)self->split;
+}
+
+static int
+PyEntry_split_set(PyEntry *self, PyObject *value)
+{
+    if (!Split_Check(value)) {
+        PyErr_SetString(PyExc_ValueError, "not a split");
+        return -1;
+    }
+    Py_DECREF(self->split);
+    self->split = (PySplit *)value;
+    Py_INCREF(self->split);
+    return 0;
+}
+
+static PyObject *
+PyEntry_splits(PyEntry *self)
+{
+    PyObject *tsplits = PyObject_GetAttrString(self->transaction, "splits");
+    if (tsplits == NULL) {
+        return NULL;
+    }
+    Py_ssize_t len = PyList_Size(tsplits);
+    // we assume that self->split is in tsplits, and there only once.
+    PyObject *r = PyList_New(len - 1);
+    int j = 0;
+    for (int i=0; i<len; i++) {
+        PyObject *tmp = PyList_GetItem(tsplits, i);
+        if (tmp == (PyObject *)self->split) {
+            continue;
+        }
+        Py_INCREF(tmp);
+        PyList_SetItem(r, j, tmp);
+        j++;
+    }
+    return r;
+}
+
+static PyObject *
+PyEntry_transaction(PyEntry *self)
+{
+    Py_INCREF(self->transaction);
+    return self->transaction;
+}
+
+static int
+PyEntry_transaction_set(PyEntry *self, PyObject *value)
+{
+    Py_DECREF(self->transaction);
+    self->transaction = value;
+    Py_INCREF(self->transaction);
+    return 0;
+}
+
+static PyObject *
+PyEntry_transfer(PyEntry *self)
+{
+    PyObject *splits = PyEntry_splits(self);
+    if (splits == NULL) {
+        return NULL;
+    }
+    Py_ssize_t len = PyList_Size(splits);
+    PyObject *r = PyList_New(0);
+    for (int i=0; i<len; i++) {
+        PySplit *split = (PySplit *)PyList_GetItem(splits, i); // borrowed
+        if (split->account != Py_None) {
+            PyList_Append(r, split->account);
+        }
+    }
+    return r;
+}
+
+/* Change the amount of `split`, from the perspective of the account ledger.
+ *
+ * This can only be done if the Transaction to which we belong is a two-way
+ * transaction. This will trigger a two-way balancing with
+ * `Transaction.balance`.
+ */
+static PyObject*
+PyEntry_change_amount(PyEntry *self, PyObject *args)
+{
+    PyObject *amount_p;
+
+    if (!PyArg_ParseTuple(args, "O", &amount_p)) {
+        return NULL;
+    }
+
+    PyObject *splits = PyEntry_splits(self);
+    if (PyList_Size(splits) != 1) {
+        PyErr_SetString(PyExc_ValueError, "not a two-way txn");
+        return NULL;
+    }
+    PySplit *other = (PySplit *)PyList_GetItem(splits, 0); // borrowed
+    Py_DECREF(splits);
+    PySplit_amount_set(self->split, amount_p);
+    Amount *amount = get_amount(amount_p);
+    Amount *other_amount = &other->split.amount;
+    bool is_mct = false;
+    if (!same_currency(amount, other_amount)) {
+        bool is_asset = false;
+        bool other_is_asset = false;
+        PyObject *account = PySplit_account(self->split);
+        if (account != Py_None) {
+            PyObject *tmp = PyObject_CallMethod(
+                account, "is_balance_sheet_account", NULL);
+            Py_DECREF(account);
+            if (tmp == NULL) {
+                return NULL;
+            }
+            is_asset = PyObject_IsTrue(tmp);
+            Py_DECREF(tmp);
+        }
+        account = PySplit_account(other);
+        if (account != Py_None) {
+            PyObject *tmp = PyObject_CallMethod(
+                account, "is_balance_sheet_account", NULL);
+            Py_DECREF(account);
+            if (tmp == NULL) {
+                return NULL;
+            }
+            other_is_asset = PyObject_IsTrue(tmp);
+            Py_DECREF(tmp);
+        }
+        if (is_asset && other_is_asset) {
+            is_mct = true;
+        }
+    }
+
+    if (is_mct) {
+        // don't touch other side unless we have a logical imbalance
+        if ((self->split->split.amount.val > 0) == (other_amount->val > 0)) {
+            PyObject *tmp = create_amount(
+                other_amount->val * -1, other_amount->currency);
+            PySplit_amount_set(other, tmp);
+            Py_DECREF(tmp);
+        }
+    } else {
+        PyObject *tmp = create_amount(-amount->val, amount->currency);
+        PySplit_amount_set(other, tmp);
+        Py_DECREF(tmp);
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyEntry_normal_balance(PyEntry *self, PyObject *args)
+{
+    Amount amount;
+    amount_copy(&amount, &self->balance);
+    PyObject *account = PySplit_account(self->split);
+    if (account != Py_None) {
+        PyObject *tmp = PyObject_CallMethod(account, "is_credit_account", NULL);
+        Py_DECREF(account);
+        if (tmp == NULL) {
+            return NULL;
+        }
+        if (PyObject_IsTrue(tmp)) {
+            amount.val *= -1;
+        }
+        Py_DECREF(tmp);
+    }
+    return create_amount(amount.val, amount.currency);
+}
+
+static PyObject *
+PyEntry_copy(PyEntry *self)
+{
+    PyEntry *r = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
+    r->split = self->split;
+    Py_INCREF(r->split);
+    r->transaction = self->transaction;
+    Py_INCREF(r->transaction);
+    amount_copy(&r->amount, &self->amount);
+    amount_copy(&r->balance, &self->balance);
+    amount_copy(&r->reconciled_balance, &self->reconciled_balance);
+    amount_copy(&r->balance_with_budget, &self->balance_with_budget);
+    r->index = self->index;
+    return (PyObject *)r;
+}
+
+static PyObject *
+PyEntry_deepcopy(PyEntry *self, PyObject *args, PyObject *kwds)
+{
+    return PyEntry_copy(self);
+}
+
 /* Oven functions */
 
 /* "Cook" splits into Entry with running balances
@@ -1325,6 +1769,55 @@ PyType_Spec Split_Type_Spec = {
     Split_Slots,
 };
 
+static PyMethodDef PyEntry_methods[] = {
+    {"__copy__", (PyCFunction)PyEntry_copy, METH_NOARGS, ""},
+    {"__deepcopy__", (PyCFunction)PyEntry_deepcopy, METH_VARARGS, ""},
+    {"change_amount", (PyCFunction)PyEntry_change_amount, METH_VARARGS, ""},
+    {"normal_balance", (PyCFunction)PyEntry_normal_balance, METH_NOARGS, ""},
+    {0, 0, 0, 0},
+};
+
+static PyGetSetDef PyEntry_getseters[] = {
+    {"account", (getter)PyEntry_account, NULL, NULL, NULL},
+    {"amount", (getter)PyEntry_amount, NULL, NULL, NULL},
+    {"balance", (getter)PyEntry_balance, NULL, NULL, NULL},
+    {"balance_with_budget", (getter)PyEntry_balance_with_budget, NULL, NULL, NULL},
+    {"checkno", (getter)PyEntry_checkno, NULL, NULL, NULL},
+    {"date", (getter)PyEntry_date, NULL, NULL, NULL},
+    {"description", (getter)PyEntry_description, NULL, NULL, NULL},
+    {"index", (getter)PyEntry_index, (setter)PyEntry_index_set, NULL, NULL},
+    {"mtime", (getter)PyEntry_mtime, NULL, NULL, NULL},
+    {"payee", (getter)PyEntry_payee, NULL, NULL, NULL},
+    {"reconciled", (getter)PyEntry_reconciled, NULL, NULL, NULL},
+    {"reconciled_balance", (getter)PyEntry_reconciled_balance, NULL, NULL, NULL},
+    {"reconciliation_date", (getter)PyEntry_reconciliation_date, NULL, NULL, NULL},
+    {"reconciliation_key", (getter)PyEntry_reconciliation_key, NULL, NULL, NULL},
+    {"reference", (getter)PyEntry_reference, NULL, NULL, NULL},
+    {"split", (getter)PyEntry_split, (setter)PyEntry_split_set, NULL, NULL},
+    {"splits", (getter)PyEntry_splits, NULL, NULL, NULL},
+    {"transaction", (getter)PyEntry_transaction, (setter)PyEntry_transaction_set, NULL, NULL},
+    {"transfer", (getter)PyEntry_transfer, NULL, NULL, NULL},
+    {0, 0, 0, 0, 0},
+};
+
+static PyType_Slot Entry_Slots[] = {
+    {Py_tp_init, PyEntry_init},
+    {Py_tp_methods, PyEntry_methods},
+    {Py_tp_getset, PyEntry_getseters},
+    {Py_tp_repr, PyEntry_repr},
+    {Py_tp_richcompare, PyEntry_richcompare},
+    {Py_tp_hash, PyEntry_hash},
+    {0, 0},
+};
+
+PyType_Spec Entry_Type_Spec = {
+    "_ccore.Entry",
+    sizeof(PyEntry),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    Entry_Slots,
+};
+
 static PyMethodDef module_methods[] = {
     {"amount_format", (PyCFunction)py_amount_format, METH_VARARGS | METH_KEYWORDS},
     {"amount_parse", (PyCFunction)py_amount_parse, METH_VARARGS | METH_KEYWORDS},
@@ -1379,6 +1872,9 @@ PyInit__ccore(void)
 
     Split_Type = PyType_FromSpec(&Split_Type_Spec);
     PyModule_AddObject(m, "Split", Split_Type);
+
+    Entry_Type = PyType_FromSpec(&Entry_Type_Spec);
+    PyModule_AddObject(m, "Entry", Entry_Type);
     return m;
 }
 

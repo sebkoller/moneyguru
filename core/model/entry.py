@@ -1,153 +1,16 @@
-# Created By: Virgil Dupras
-# Created On: 2010-07-29
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 import bisect
-import datetime
 from collections import defaultdict, Sequence
 from itertools import takewhile
 
 from hscommon.util import flatten
-from .amount import convert_amount, same_currency
-
-class Entry:
-    """Wrapper around a :class:`.Split` to show in an :class:`.Account` ledger.
-
-    The two main roles of the entre as a wrapper is to handle user edits and show running totals
-    for the account.
-
-    It has its own :attr:`amount` because we might have to convert :attr:`.Split.amount` in another
-    currency (the currency of the account, in which we'll want to display that amount).
-
-    All initialization arguments are directly assigned to their relevant attributes in the entry.
-    Most entries are created by the :class:`.Oven`, which does the necessary calculations to compute
-    running total information that the entry needs on init.
-    """
-    def __init__(self, split, transaction, amount, balance, reconciled_balance, balance_with_budget):
-        #: The :class:`.Split` our entry wraps.
-        self.split = split
-        self.transaction = transaction
-        #: :class:`.Amount`. The amount of money that the entry moves.
-        self.amount = amount
-        #: :class:`.Amount`. The running total of all preceding entries in the account.
-        self.balance = balance
-        #: :class:`.Amount`. The running total of all preceding *reconciled* entries in the account.
-        self.reconciled_balance = reconciled_balance
-        #: :class:`.Amount`. Running balance which includes all :class:`.Budget` spawns.
-        self.balance_with_budget = balance_with_budget
-        #: ``int``. Index in the EntryList. Set by :meth:`EntryList.add_entry` and used as a tie
-        #: breaker in case we have more than one entry from the same transaction.
-        self.index = -1
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.split == other.split
-
-    def __hash__(self):
-        return hash(self.split)
-
-    def __repr__(self):
-        return '<Entry %r %r>' % (self.date, self.description)
-
-    def change_amount(self, amount):
-        """Change the amount of :attr:`split`, from the perspective of the account ledger.
-
-        This can only be done if the :class:`.Transaction` to which we belong is a two-way
-        transaction. This will trigger a two-way :meth:`balancing <.Transaction.balance>`.
-
-        :param amount: :class:`.Amount` to change our entry to.
-        """
-        assert len(self.splits) == 1
-        self.split.amount = amount
-        other_split = self.splits[0]
-        is_mct = False
-        if not same_currency(amount, other_split.amount):
-            is_asset = self.account is not None and self.account.is_balance_sheet_account()
-            other_is_asset = other_split.account is not None and other_split.account.is_balance_sheet_account()
-            if is_asset and other_is_asset:
-                is_mct = True
-        if is_mct: # don't touch other side unless we have a logical imbalance
-            if self.split.is_on_same_side(other_split):
-                other_split.amount *= -1
-        else:
-            other_split.amount = -amount
-
-    def normal_balance(self):
-        """:attr:`balance`, with inverted sign if account is liability or income.
-
-        .. seealso:: :meth:`.Account.normalize_amount`
-        """
-        is_credit = self.account is not None and self.account.is_credit_account()
-        return -self.balance if is_credit else self.balance
-
-    @property
-    def account(self):
-        """*readonly*. Proxy to :attr:`.Split.account`."""
-        return self.split.account
-
-    @property
-    def checkno(self):
-        """*readonly*. Proxy to :attr:`.Transaction.checkno`."""
-        return self.transaction.checkno
-
-    @property
-    def date(self):
-        """*readonly*. Proxy to :attr:`.Transaction.date`."""
-        return self.transaction.date
-
-    @property
-    def description(self):
-        """*readonly*. Proxy to :attr:`.Transaction.description`."""
-        return self.transaction.description
-
-    @property
-    def payee(self):
-        """*readonly*. Proxy to :attr:`.Transaction.payee`."""
-        return self.transaction.payee
-
-    @property
-    def mtime(self):
-        """*readonly*. Proxy to :attr:`.Transaction.mtime`."""
-        return self.transaction.mtime
-
-    @property
-    def splits(self):
-        """*readonly*. A list of all other splits in :attr:`transaction` except the one we wrap."""
-        return [s for s in self.transaction.splits if s is not self.split]
-
-    @property
-    def transfer(self):
-        """*readonly*. A list of the :class:`accounts <.Account>` in :attr:`splits`."""
-        return [split.account for split in self.splits if split.account is not None]
-
-    @property
-    def reconciled(self):
-        """*readonly*. Proxy to :attr:`.Split.reconciled`."""
-        return self.split.reconciled
-
-    @property
-    def reconciliation_date(self):
-        """*readonly*. Proxy to :attr:`.Split.reconciliation_date`."""
-        return self.split.reconciliation_date
-
-    @property
-    def reconciliation_key(self):
-        """*readonly*. Sort key to use to know which entry was the last to be reconciled."""
-        recdate = self.reconciliation_date
-        if recdate is None:
-            recdate = datetime.date.min
-        return (recdate, self.date, self.transaction.position, self.index)
-
-    @property
-    def reference(self):
-        """*readonly*. Proxy to :attr:`.Split.reference`."""
-        return self.split.reference
-
+from .amount import convert_amount
+from ._ccore import Entry # noqa
 
 class EntryList(Sequence):
     """Manages the :class:`Entry` list for an :class:`.Account`.
