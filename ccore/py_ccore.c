@@ -1220,17 +1220,6 @@ PyEntry_index(PyEntry *self)
     return PyLong_FromLong(self->index);
 }
 
-static int
-PyEntry_index_set(PyEntry *self, PyObject *value)
-{
-    self->index = PyLong_AsLong(value);
-    if (PyErr_Occurred()) {
-        return -1;
-    } else {
-        return 0;
-    }
-}
-
 static PyObject *
 PyEntry_payee(PyEntry *self)
 {
@@ -1612,26 +1601,25 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
     PyObject *entries = PyList_New(len);
     for (int i=0; i<len; i++) {
         PyObject *item = PySequence_GetItem(splitpairs, i);
-        /* Even though we use "item" below, we simplify our logic my decrefing
-         * it right now. We can do this because "splitpairs" holds onto it so
-         * we know it's not going to be freed.
-         */
-        Py_DECREF(item);
-        PyObject *txn = PyTuple_GetItem(item, 0); // borrowed
-        if (txn == NULL) {
-            return NULL;
-        }
-        PyObject *split_p = PyTuple_GetItem(item, 1); // borrowed
-        if (split_p == NULL) {
-            return NULL;
-        }
         PyEntry *entry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
-        entry->split = (PySplit *)split_p;
+        entry->transaction = PyTuple_GetItem(item, 0); // borrowed
+        if (entry->transaction == NULL) {
+            Py_DECREF(item);
+            Py_DECREF(entry);
+            Py_DECREF(entries);
+            return NULL;
+        }
+        entry->split = (PySplit *)PyTuple_GetItem(item, 1); // borrowed
+        if (entry->split == NULL) {
+            Py_DECREF(item);
+            Py_DECREF(entry);
+            Py_DECREF(entries);
+            return NULL;
+        }
         Py_INCREF(entry->split);
-        entry->transaction = txn;
         Py_INCREF(entry->transaction);
         entry->index = -1;
-        PyList_SetItem(entries, i, (PyObject *)entry);
+        PyList_SetItem(entries, i, (PyObject *)entry); // stolen
     }
 
     // Entry tuples for reconciliation order
@@ -1664,6 +1652,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         amount_copy(&entry->balance, &balance);
         balance_with_budget.val += amount.val;
         amount_copy(&entry->balance_with_budget, &balance_with_budget);
+        entry->index = i;
 
         PyObject *rdate = entry->split->reconciliation_date;
         PyObject *tdate = PyObject_GetAttrString(entry->transaction, "date");
@@ -1808,7 +1797,7 @@ static PyGetSetDef PyEntry_getseters[] = {
     {"checkno", (getter)PyEntry_checkno, NULL, NULL, NULL},
     {"date", (getter)PyEntry_date, NULL, NULL, NULL},
     {"description", (getter)PyEntry_description, NULL, NULL, NULL},
-    {"index", (getter)PyEntry_index, (setter)PyEntry_index_set, NULL, NULL},
+    {"index", (getter)PyEntry_index, NULL, NULL, NULL},
     {"mtime", (getter)PyEntry_mtime, NULL, NULL, NULL},
     {"payee", (getter)PyEntry_payee, NULL, NULL, NULL},
     {"reconciled", (getter)PyEntry_reconciled, NULL, NULL, NULL},

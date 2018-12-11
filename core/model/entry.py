@@ -61,7 +61,6 @@ class EntryList(Sequence):
         add_entry() calls must *always* be made in order (this is called pretty much only by the
         :class:`.Oven`).
         """
-        entry.index = len(self)
         self._entries.append(entry)
         date = entry.date
         self._date2entries[date].append(entry)
