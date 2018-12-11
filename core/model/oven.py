@@ -11,7 +11,6 @@ from operator import attrgetter
 
 from hscommon.util import flatten
 
-from .entry import Entry
 from ._ccore import oven_cook_splits
 
 class Oven:
@@ -53,31 +52,10 @@ class Oven:
             result += spawns
         return result
 
-    def _cook_reconciliation_balances(self, splits, start_balance):
-        balance = start_balance
-        result = {} # split: reconciliation balance
-
-        def recdate_key(splitpair):
-            t, s = splitpair
-            rdate = s.reconciliation_date
-            if rdate is None:
-                rdate = t.date
-            return (rdate, t.date, t.position)
-
-        by_recdate = sorted(splits, key=recdate_key)
-        for txn, split in by_recdate:
-            if split.reconciled:
-                balance += split.amount
-            result[split] = balance
-        return result
-
     def _cook_splits(self, account, splits):
         entries = account.entries
-        split2reconciledbal = self._cook_reconciliation_balances(splits, entries.balance_of_reconciled())
-        for txn, split, balance, balance_with_budget in oven_cook_splits(splits, account):
-            amount = split.amount
-            reconciled_balance = split2reconciledbal[split]
-            entries.add_entry(Entry(split, txn, amount, balance, reconciled_balance, balance_with_budget))
+        for entry in oven_cook_splits(splits, account):
+            entries.add_entry(entry)
 
     def continue_cooking(self, until_date):
         """Cooks from where we stop last time until ``until_date``.

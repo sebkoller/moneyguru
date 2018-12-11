@@ -10,7 +10,6 @@ from itertools import takewhile
 
 from hscommon.util import flatten
 from .amount import convert_amount
-from ._ccore import Entry # noqa
 
 class EntryList(Sequence):
     """Manages the :class:`Entry` list for an :class:`.Account`.

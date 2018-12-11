@@ -18,8 +18,8 @@ from pytest import mark, raises
 
 from hscommon.testutil import eq_
 
+from ...model._ccore import Entry
 from ...model.amount import Amount
-from ...model.entry import Entry
 from ...model.transaction import Transaction
 from ...plugin.fuzzy_date_bind import FuzzyDateBind
 
@@ -37,7 +37,7 @@ def create_entry(entry_date, description, amount):
     if not isinstance(description, str):
         raise TypeError("description must be of type str!")
     split = txn.splits[0]
-    return Entry(split, txn, split.amount, 0, 0, 0)
+    return Entry(split, txn)
 
 
 def test_internal_create_entry_argument_fencing():

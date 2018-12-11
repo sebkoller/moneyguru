@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-09-11
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -12,9 +10,9 @@ from operator import attrgetter
 from hscommon.util import nonone
 from hscommon.trans import tr
 
+from ..model._ccore import Entry
 from ..model.amount import convert_amount
 from ..model.date import ONE_DAY
-from ..model.entry import Entry
 from ..model.recurrence import Spawn
 from ..model.transaction import Transaction
 from .table import Row, RowWithDebitAndCreditMixIn, RowWithDateMixIn, rowattr
@@ -412,7 +410,7 @@ class EntryTableBase(TransactionTableBase):
         date = transactions[0].date if transactions else datetime.date.today()
         transaction = Transaction(date, account=account, amount=0)
         split = transaction.splits[0]
-        return Entry(split, transaction, 0, 0, 0, 0)
+        return Entry(split, transaction)
 
     # --- Public
     def get_totals(self):

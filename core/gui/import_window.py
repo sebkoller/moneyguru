@@ -4,11 +4,13 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
+import copy
+from collections import defaultdict
+
 # To avoid clashing with "first" in the "first/second" pattern being all over the place in this
 # unit, we rename our imported first() function here
 from hscommon.util import flatten, dedupe, first as getfirst
 from hscommon.trans import tr
-from collections import defaultdict
 
 from hscommon.notify import Listener
 from ..exception import OperationAborted
@@ -18,7 +20,6 @@ from .import_table import ImportTable
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 from core.document import ImportDocument
 from core.model.account import Account
-from core.model.entry import Entry
 
 
 DAY = 'day'
@@ -575,9 +576,9 @@ class ImportWindow(MainWindowGUIObject):
                     split.account = copy_account(split.account)
 
                 split = transaction.splits[split_indx]
-                new_entry = Entry(
-                    split, transaction, e.amount, e.balance,
-                    e.reconciled_balance, e.balance_with_budget)
+                new_entry = copy.copy(e)
+                new_entry.split = split
+                new_entry.transaction = transaction
                 new_matches.append((new_entry, ref))
 
 

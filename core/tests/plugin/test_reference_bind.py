@@ -9,8 +9,8 @@ from itertools import starmap
 
 from hscommon.testutil import eq_
 
+from ...model._ccore import Entry
 from ...model.amount import Amount
-from ...model.entry import Entry
 from ...model.transaction import Transaction
 from ...plugin.base_import_bind import ReferenceBind
 
@@ -18,7 +18,7 @@ def create_entry(entry_date, description, reference):
     txn = Transaction(entry_date, description=description, amount=Amount(1, 'USD'))
     split = txn.splits[0]
     split.reference = reference
-    return Entry(split, txn, split.amount, 0, 0, 0)
+    return Entry(split, txn)
 
 def test_typical_situation():
     # Verify that ReferenceBind.match_entries() return expected entried in a typical situation

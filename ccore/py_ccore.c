@@ -49,10 +49,6 @@ typedef struct {
     PySplit *split;
     // The txn it's associated to
     PyObject *transaction;
-    // Amount that we move. Entry has its own `amount` because we might have to
-    // convert `Split.amount` in another currency (the currency of the account,
-    // in which we'll want to display that amount).
-    Amount amount;
     // The running total of all preceding entries in the account.
     Amount balance;
     // The running total of all preceding *reconciled* entries in the account.
@@ -1159,74 +1155,21 @@ PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
     PyObject *amount_p, *balance, *reconciled_balance, *balance_with_budget;
     Amount *amount;
 
-    static char *kwlist[] = {"split", "transaction", "amount", "balance",
-        "reconciled_balance", "balance_with_budget", NULL};
+    static char *kwlist[] = {"split", "transaction", NULL};
 
     int res = PyArg_ParseTupleAndKeywords(
-        args, kwds, "OOOOOO", kwlist, &self->split, &self->transaction,
-        &amount_p, &balance, &reconciled_balance, &balance_with_budget);
+        args, kwds, "OO", kwlist, &self->split, &self->transaction);
     if (!res) {
         return -1;
     }
 
     Py_INCREF(self->split);
     Py_INCREF(self->transaction);
-    amount = get_amount(amount_p);
-    amount_copy(&self->amount, amount);
-    amount = get_amount(balance);
-    amount_copy(&self->balance, amount);
-    amount = get_amount(reconciled_balance);
-    amount_copy(&self->reconciled_balance, amount);
-    amount = get_amount(balance_with_budget);
-    amount_copy(&self->balance_with_budget, amount);
+    amount_copy(&self->balance, amount_zero());
+    amount_copy(&self->reconciled_balance, amount_zero());
+    amount_copy(&self->balance_with_budget, amount_zero());
     self->index = -1;
     return 0;
-}
-
-static PyObject *
-PyEntry_richcompare(PyEntry *a, PyObject *b, int op)
-{
-    if (op != Py_EQ) {
-        Py_RETURN_NOTIMPLEMENTED;
-    }
-    if (!Entry_Check(b)) {
-        Py_RETURN_FALSE;
-    }
-    if (a->split == ((PyEntry *)b)->split) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static Py_hash_t
-PyEntry_hash(PyEntry *self)
-{
-    return PyObject_Hash((PyObject *)self->split);
-}
-
-static PyObject *
-PyEntry_repr(PyEntry *self)
-{
-    PyObject *r, *fmt, *args;
-
-    PyObject *tdate = PyObject_GetAttrString(self->transaction, "date");
-    if (tdate == NULL) {
-        return NULL;
-    }
-    PyObject *tdesc = PyObject_GetAttrString(self->transaction, "description");
-    if (tdesc == NULL) {
-        Py_DECREF(tdate);
-        return NULL;
-    }
-    args = Py_BuildValue("(OO)", tdate, tdesc);
-    Py_DECREF(tdate);
-    Py_DECREF(tdesc);
-    fmt = PyUnicode_FromString("Entry(%s %s))");
-    r = PyUnicode_Format(fmt, args);
-    Py_DECREF(fmt);
-    Py_DECREF(args);
-    return r;
 }
 
 static PyObject *
@@ -1238,7 +1181,7 @@ PyEntry_account(PyEntry *self)
 static PyObject *
 PyEntry_amount(PyEntry *self)
 {
-    return create_amount(self->amount.val, self->amount.currency);
+    return PySplit_amount(self->split);
 }
 
 static PyObject *
@@ -1537,7 +1480,6 @@ PyEntry_copy(PyEntry *self)
     Py_INCREF(r->split);
     r->transaction = self->transaction;
     Py_INCREF(r->transaction);
-    amount_copy(&r->amount, &self->amount);
     amount_copy(&r->balance, &self->balance);
     amount_copy(&r->reconciled_balance, &self->reconciled_balance);
     amount_copy(&r->balance_with_budget, &self->balance_with_budget);
@@ -1551,12 +1493,66 @@ PyEntry_deepcopy(PyEntry *self, PyObject *args, PyObject *kwds)
     return PyEntry_copy(self);
 }
 
+static PyObject *
+PyEntry_richcompare(PyEntry *a, PyObject *b, int op)
+{
+    if (!Entry_Check(b)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+    if (op == Py_EQ) {
+        if (a->split == ((PyEntry *)b)->split) {
+            Py_RETURN_TRUE;
+        } else {
+            Py_RETURN_FALSE;
+        }
+    } else if (op == Py_LT) {
+        PyObject *d1 = PyEntry_date(a);
+        PyObject *d2 = PyEntry_date((PyEntry *)b);
+        PyObject *res = PyObject_RichCompare(d1, d2, op);
+        Py_DECREF(d1);
+        Py_DECREF(d2);
+        return res;
+    } else {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+}
+
+static Py_hash_t
+PyEntry_hash(PyEntry *self)
+{
+    return PyObject_Hash((PyObject *)self->split);
+}
+
+static PyObject *
+PyEntry_repr(PyEntry *self)
+{
+    PyObject *r, *fmt, *args;
+
+    PyObject *tdate = PyObject_GetAttrString(self->transaction, "date");
+    if (tdate == NULL) {
+        return NULL;
+    }
+    PyObject *tdesc = PyObject_GetAttrString(self->transaction, "description");
+    if (tdesc == NULL) {
+        Py_DECREF(tdate);
+        return NULL;
+    }
+    args = Py_BuildValue("(OO)", tdate, tdesc);
+    Py_DECREF(tdate);
+    Py_DECREF(tdesc);
+    fmt = PyUnicode_FromString("Entry(%s %s))");
+    r = PyUnicode_Format(fmt, args);
+    Py_DECREF(fmt);
+    Py_DECREF(args);
+    return r;
+}
+
 /* Oven functions */
 
 /* "Cook" splits into Entry with running balances
  *
  * This takes a list of (txn, split) pairs to cook as well as the account to
- * cook for. Returns a tuple (txn, split, balance)
+ * cook for. Returns a list of Entry.
  */
 static PyObject*
 py_oven_cook_splits(PyObject *self, PyObject *args)
@@ -1565,6 +1561,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
     Amount amount;
     Amount balance;
     Amount balance_with_budget;
+    Amount reconciled_balance;
 
     if (!PyArg_ParseTuple(args, "OO", &splitpairs, &account)) {
         return NULL;
@@ -1582,11 +1579,18 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
     amount_copy(&balance, get_amount(tmp2));
     Py_DECREF(tmp2);
     tmp2 = PyObject_CallMethod(tmp, "balance_with_budget", NULL);
+    if (tmp2 == NULL) {
+        Py_DECREF(tmp);
+        return NULL;
+    }
+    amount_copy(&balance_with_budget, get_amount(tmp2));
+    Py_DECREF(tmp2);
+    tmp2 = PyObject_CallMethod(tmp, "balance_of_reconciled", NULL);
     Py_DECREF(tmp);
     if (tmp2 == NULL) {
         return NULL;
     }
-    amount_copy(&balance_with_budget, get_amount(tmp2));
+    amount_copy(&reconciled_balance, get_amount(tmp2));
     Py_DECREF(tmp2);
 
     if (balance.currency == NULL) {
@@ -1601,16 +1605,13 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         }
     }
     balance_with_budget.currency = balance.currency;
+    reconciled_balance.currency = balance.currency;
     amount.currency = balance.currency;
 
-    PyObject *iter = PyObject_GetIter(splitpairs);
-    if (iter == NULL) {
-        return NULL;
-    }
-    PyObject *res = PyList_New(PySequence_Length(splitpairs));
-    int index = 0;
-    PyObject *item;
-    while (item = PyIter_Next(iter)) {
+    Py_ssize_t len = PySequence_Length(splitpairs);
+    PyObject *entries = PyList_New(len);
+    for (int i=0; i<len; i++) {
+        PyObject *item = PySequence_GetItem(splitpairs, i);
         /* Even though we use "item" below, we simplify our logic my decrefing
          * it right now. We can do this because "splitpairs" holds onto it so
          * we know it's not going to be freed.
@@ -1618,21 +1619,34 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         Py_DECREF(item);
         PyObject *txn = PyTuple_GetItem(item, 0); // borrowed
         if (txn == NULL) {
-            break;
+            return NULL;
         }
         PyObject *split_p = PyTuple_GetItem(item, 1); // borrowed
         if (split_p == NULL) {
-            break;
+            return NULL;
         }
-        tmp = PyObject_GetAttrString(txn, "TYPE");
+        PyEntry *entry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
+        entry->split = (PySplit *)split_p;
+        Py_INCREF(entry->split);
+        entry->transaction = txn;
+        Py_INCREF(entry->transaction);
+        entry->index = -1;
+        PyList_SetItem(entries, i, (PyObject *)entry);
+    }
+
+    // Entry tuples for reconciliation order
+    PyObject *rentries = PyList_New(len);
+    for (int i=0; i<len; i++) {
+        PyEntry *entry = (PyEntry *)PyList_GetItem(entries, i); // borrowed
+        tmp = PyObject_GetAttrString(entry->transaction, "TYPE");
         if (tmp == NULL) {
-            break;
+            return NULL;
         }
         int txn_type = PyLong_AsLong(tmp);
         Py_DECREF(tmp);
-        tmp = PyObject_GetAttrString(txn, "date");
+        tmp = PyEntry_date(entry);
         if (tmp == NULL) {
-            break;
+            return NULL;
         }
         struct tm date = {0};
         if (!pydate2tm(tmp, &date)) {
@@ -1640,35 +1654,44 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         }
         Py_DECREF(tmp);
 
-        Split *split = &((PySplit *)split_p)->split;
+        Split *split = &entry->split->split;
         if (!amount_convert(&amount, &split->amount, &date)) {
-            break;
+            return NULL;
         }
         if (txn_type != TXN_TYPE_BUDGET) {
             balance.val += amount.val;
         }
+        amount_copy(&entry->balance, &balance);
         balance_with_budget.val += amount.val;
-        PyObject *balance_p = create_amount(balance.val, balance.currency);
-        if (balance_p == NULL) {
-            break;
+        amount_copy(&entry->balance_with_budget, &balance_with_budget);
+
+        PyObject *rdate = entry->split->reconciliation_date;
+        PyObject *tdate = PyObject_GetAttrString(entry->transaction, "date");
+        if (rdate == Py_None) {
+            rdate = tdate;
         }
-        PyObject *balance_with_budget_p = create_amount(
-            balance_with_budget.val, balance_with_budget.currency);
-        if (balance_with_budget_p == NULL) {
-            break;
-        }
-        tmp = PyTuple_Pack(4, txn, split_p, balance_p, balance_with_budget_p);
-        Py_DECREF(balance_p);
-        Py_DECREF(balance_with_budget_p);
-        PyList_SetItem(res, index, tmp);
-        index++;
+        PyObject *tpos = PyObject_GetAttrString(entry->transaction, "position");
+        PyObject *tuple = PyTuple_Pack(4, rdate, tdate, tpos, entry);
+        Py_DECREF(tdate);
+        Py_DECREF(tpos);
+        PyList_SetItem(rentries, i, tuple); // stolen
     }
-    Py_DECREF(iter);
-    if (PyErr_Occurred()) {
+
+    if (PyList_Sort(rentries) == -1) {
+        Py_DECREF(rentries);
+        Py_DECREF(entries);
         return NULL;
-    } else {
-        return res;
     }
+    for (int i=0; i<len; i++) {
+        PyObject *tuple = PyList_GetItem(rentries, i); // borrowed
+        PyEntry *entry = (PyEntry *)PyTuple_GetItem(tuple, 3); // borrowed
+        if (entry->split->reconciliation_date != Py_None) {
+            reconciled_balance.val += entry->split->split.amount.val;
+        }
+        amount_copy(&entry->reconciled_balance, &reconciled_balance);
+    }
+    Py_DECREF(rentries);
+    return entries;
 }
 
 /* Python Boilerplate */
