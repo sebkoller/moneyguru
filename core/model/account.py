@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -75,7 +75,7 @@ class Account:
         self.notes = ''
         #: *readonly*. :class:`.EntryList` belonging to that account. This list is computed from
         #: :attr:`.Document.transactions` by the :class:`.Oven`.
-        self.entries = EntryList(self)
+        self.entries = EntryList()
 
     def __repr__(self):
         return '<Account %r>' % self.name
@@ -96,6 +96,23 @@ class Account:
         In short, returns ``-amount`` if the account in a liability or an income.
         """
         return -amount if self.is_credit_account() else amount
+
+    def normal_balance(self, date=None, currency=None):
+        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`balance`."""
+        balance = self.entries.balance(date=date, currency=currency)
+        return self.normalize_amount(balance)
+
+    def normal_balance_of_reconciled(self):
+        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`balance_of_reconciled`.
+        """
+        balance = self.entries.balance_of_reconciled()
+        return self.normalize_amount(balance)
+
+    def normal_cash_flow(self, date_range, currency=None):
+        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`cash_flow`."""
+        currency = currency or self.currency
+        cash_flow = self.entries.cash_flow(date_range, currency)
+        return self.normalize_amount(cash_flow)
 
     def is_balance_sheet_account(self):
         """Returns whether the account is an asset or liability."""

@@ -19,9 +19,7 @@ class EntryList(Sequence):
 
     :param account: :class:`.Account` for which we manage entries.
     """
-    def __init__(self, account):
-        #: :class:`.Account` for which we manage entries.
-        self.account = account
+    def __init__(self):
         self._entries = []
         self._date2entries = defaultdict(list)
         self._sorted_entry_dates = []
@@ -91,7 +89,7 @@ class EntryList(Sequence):
         """Same as :meth:`balance`, but including :class:`.Budget` spawns."""
         return self._balance('balance_with_budget', date, currency=currency)
 
-    def cash_flow(self, date_range, currency=None):
+    def cash_flow(self, date_range, currency):
         """Returns the sum of entry amounts occuring in ``date_range``.
 
         If ``currency`` is specified, the result is :func:`converted <.convert_amount>`.
@@ -99,7 +97,6 @@ class EntryList(Sequence):
         :param date_range: :class:`.DateRange`
         :param currency: :class:`.Currency`
         """
-        currency = currency or self.account.currency
         cache_key = (date_range, currency)
         if cache_key not in self._daterange2cashflow:
             cash_flow = self._cash_flow(date_range, currency)
@@ -143,20 +140,4 @@ class EntryList(Sequence):
                     date = self._sorted_entry_dates[index]
                 return self._date2entries[date][-1]
         return None
-
-    def normal_balance(self, date=None, currency=None):
-        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`balance`."""
-        balance = self.balance(date=date, currency=currency)
-        return self.account.normalize_amount(balance)
-
-    def normal_balance_of_reconciled(self):
-        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`balance_of_reconciled`.
-        """
-        balance = self.balance_of_reconciled()
-        return self.account.normalize_amount(balance)
-
-    def normal_cash_flow(self, date_range, currency=None):
-        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`cash_flow`."""
-        cash_flow = self.cash_flow(date_range, currency)
-        return self.account.normalize_amount(cash_flow)
 

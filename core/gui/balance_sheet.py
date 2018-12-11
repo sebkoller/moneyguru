@@ -1,4 +1,4 @@
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -34,10 +34,10 @@ class BalanceSheet(Report):
         start_date = date_range.start
         end_date = date_range.end
         currency = self.document.default_currency
-        start_amount = account.entries.normal_balance(start_date - timedelta(1))
-        start_amount_native = account.entries.normal_balance(start_date - timedelta(1), currency=currency)
-        end_amount = account.entries.normal_balance(end_date)
-        end_amount_native = account.entries.normal_balance(end_date, currency=currency)
+        start_amount = account.normal_balance(start_date - timedelta(1))
+        start_amount_native = account.normal_balance(start_date - timedelta(1), currency=currency)
+        end_amount = account.normal_balance(end_date)
+        end_amount_native = account.normal_balance(end_date, currency=currency)
         budget_date_range = DateRange(date.today(), end_date)
         budgeted_amount = self.document.budgeted_amount_for_target(account, budget_date_range)
         budgeted_amount_native = convert_amount(budgeted_amount, currency, date_range.end)

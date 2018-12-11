@@ -81,7 +81,7 @@ class TestOneAccount:
 
     def test_cash_flow(self):
         range = MonthRange(date(2008, 1, 1))
-        eq_(self.account.entries.cash_flow(range), Amount(252, 'USD'))
+        eq_(self.account.entries.cash_flow(range, 'USD'), Amount(252, 'USD'))
 
         # Each entry is converted using the entry's day rate.
         eq_(self.account.entries.cash_flow(range, 'CAD'), Amount(201.40, 'CAD'))
