@@ -73,11 +73,13 @@ class TestOneAccount:
         oven.cook(date.min, date.max)
 
     def test_balance(self):
-        eq_(self.account.entries.balance(date(2007, 12, 31)), Amount(20, 'USD'))
+        eq_(
+            self.account.entries.balance(date(2007, 12, 31), self.account.currency),
+            Amount(20, 'USD'))
 
         # The balance is converted using the rate on the day the balance is
         # requested.
-        eq_(self.account.entries.balance(date(2007, 12, 31), currency='CAD'), Amount(20 * 1.1, 'CAD'))
+        eq_(self.account.entries.balance(date(2007, 12, 31), 'CAD'), Amount(20 * 1.1, 'CAD'))
 
     def test_cash_flow(self):
         range = MonthRange(date(2008, 1, 1))

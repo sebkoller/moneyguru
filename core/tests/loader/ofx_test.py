@@ -31,7 +31,7 @@ def test_amounts_in_invalid_currency_account():
     loader.load()
     account = loader.accounts.find('815-30219-11111-EOP')
     eq_(len(account.entries), 3)
-    entry = account.entries[0]
+    entry = next(iter(account.entries))
     eq_(entry.amount, Amount(0.02, 'USD'))
 
 def test_blank_line_ofx_attrs():
@@ -61,15 +61,16 @@ def test_transactions_usd_account():
     loader = loader_desjardins()
     account = loader.accounts.find('815-30219-11111-EOP')
     eq_(len(account.entries), 3)
-    entry = account.entries[0]
+    entries = list(account.entries)
+    entry = entries[0]
     eq_(entry.date, date(2008, 1, 31))
     eq_(entry.description, 'Intérêt sur EOP/')
     eq_(entry.amount, Amount(0.02, 'USD'))
-    entry = account.entries[1]
+    entry = entries[1]
     eq_(entry.date, date(2008, 2, 1))
     eq_(entry.description, 'Dépôt au comptoir/')
     eq_(entry.amount, Amount(5029.50, 'USD'))
-    entry = account.entries[2]
+    entry = entries[2]
     eq_(entry.date, date(2008, 2, 1))
     eq_(entry.description, 'Retrait au comptoir/')
     eq_(entry.amount, Amount(-2665, 'USD'))
@@ -99,7 +100,7 @@ def test_entries_ing():
     loader = loader_ing()
     account = loader.accounts.find('123456')
     eq_(len(account.entries), 1)
-    entry = account.entries[0]
+    entry = next(iter(account.entries))
     eq_(entry.date, date(2005, 9, 23))
     eq_(entry.description, 'Dépôt')
     eq_(entry.amount, Amount(100, 'CAD'))

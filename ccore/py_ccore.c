@@ -63,6 +63,14 @@ typedef struct {
 static PyObject *Entry_Type;
 #define Entry_Check(v) (Py_TYPE(v) == (PyTypeObject *)Entry_Type)
 
+typedef struct {
+    PyObject_HEAD
+    PyObject *entries;
+    PyEntry *last_reconciled;
+} PyEntryList;
+
+static PyObject *EntryList_Type;
+
 /* Utils */
 static bool
 pydate2tm(PyObject *pydate, struct tm *dest)
@@ -212,7 +220,6 @@ py_currency_global_init(PyObject *self, PyObject *args)
 {
     char *dbpath;
 
-    PyDateTime_IMPORT;
     if (!PyArg_ParseTuple(args, "s", &dbpath)) {
         return NULL;
     }
@@ -239,7 +246,6 @@ py_currency_register(PyObject *self, PyObject *args)
     time_t start_date, stop_date;
     double startrate, latestrate;
 
-    PyDateTime_IMPORT;
     if (!PyArg_ParseTuple(args, "siOdOd", &code, &exponent, &py_startdate, &startrate, &py_stopdate, &latestrate)) {
         return NULL;
     }
@@ -1088,6 +1094,15 @@ PySplit_repr(PySplit *self)
     return r;
 }
 
+static void
+PySplit_dealloc(PySplit *self)
+{
+    Py_DECREF(self->account);
+    Py_DECREF(self->memo);
+    Py_DECREF(self->reconciliation_date);
+    Py_DECREF(self->reference);
+}
+
 static PyObject *
 PySplit_copy_from(PySplit *self, PyObject *args)
 {
@@ -1536,6 +1551,311 @@ PyEntry_repr(PyEntry *self)
     return r;
 }
 
+static void
+PyEntry_dealloc(PyEntry *self)
+{
+    Py_DECREF(self->split);
+    Py_DECREF(self->transaction);
+}
+
+/* EntryList */
+static int
+PyEntryList_init(PyEntryList *self, PyObject *args, PyObject *kwds)
+{
+    static char *kwlist[] = {NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist)) {
+        return -1;
+    }
+    self->entries = PyList_New(0);
+    self->last_reconciled = NULL;
+    return 0;
+}
+
+static void
+_PyEntryList_maybe_set_last_reconciled(PyEntryList *self, PyEntry *entry)
+{
+    // we don't bother increfing last_reconciled: implicit in entries'
+    // membership
+    if (entry->split->reconciliation_date != Py_None) {
+        if (self->last_reconciled == NULL) {
+            self->last_reconciled = entry;
+        } else {
+            PyObject *key1 = PyEntry_reconciliation_key(self->last_reconciled);
+            PyObject *key2 = PyEntry_reconciliation_key(entry);
+            if (PyObject_RichCompareBool(key2, key1, Py_GE) > 0) {
+                self->last_reconciled = entry;
+            }
+            Py_DECREF(key1);
+            Py_DECREF(key2);
+        }
+    }
+}
+
+static PyObject*
+PyEntryList_add_entry(PyEntryList *self, PyObject *args)
+{
+    PyEntry *entry;
+
+    if (!PyArg_ParseTuple(args, "O", &entry)) {
+        return NULL;
+    }
+    if (!Entry_Check(entry)) {
+        PyErr_SetString(PyExc_TypeError, "not an entry");
+        return NULL;
+    }
+    PyList_Append(self->entries, (PyObject *)entry);
+    _PyEntryList_maybe_set_last_reconciled(self, entry);
+    Py_RETURN_NONE;
+}
+
+static int
+_PyEntryList_find_date(PyEntryList *self, PyObject *date, bool equal)
+{
+    // equal=true: find index with closest smaller-or-equal date to "date"
+    // equal=false: find smaller only
+    // Returns the index *following* the nearest result. Returned index goes
+    // over the threshold.
+    int opid = equal ? Py_GT : Py_GE;
+    Py_ssize_t len = PyList_Size(self->entries);
+    for (int i=0; i<len; i++) {
+        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
+        PyObject *tdate = PyEntry_date(entry);
+        int cmp = PyObject_RichCompareBool(tdate, date, opid);
+        Py_DECREF(tdate);
+        if (cmp > 0) {
+            return i;
+        }
+    }
+    // Every date in list is smaller or equal
+    return len;
+}
+
+static PyObject*
+PyEntryList_last_entry(PyEntryList *self, PyObject *args)
+{
+    PyObject *date = NULL;
+
+    if (!PyArg_ParseTuple(args, "|O", &date)) {
+        return NULL;
+    }
+    Py_ssize_t len = PyList_Size(self->entries);
+    if (!len) {
+        Py_RETURN_NONE;
+    }
+    int index;
+    if (date == Py_None) {
+        index = len;
+    } else {
+        index = _PyEntryList_find_date(self, date, true);
+    }
+    // We want the entry *before* the threshold
+    index--;
+    PyObject *res;
+    if (index >= 0) {
+        res = PyList_GetItem(self->entries, index);
+        if (res == NULL) {
+            return NULL;
+        }
+    } else {
+        res = Py_None;
+    }
+    Py_INCREF(res);
+    return res;
+}
+
+static PyObject*
+PyEntryList_clear(PyEntryList *self, PyObject *args)
+{
+    PyObject *date;
+
+    if (!PyArg_ParseTuple(args, "O", &date)) {
+        return NULL;
+    }
+    Py_ssize_t len = PyList_Size(self->entries);
+    int index;
+    if (date == Py_None) {
+        index = 0;
+    } else {
+        index = _PyEntryList_find_date(self, date, false);
+        if (index >= len) {
+            // Everything is smaller, don't clear anything.
+            Py_RETURN_NONE;
+        }
+    }
+    if (PyList_SetSlice(self->entries, index, len, NULL) == -1) {
+        return NULL;
+    }
+    self->last_reconciled = NULL;
+    for (int i=0; i<index; i++) {
+        _PyEntryList_maybe_set_last_reconciled(
+            self, (PyEntry *)PyList_GetItem(self->entries, i));
+    }
+    Py_RETURN_NONE;
+}
+
+static bool
+_PyEntryList_balance(
+    PyEntryList *self, Amount *dst, PyObject *date_p, bool with_budget)
+{
+    Py_ssize_t len = PyList_Size(self->entries);
+    if (!len) {
+        dst->val = 0;
+        return true;
+    }
+    int index;
+    if (date_p == Py_None) {
+        index = len;
+    } else {
+        index = _PyEntryList_find_date(self, date_p, true);
+    }
+    // We want the entry *before* the threshold
+    index--;
+    if (index >= 0) {
+        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, index); // borrowed
+        if (entry == NULL) {
+            return false;
+        }
+        Amount *src = with_budget ? &entry->balance_with_budget : &entry->balance;
+        if (date_p != Py_None) {
+            struct tm date = {0};
+            if (!pydate2tm(date_p, &date)) {
+                return false;
+            }
+            if (amount_convert(dst, src, &date)) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            amount_copy(dst, src);
+            return true;
+        }
+    } else {
+        dst->val = 0;
+        return true;
+    }
+}
+
+static PyObject*
+PyEntryList_balance(PyEntryList *self, PyObject *args)
+{
+    PyObject *date_p;
+    char *currency;
+    int with_budget = false;
+
+    if (!PyArg_ParseTuple(args, "Os|p", &date_p, &currency, &with_budget)) {
+        return NULL;
+    }
+
+    Amount dst;
+    dst.currency = currency_get(currency);
+    if (dst.currency == NULL) {
+        PyErr_SetString(PyExc_ValueError, "invalid currency");
+        return NULL;
+    }
+    if (!_PyEntryList_balance(self, &dst, date_p, with_budget)) {
+        return NULL;
+    } else {
+        if (dst.currency != NULL) {
+            return create_amount(dst.val, dst.currency);
+        } else {
+            return PyLong_FromLong(0);
+        }
+    }
+}
+
+static bool
+_PyEntryList_balance_of_reconciled(PyEntryList *self, Amount *dst)
+{
+    if (self->last_reconciled == NULL) {
+        dst->val = 0;
+        return false;
+    } else {
+        amount_copy(dst, &self->last_reconciled->reconciled_balance);
+        return true;
+    }
+}
+
+static PyObject*
+PyEntryList_balance_of_reconciled(PyEntryList *self, PyObject *args)
+{
+    Amount amount;
+    if (_PyEntryList_balance_of_reconciled(self, &amount)) {
+        return create_amount(amount.val, amount.currency);
+    } else {
+        return PyLong_FromLong(0);
+    }
+}
+
+static PyObject*
+PyEntryList_cash_flow(PyEntryList *self, PyObject *args)
+{
+    PyObject *daterange;
+    char *currency;
+
+    if (!PyArg_ParseTuple(args, "Os", &daterange, &currency)) {
+        return NULL;
+    }
+    Amount res;
+    res.val = 0;
+    res.currency = currency_get(currency);
+    if (res.currency == NULL) {
+        PyErr_SetString(PyExc_ValueError, "invalid currency");
+        return NULL;
+    }
+    Py_ssize_t len = PyList_Size(self->entries);
+    for (int i=0; i<len; i++) {
+        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
+        PyObject *tmp = PyObject_GetAttrString(entry->transaction, "TYPE");
+        if (tmp == NULL) {
+            return NULL;
+        }
+        int txn_type = PyLong_AsLong(tmp);
+        Py_DECREF(tmp);
+        if (txn_type == TXN_TYPE_BUDGET) {
+            continue;
+        }
+        PyObject *date_p = PyEntry_date(entry);
+        if (date_p == NULL) {
+            return NULL;
+        }
+        if (PySequence_Contains(daterange, date_p)) {
+            Amount dst;
+            dst.currency = res.currency;
+            Amount *src = &entry->split->split.amount;
+            struct tm date = {0};
+            if (!pydate2tm(date_p, &date)) {
+                return NULL;
+            }
+            if (!amount_convert(&dst, src, &date)) {
+                return NULL;
+            }
+            res.val += dst.val;
+        }
+        Py_DECREF(date_p);
+    }
+    return create_amount(res.val, res.currency);
+}
+
+static PyObject*
+PyEntryList_iter(PyEntryList *self)
+{
+    return PyObject_GetIter(self->entries);
+}
+
+static Py_ssize_t
+PyEntryList_len(PyEntryList *self)
+{
+    return PyList_Size(self->entries);
+}
+
+static void
+PyEntryList_dealloc(PyEntryList *self)
+{
+    Py_DECREF(self->entries);
+}
+
 /* Oven functions */
 
 /* "Cook" splits into Entry with running balances
@@ -1546,7 +1866,7 @@ PyEntry_repr(PyEntry *self)
 static PyObject*
 py_oven_cook_splits(PyObject *self, PyObject *args)
 {
-    PyObject *splitpairs, *account, *tmp, *tmp2;
+    PyObject *splitpairs, *account, *tmp;
     Amount amount;
     Amount balance;
     Amount balance_with_budget;
@@ -1556,49 +1876,33 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    tmp = PyObject_GetAttrString(account, "entries");
+    tmp = PyObject_GetAttrString(account, "currency");
     if (tmp == NULL) {
         return NULL;
     }
-    tmp2 = PyObject_CallMethod(tmp, "balance", NULL);
-    if (tmp2 == NULL) {
-        Py_DECREF(tmp);
-        return NULL;
-    }
-    amount_copy(&balance, get_amount(tmp2));
-    Py_DECREF(tmp2);
-    tmp2 = PyObject_CallMethod(tmp, "balance_with_budget", NULL);
-    if (tmp2 == NULL) {
-        Py_DECREF(tmp);
-        return NULL;
-    }
-    amount_copy(&balance_with_budget, get_amount(tmp2));
-    Py_DECREF(tmp2);
-    tmp2 = PyObject_CallMethod(tmp, "balance_of_reconciled", NULL);
+    balance.currency = currency_get(PyUnicode_AsUTF8(tmp));
     Py_DECREF(tmp);
-    if (tmp2 == NULL) {
-        return NULL;
-    }
-    amount_copy(&reconciled_balance, get_amount(tmp2));
-    Py_DECREF(tmp2);
-
     if (balance.currency == NULL) {
-        tmp = PyObject_GetAttrString(account, "currency");
-        if (tmp == NULL) {
-            return NULL;
-        }
-        balance.currency = currency_get(PyUnicode_AsUTF8(tmp));
-        Py_DECREF(tmp);
-        if (balance.currency == NULL) {
-            return NULL;
-        }
+        return NULL;
     }
     balance_with_budget.currency = balance.currency;
     reconciled_balance.currency = balance.currency;
     amount.currency = balance.currency;
 
+    PyEntryList *entries = (PyEntryList *)PyObject_GetAttrString(account, "entries");
+    if (entries == NULL) {
+        return NULL;
+    }
+    if (!_PyEntryList_balance(entries, &balance, Py_None, false)) {
+        return NULL;
+    }
+    if (!_PyEntryList_balance(entries, &balance_with_budget, Py_None, true)) {
+        return NULL;
+    }
+    _PyEntryList_balance_of_reconciled(entries, &reconciled_balance);
+    Py_DECREF(entries);
     Py_ssize_t len = PySequence_Length(splitpairs);
-    PyObject *entries = PyList_New(len);
+    PyObject *res = PyList_New(len);
     for (int i=0; i<len; i++) {
         PyObject *item = PySequence_GetItem(splitpairs, i);
         PyEntry *entry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
@@ -1606,26 +1910,26 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         if (entry->transaction == NULL) {
             Py_DECREF(item);
             Py_DECREF(entry);
-            Py_DECREF(entries);
+            Py_DECREF(res);
             return NULL;
         }
         entry->split = (PySplit *)PyTuple_GetItem(item, 1); // borrowed
         if (entry->split == NULL) {
             Py_DECREF(item);
             Py_DECREF(entry);
-            Py_DECREF(entries);
+            Py_DECREF(res);
             return NULL;
         }
         Py_INCREF(entry->split);
         Py_INCREF(entry->transaction);
         entry->index = -1;
-        PyList_SetItem(entries, i, (PyObject *)entry); // stolen
+        PyList_SetItem(res, i, (PyObject *)entry); // stolen
     }
 
     // Entry tuples for reconciliation order
     PyObject *rentries = PyList_New(len);
     for (int i=0; i<len; i++) {
-        PyEntry *entry = (PyEntry *)PyList_GetItem(entries, i); // borrowed
+        PyEntry *entry = (PyEntry *)PyList_GetItem(res, i); // borrowed
         tmp = PyObject_GetAttrString(entry->transaction, "TYPE");
         if (tmp == NULL) {
             return NULL;
@@ -1668,7 +1972,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
 
     if (PyList_Sort(rentries) == -1) {
         Py_DECREF(rentries);
-        Py_DECREF(entries);
+        Py_DECREF(res);
         return NULL;
     }
     for (int i=0; i<len; i++) {
@@ -1680,7 +1984,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         amount_copy(&entry->reconciled_balance, &reconciled_balance);
     }
     Py_DECREF(rentries);
-    return entries;
+    return res;
 }
 
 /* Python Boilerplate */
@@ -1770,6 +2074,7 @@ static PyType_Slot Split_Slots[] = {
     {Py_tp_methods, PySplit_methods},
     {Py_tp_getset, PySplit_getseters},
     {Py_tp_repr, PySplit_repr},
+    {Py_tp_dealloc, PySplit_dealloc},
     {0, 0},
 };
 
@@ -1819,6 +2124,7 @@ static PyType_Slot Entry_Slots[] = {
     {Py_tp_repr, PyEntry_repr},
     {Py_tp_richcompare, PyEntry_richcompare},
     {Py_tp_hash, PyEntry_hash},
+    {Py_tp_dealloc, PyEntry_dealloc},
     {0, 0},
 };
 
@@ -1845,6 +2151,42 @@ static PyMethodDef module_methods[] = {
     {NULL}  /* Sentinel */
 };
 
+static PyMethodDef PyEntryList_methods[] = {
+    {"add_entry", (PyCFunction)PyEntryList_add_entry, METH_VARARGS, ""},
+    // Returns running balance at `date`.
+    // If `currency` is specified, the result is converted to it.
+    // if `with_budget` is True, budget spawns are counted.
+    {"balance", (PyCFunction)PyEntryList_balance, METH_VARARGS, ""},
+    // Returns `reconciled_balance` for our last reconciled entry.
+    {"balance_of_reconciled", (PyCFunction)PyEntryList_balance_of_reconciled, METH_NOARGS, ""},
+    // Returns the sum of entry amounts occuring in `date_range`.
+    // If `currency` is specified, the result is converted to it.
+    {"cash_flow", (PyCFunction)PyEntryList_cash_flow, METH_VARARGS, ""},
+    // Remove all entries after `from_date`.
+    {"clear", (PyCFunction)PyEntryList_clear, METH_VARARGS, ""},
+    // Return the last entry with a date that isn't after `date`.
+    // If `date` isn't specified, returns the last entry in the list.
+    {"last_entry", (PyCFunction)PyEntryList_last_entry, METH_VARARGS, ""},
+    {0, 0, 0, 0},
+};
+
+static PyType_Slot EntryList_Slots[] = {
+    {Py_tp_init, PyEntryList_init},
+    {Py_tp_methods, PyEntryList_methods},
+    {Py_sq_length, PyEntryList_len},
+    {Py_tp_iter, PyEntryList_iter},
+    {Py_tp_dealloc, PyEntryList_dealloc},
+    {0, 0},
+};
+
+PyType_Spec EntryList_Type_Spec = {
+    "_ccore.EntryList",
+    sizeof(PyEntryList),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    EntryList_Slots,
+};
+
 static struct PyModuleDef CCoreDef = {
     PyModuleDef_HEAD_INIT,
     "_ccore",
@@ -1867,6 +2209,7 @@ PyInit__ccore(void)
         return NULL;
     }
 
+    PyDateTime_IMPORT;
     Amount_Type = PyType_FromSpec(&Amount_Type_Spec);
     PyModule_AddObject(m, "Amount", Amount_Type);
 
@@ -1887,6 +2230,9 @@ PyInit__ccore(void)
 
     Entry_Type = PyType_FromSpec(&Entry_Type_Spec);
     PyModule_AddObject(m, "Entry", Entry_Type);
+
+    EntryList_Type = PyType_FromSpec(&EntryList_Type_Spec);
+    PyModule_AddObject(m, "EntryList", EntryList_Type);
     return m;
 }
 

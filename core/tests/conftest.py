@@ -86,6 +86,8 @@ def pytest_configure(config):
         ratesdb.register_rate_provider = lambda *a: None
         Currencies.set_rates_db(ratesdb)
 
+    import faulthandler
+    faulthandler.enable()
     global global_monkeypatch
     monkeypatch = config.pluginmanager.getplugin('monkeypatch')
     global_monkeypatch = monkeypatch.MonkeyPatch()

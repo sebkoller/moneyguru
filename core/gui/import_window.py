@@ -228,7 +228,7 @@ class AccountPane:
         This is called by the owning ``ImportWindow`` class.
         """
         self.account = self.import_document.accounts.find(self.name)
-        import_entries = self.account.entries[:] if not import_entries else import_entries
+        import_entries = list(self.account.entries) if not import_entries else import_entries
         existing_entries = self.existing_entries
 
         for plugin in self.binding_plugins:
@@ -290,14 +290,14 @@ class AccountPane:
 
     @property
     def import_entries(self):
-        return self.import_document.accounts.find(self.name).entries[:]
+        return list(self.import_document.accounts.find(self.name).entries)
 
     @property
     def existing_entries(self):
         if not self.selected_target:
             return []
         else:
-            return self.selected_target.entries[:]
+            return list(self.selected_target.entries)
 
 
 class ImportWindow(MainWindowGUIObject):

@@ -6,7 +6,7 @@
 
 from functools import partial
 
-from .entry import EntryList
+from ._ccore import EntryList
 from .sort import sort_string
 from ..exception import DuplicateAccountNameError
 from ..const import Const
@@ -99,7 +99,8 @@ class Account:
 
     def normal_balance(self, date=None, currency=None):
         """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`balance`."""
-        balance = self.entries.balance(date=date, currency=currency)
+        currency = currency or self.currency
+        balance = self.entries.balance(date, currency)
         return self.normalize_amount(balance)
 
     def normal_balance_of_reconciled(self):

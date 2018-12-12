@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-20
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -23,7 +21,7 @@ class ProfitGraph(BarGraph, SheetViewNotificationsMixin):
         self.document.oven.continue_cooking(date_range.end) # it's possible that the overflow is not cooked
         accounts = {a for a in self.document.accounts if a.is_income_statement_account()}
         accounts = accounts - self.document.excluded_accounts
-        cash_flow = -sum(a.entries.cash_flow(date_range, currency=self.document.default_currency) for a in accounts)
+        cash_flow = -sum(a.entries.cash_flow(date_range, self.document.default_currency) for a in accounts)
         budgeted_amount = self.document.budgeted_amount_for_target(None, date_range)
         return cash_flow + budgeted_amount
 

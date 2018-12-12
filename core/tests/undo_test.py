@@ -23,11 +23,13 @@ def copydoc(doc):
     # listeners. What we do is a shallow copy of it, *then* a deepcopy of stuff we compare
     # afterwards.
     newdoc = copy.copy(doc)
-    newdoc.accounts = copy.deepcopy(newdoc.accounts)
+    newdoc.accounts = [copy.copy(a) for a in doc.accounts]
+    for a in newdoc.accounts:
+        a.entries = list(a.entries)
     newdoc.groups = copy.deepcopy(newdoc.groups)
     newdoc.transactions = copy.deepcopy(newdoc.transactions)
     newdoc.schedules = copy.deepcopy(newdoc.schedules)
-    newdoc.budgets = copy.deepcopy(newdoc.budgets)
+    newdoc.budgets = copy.copy(newdoc.budgets)
     return newdoc
 
 @pytest.fixture

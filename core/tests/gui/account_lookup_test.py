@@ -16,7 +16,7 @@ from ..base import TestApp, with_app
 def app_accounts():
     app = TestApp()
     app.add_accounts('foo', 'bar', 'Zo-of')
-    app.add_account('bo--o-f', AccountType.Income)
+    app.add_account('bo--o-f', account_type=AccountType.Income)
     app.mainwindow.jump_to_account()
     return app
 
