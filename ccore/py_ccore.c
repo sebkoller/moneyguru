@@ -952,19 +952,16 @@ PySplit_account_set(PySplit *self, PyObject *value)
     if (value == (PyObject *)self->account) {
         return 0;
     }
-    int account_id = 0;
     if (value != Py_None) {
         if (!Account_Check(value)) {
             PyErr_SetString(PyExc_ValueError, "not an account");
             return -1;
         }
         PyAccount *account = (PyAccount *)value;
-        account_id = account->account.id;
-        if (account_id == -1) {
-            return -1;
-        }
+        self->split.account = &account->account;
+    } else {
+        self->split.account = NULL;
     }
-    self->split.account_id = account_id;
     Py_XDECREF(self->account);
     self->account = (PyAccount *)value;
     Py_INCREF(self->account);
