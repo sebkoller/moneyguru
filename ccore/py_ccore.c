@@ -24,8 +24,6 @@ typedef struct {
     PyObject *account;
     // Freeform memo about that split.
     PyObject *memo;
-    // Date at which the user reconciled this split with an external source.
-    PyObject *reconciliation_date;
     // Unique reference from an external source.
     PyObject *reference;
 } PySplit;
@@ -35,7 +33,7 @@ static PyObject *Split_Type;
 
 /* Wrapper around a Split to show in an Account ledger.
  *
- * The two main roles of the entre as a wrapper is to handle user edits and
+ * The two main roles of the entry as a wrapper is to handle user edits and
  * show running totals for the account.
  *
  * All initialization arguments are directly assigned to their relevant
@@ -75,6 +73,9 @@ static PyObject *EntryList_Type;
 static PyObject*
 time2pydate(time_t date)
 {
+    if (date == 0) {
+        Py_RETURN_NONE;
+    }
     struct tm *d = gmtime(&date);
     return PyDate_FromDate(d->tm_year + 1900, d->tm_mon + 1, d->tm_mday);
 }
@@ -860,17 +861,19 @@ py_amount_convert(PyObject *self, PyObject *args)
 static PyObject *
 PySplit_reconciliation_date(PySplit *self)
 {
-    Py_INCREF(self->reconciliation_date);
-    return self->reconciliation_date;
+    return time2pydate(self->split.reconciliation_date);
 }
 
 static int
 PySplit_reconciliation_date_set(PySplit *self, PyObject *value)
 {
-    Py_XDECREF(self->reconciliation_date);
-    self->reconciliation_date = value;
-    Py_INCREF(self->reconciliation_date);
-    return 0;
+    time_t res = pydate2time(value);
+    if (res == 1) {
+        return -1;
+    } else {
+        self->split.reconciliation_date = res;
+        return 0;
+    }
 }
 
 static PyObject *
@@ -994,7 +997,7 @@ PySplit_debit(PySplit *self)
 static PyObject *
 PySplit_reconciled(PySplit *self)
 {
-    if (self->reconciliation_date == Py_None) {
+    if (self->split.reconciliation_date == 0) {
         Py_RETURN_FALSE;
     } else {
         Py_RETURN_TRUE;
@@ -1016,17 +1019,14 @@ PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
-    self->reconciliation_date = NULL;
     self->account = NULL;
     if (PySplit_account_set(self, account) != 0) {
-        Py_DECREF(self->reconciliation_date);
         return -1;
     }
     amount = get_amount(amount_p);
     amount_copy(&self->split.amount, amount);
     self->memo = PyUnicode_InternFromString("");
-    self->reconciliation_date = Py_None;
-    Py_INCREF(self->reconciliation_date);
+    self->split.reconciliation_date = 0;
     self->reference = Py_None;
     Py_INCREF(self->reference);
     return 0;
@@ -1056,7 +1056,6 @@ PySplit_dealloc(PySplit *self)
 {
     Py_DECREF(self->account);
     Py_DECREF(self->memo);
-    Py_DECREF(self->reconciliation_date);
     Py_DECREF(self->reference);
 }
 
@@ -1076,8 +1075,7 @@ PySplit_copy_from(PySplit *self, PyObject *args)
     amount_copy(&self->split.amount, &((PySplit *)other)->split.amount);
     self->memo = ((PySplit *)other)->memo;
     Py_INCREF(self->memo);
-    self->reconciliation_date = ((PySplit *)other)->reconciliation_date;
-    Py_INCREF(self->reconciliation_date);
+    self->split.reconciliation_date = ((PySplit *)other)->split.reconciliation_date;
     self->reference = ((PySplit *)other)->reference;
     Py_INCREF(self->reference);
     Py_RETURN_NONE;
@@ -1106,7 +1104,6 @@ static PyObject *
 PySplit_copy(PySplit *self)
 {
     PySplit *r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
-    r->reconciliation_date = NULL;
     r->account = NULL;
     PyObject *args = PyTuple_Pack(1, self);
     PySplit_copy_from(r, args);
@@ -1534,7 +1531,7 @@ _PyEntryList_maybe_set_last_reconciled(PyEntryList *self, PyEntry *entry)
 {
     // we don't bother increfing last_reconciled: implicit in entries'
     // membership
-    if (entry->split->reconciliation_date != Py_None) {
+    if (entry->split->split.reconciliation_date != 0) {
         if (self->last_reconciled == NULL) {
             self->last_reconciled = entry;
         } else {
@@ -1929,13 +1926,15 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         amount_copy(&entry->balance_with_budget, &balance_with_budget);
         entry->index = i;
 
-        PyObject *rdate = entry->split->reconciliation_date;
+        PyObject *rdate = PySplit_reconciliation_date(entry->split);
         PyObject *tdate = PyObject_GetAttrString(entry->transaction, "date");
         if (rdate == Py_None) {
             rdate = tdate;
+            Py_INCREF(rdate);
         }
         PyObject *tpos = PyObject_GetAttrString(entry->transaction, "position");
         PyObject *tuple = PyTuple_Pack(4, rdate, tdate, tpos, entry);
+        Py_DECREF(rdate);
         Py_DECREF(tdate);
         Py_DECREF(tpos);
         PyList_SetItem(rentries, i, tuple); // stolen
@@ -1949,7 +1948,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
     for (int i=0; i<len; i++) {
         PyObject *tuple = PyList_GetItem(rentries, i); // borrowed
         PyEntry *entry = (PyEntry *)PyTuple_GetItem(tuple, 3); // borrowed
-        if (entry->split->reconciliation_date != Py_None) {
+        if (entry->split->split.reconciliation_date != 0) {
             reconciled_balance.val += entry->split->split.amount.val;
         }
         amount_copy(&entry->reconciled_balance, &reconciled_balance);
