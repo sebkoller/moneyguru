@@ -385,7 +385,7 @@ class EntryTableBase(TransactionTableBase):
         result = []
         date_range = self.document.date_range
         if account.is_balance_sheet_account():
-            prev_entry = account.entries.last_entry(date_range.start-ONE_DAY)
+            prev_entry = account.last_entry(date_range.start-ONE_DAY)
             if prev_entry is not None:
                 balance = prev_entry.balance_with_budget
                 rbalance = prev_entry.reconciled_balance

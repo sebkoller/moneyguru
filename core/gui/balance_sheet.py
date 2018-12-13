@@ -35,9 +35,9 @@ class BalanceSheet(Report):
         end_date = date_range.end
         currency = self.document.default_currency
         start_amount = account.normal_balance(start_date - timedelta(1))
-        start_amount_native = account.normal_balance(start_date - timedelta(1), currency=currency)
+        start_amount_native = account.normal_balance(start_date - timedelta(1), currency)
         end_amount = account.normal_balance(end_date)
-        end_amount_native = account.normal_balance(end_date, currency=currency)
+        end_amount_native = account.normal_balance(end_date, currency)
         budget_date_range = DateRange(date.today(), end_date)
         budgeted_amount = self.document.budgeted_amount_for_target(account, budget_date_range)
         budgeted_amount_native = convert_amount(budgeted_amount, currency, date_range.end)

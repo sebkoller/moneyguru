@@ -24,8 +24,6 @@ def copydoc(doc):
     # afterwards.
     newdoc = copy.copy(doc)
     newdoc.accounts = [copy.copy(a) for a in doc.accounts]
-    for a in newdoc.accounts:
-        a.entries = list(a.entries)
     newdoc.groups = copy.deepcopy(newdoc.groups)
     newdoc.transactions = copy.deepcopy(newdoc.transactions)
     newdoc.schedules = copy.deepcopy(newdoc.schedules)

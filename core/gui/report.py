@@ -1,4 +1,4 @@
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -12,6 +12,7 @@ from hscommon.trans import tr
 from hscommon.gui.column import Columns
 
 from ..exception import DuplicateAccountNameError
+from ..model.account import ACCOUNT_SORT_KEY
 from .base import ViewChild, SheetViewNotificationsMixin, MESSAGES_DOCUMENT_CHANGED
 
 # used in both bsheet and istatement
@@ -206,7 +207,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
         node.group = group
         node.is_group = True
         accounts = self.document.accounts.filter(group=group)
-        for account in sorted(accounts):
+        for account in sorted(accounts, key=ACCOUNT_SORT_KEY):
             node.append(self.make_account_node(account))
         node.is_excluded = bool(accounts) and set(accounts) <= self.document.excluded_accounts # all accounts excluded
         if not node.is_excluded:
@@ -225,7 +226,8 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
         node.is_type = True
         for group in sorted(self.document.groups.filter(type=type)):
             node.append(self.make_group_node(group))
-        for account in sorted(self.document.accounts.filter(type=type, group=None)):
+        accounts = self.document.accounts.filter(type=type, group=None)
+        for account in sorted(accounts, key=ACCOUNT_SORT_KEY):
             node.append(self.make_account_node(account))
         accounts = self.document.accounts.filter(type=type)
         node.is_excluded = bool(accounts) and set(accounts) <= self.document.excluded_accounts # all accounts excluded

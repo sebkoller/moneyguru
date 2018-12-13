@@ -6,7 +6,7 @@
 
 from functools import partial
 
-from ._ccore import EntryList
+from ._ccore import Account
 from .sort import sort_string
 from ..exception import DuplicateAccountNameError
 from ..const import Const
@@ -39,110 +39,6 @@ def sort_accounts(accounts):
     """Sort accounts according first to their type, then to their name.
     """
     accounts.sort(key=ACCOUNT_SORT_KEY)
-
-class Account:
-    """Represents an account (in the "accounting" sense).
-
-    Accounts in moneyGuru don't hold much information (:class:`.Transaction` holds the bulk of a
-    document's juicy information). It's there as a unique identifier to assign :class:`.Split` to.
-
-    Initialization argument simply set initial values for their relevant attributes, :attr:`name`,
-    :attr:`currency` and :attr:`type`.
-    """
-    COUNTER = 1
-
-    def __init__(self, name, currency, type):
-        self.id = Account.COUNTER
-        Account.COUNTER += 1
-        #: Name of the account. Must be unique in the whole document.
-        self.name = name
-        #: Default currency of the account. Mostly determines how amounts are displayed when viewing
-        #: its entries listing.
-        self.currency = currency
-        #: :class:`AccountType` for this account.
-        self.type = type
-        #: External reference number (like, for example, a reference given by a bank). Used to
-        #: uniquely match an account in moneyGuru to one being imported from another source.
-        self.reference = None
-        #: :class:`Group` in which this account belongs. Can be ``None`` (no group).
-        self.group = None
-        #: Unique account identifier. Can be used instead of the account name in the UI (faster than
-        #: typing the name if you know your numbers).
-        self.account_number = ''
-        #: Inactive accounts don't show up in auto-complete.
-        self.inactive = False
-        #: Freeform notes about the account.
-        self.notes = ''
-        #: *readonly*. :class:`.EntryList` belonging to that account. This list is computed from
-        #: :attr:`.Document.transactions` by the :class:`.Oven`.
-        self.entries = EntryList()
-
-    def __repr__(self):
-        return '<Account %r>' % self.name
-
-    def __lt__(self, other):
-        return sort_string(self.name) < sort_string(other.name)
-
-    # --- Public
-    def normalize_amount(self, amount):
-        """Returns a "displayable" amount depending on our :attr:`type`.
-
-        When an account is a liability or an income, all amounts that we consider as increasing the
-        liability or the income are in fact negative amounts (accounting is a zero-sum game,
-        remember?). Therefore, if we add 10$ to a debt, our split will in fact be ``-10``. If we
-        want to display a sheet showing entries affecting a liability or an income, we'll probably
-        want to invert their sign, which is what this method does.
-
-        In short, returns ``-amount`` if the account in a liability or an income.
-        """
-        return -amount if self.is_credit_account() else amount
-
-    def normal_balance(self, date=None, currency=None):
-        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`balance`."""
-        currency = currency or self.currency
-        balance = self.entries.balance(date, currency)
-        return self.normalize_amount(balance)
-
-    def normal_balance_of_reconciled(self):
-        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`balance_of_reconciled`.
-        """
-        balance = self.entries.balance_of_reconciled()
-        return self.normalize_amount(balance)
-
-    def normal_cash_flow(self, date_range, currency=None):
-        """Returns a :meth:`normalized <.Account.normalize_amount>` :meth:`cash_flow`."""
-        currency = currency or self.currency
-        cash_flow = self.entries.cash_flow(date_range, currency)
-        return self.normalize_amount(cash_flow)
-
-    def is_balance_sheet_account(self):
-        """Returns whether the account is an asset or liability."""
-        return self.type in (AccountType.Asset, AccountType.Liability)
-
-    def is_credit_account(self):
-        """Returns whether the account is a liability or income."""
-        return self.type in (AccountType.Liability, AccountType.Income)
-
-    def is_debit_account(self):
-        """Returns whether the account is an asset or expense."""
-        return self.type in (AccountType.Asset, AccountType.Expense)
-
-    def is_income_statement_account(self):
-        """Returns whether the account is an income or expense."""
-        return self.type in (AccountType.Income, AccountType.Expense)
-
-    # --- Properties
-    @property
-    def combined_display(self):
-        """*readonly*. Display name for the account.
-
-        If it has an account number, prefix the name with the number.
-        """
-        if self.account_number:
-            return "{0} - {1}".format(self.account_number, self.name)
-        else:
-            return self.name
-
 
 class Group:
     """A group of :class:`Account`.

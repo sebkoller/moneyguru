@@ -53,9 +53,8 @@ class Oven:
         return result
 
     def _cook_splits(self, account, splits):
-        entries = account.entries
         for entry in oven_cook_splits(splits, account):
-            entries.add_entry(entry)
+            account.add_entry(entry)
 
     def continue_cooking(self, until_date):
         """Cooks from where we stop last time until ``until_date``.
@@ -95,7 +94,7 @@ class Oven:
             until_date = self._transactions[-1].date if self._transactions else from_date
         # Clear old cooked data
         for account in self._accounts:
-            account.entries.clear(from_date)
+            account.clear(from_date)
         if from_date == date.min:
             self.transactions = []
         else:

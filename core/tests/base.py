@@ -20,7 +20,7 @@ from ..gui.completable_edit import CompletableEdit
 from ..gui.main_window import MainWindow
 from ..gui.account_panel import AccountPanel
 from ..loader import base
-from ..model.account import AccountType
+from ..model.account import AccountType, ACCOUNT_SORT_KEY
 from ..model.date import DateFormat
 
 testdata = TestData(op.join(op.dirname(__file__), 'testdata'))
@@ -366,14 +366,8 @@ class TestApp(TestAppBase):
         tpanel.save()
 
     def account_names(self):
-        account_sort = {
-            AccountType.Asset:0,
-            AccountType.Liability: 1,
-            AccountType.Income: 2,
-            AccountType.Expense: 3,
-        }
         accounts = list(self.doc.accounts)
-        accounts.sort(key=lambda a: (account_sort[a.type], a))
+        accounts.sort(key=ACCOUNT_SORT_KEY)
         return [a.name for a in accounts]
 
     def account_node_subaccount_count(self, node):
