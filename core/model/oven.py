@@ -52,10 +52,6 @@ class Oven:
             result += spawns
         return result
 
-    def _cook_splits(self, account, splits):
-        for entry in oven_cook_splits(splits, account):
-            account.entries.add_entry(entry)
-
     def continue_cooking(self, until_date):
         """Cooks from where we stop last time until ``until_date``.
 
@@ -123,7 +119,7 @@ class Oven:
             if account is not None:
                 account2splits[account].append((txn, split))
         for account, splits in account2splits.items():
-            self._cook_splits(account, splits)
+            oven_cook_splits(splits, account)
         self.transactions += tocook
         self._cooked_until = until_date
 

@@ -1575,21 +1575,11 @@ _PyEntryList_maybe_set_last_reconciled(PyEntryList *self, PyEntry *entry)
     }
 }
 
-static PyObject*
-PyEntryList_add_entry(PyEntryList *self, PyObject *args)
+static void
+_PyEntryList_add_entry(PyEntryList *self, PyEntry *entry)
 {
-    PyEntry *entry;
-
-    if (!PyArg_ParseTuple(args, "O", &entry)) {
-        return NULL;
-    }
-    if (!Entry_Check(entry)) {
-        PyErr_SetString(PyExc_TypeError, "not an entry");
-        return NULL;
-    }
     PyList_Append(self->entries, (PyObject *)entry);
     _PyEntryList_maybe_set_last_reconciled(self, entry);
-    Py_RETURN_NONE;
 }
 
 static int
@@ -2262,7 +2252,8 @@ PyAccount_dealloc(PyAccount *self)
 static PyObject*
 py_oven_cook_splits(PyObject *self, PyObject *args)
 {
-    PyObject *splitpairs, *account, *tmp;
+    PyObject *splitpairs;
+    PyAccount *account;
     Amount amount;
     Amount balance;
     Amount balance_with_budget;
@@ -2271,24 +2262,17 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "OO", &splitpairs, &account)) {
         return NULL;
     }
+    if (!Account_Check(account)) {
+        PyErr_SetString(PyExc_ValueError, "not an account");
+        return NULL;
+    }
 
-    tmp = PyObject_GetAttrString(account, "currency");
-    if (tmp == NULL) {
-        return NULL;
-    }
-    balance.currency = getcur(PyUnicode_AsUTF8(tmp));
-    Py_DECREF(tmp);
-    if (balance.currency == NULL) {
-        return NULL;
-    }
+    balance.currency = account->account.currency;
     balance_with_budget.currency = balance.currency;
     reconciled_balance.currency = balance.currency;
     amount.currency = balance.currency;
 
-    PyEntryList *entries = (PyEntryList *)PyObject_GetAttrString(account, "entries");
-    if (entries == NULL) {
-        return NULL;
-    }
+    PyEntryList *entries = (PyEntryList *)account->entries;
     if (!_PyEntryList_balance(entries, &balance, Py_None, false)) {
         return NULL;
     }
@@ -2296,9 +2280,10 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         return NULL;
     }
     _PyEntryList_balance_of_reconciled(entries, &reconciled_balance);
-    Py_DECREF(entries);
     Py_ssize_t len = PySequence_Length(splitpairs);
     PyObject *res = PyList_New(len);
+    // Entry tuples for reconciliation order
+    PyObject *rentries = PyList_New(len);
     for (int i=0; i<len; i++) {
         PyObject *item = PySequence_GetItem(splitpairs, i);
         PyEntry *entry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
@@ -2318,15 +2303,8 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         }
         Py_INCREF(entry->split);
         Py_INCREF(entry->transaction);
-        entry->index = -1;
-        PyList_SetItem(res, i, (PyObject *)entry); // stolen
-    }
-
-    // Entry tuples for reconciliation order
-    PyObject *rentries = PyList_New(len);
-    for (int i=0; i<len; i++) {
-        PyEntry *entry = (PyEntry *)PyList_GetItem(res, i); // borrowed
-        tmp = PyObject_GetAttrString(entry->transaction, "TYPE");
+        entry->index = i;
+        PyObject *tmp = PyObject_GetAttrString(entry->transaction, "TYPE");
         if (tmp == NULL) {
             return NULL;
         }
@@ -2352,7 +2330,6 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         amount_copy(&entry->balance, &balance);
         balance_with_budget.val += amount.val;
         amount_copy(&entry->balance_with_budget, &balance_with_budget);
-        entry->index = i;
 
         PyObject *rdate = PySplit_reconciliation_date(entry->split);
         PyObject *tdate = PyObject_GetAttrString(entry->transaction, "date");
@@ -2365,6 +2342,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         Py_DECREF(rdate);
         Py_DECREF(tdate);
         Py_DECREF(tpos);
+        PyList_SetItem(res, i, (PyObject *)entry); // stolen
         PyList_SetItem(rentries, i, tuple); // stolen
     }
 
@@ -2382,7 +2360,12 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         amount_copy(&entry->reconciled_balance, &reconciled_balance);
     }
     Py_DECREF(rentries);
-    return res;
+    for (int i=0; i<len; i++) {
+        PyEntry *entry = (PyEntry *)PyList_GetItem(res, i); // borrowed
+        _PyEntryList_add_entry(entries, entry);
+    }
+    Py_DECREF(res);
+    Py_RETURN_NONE;
 }
 
 /* Python Boilerplate */
@@ -2548,7 +2531,6 @@ static PyMethodDef module_methods[] = {
 };
 
 static PyMethodDef PyEntryList_methods[] = {
-    {"add_entry", (PyCFunction)PyEntryList_add_entry, METH_VARARGS, ""},
     // Returns running balance at `date`.
     // If `currency` is specified, the result is converted to it.
     // if `with_budget` is True, budget spawns are counted.
