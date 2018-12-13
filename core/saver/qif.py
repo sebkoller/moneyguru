@@ -17,7 +17,7 @@ def save(filename, accounts, daterange=None):
         qif_account_type = 'Oth L' if account.type == AccountType.Liability else 'Bank'
         lines.append('!Account')
         lines.append('N%s' % account.name)
-        balance = account.balance(None, account.currency)
+        balance = account.entries.balance(None, account.currency)
         lines.append('B%s' % format_amount_for_qif(balance))
         lines.append('T%s' % qif_account_type)
         lines.append('^')

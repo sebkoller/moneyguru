@@ -74,17 +74,17 @@ class TestOneAccount:
 
     def test_balance(self):
         eq_(
-            self.account.balance(date(2007, 12, 31), self.account.currency),
+            self.account.entries.balance(date(2007, 12, 31), self.account.currency),
             Amount(20, 'USD'))
 
         # The balance is converted using the rate on the day the balance is
         # requested.
-        eq_(self.account.balance(date(2007, 12, 31), 'CAD'), Amount(20 * 1.1, 'CAD'))
+        eq_(self.account.entries.balance(date(2007, 12, 31), 'CAD'), Amount(20 * 1.1, 'CAD'))
 
     def test_cash_flow(self):
         range = MonthRange(date(2008, 1, 1))
-        eq_(self.account.cash_flow(range, 'USD'), Amount(252, 'USD'))
+        eq_(self.account.entries.cash_flow(range, 'USD'), Amount(252, 'USD'))
 
         # Each entry is converted using the entry's day rate.
-        eq_(self.account.cash_flow(range, 'CAD'), Amount(201.40, 'CAD'))
+        eq_(self.account.entries.cash_flow(range, 'CAD'), Amount(201.40, 'CAD'))
 
