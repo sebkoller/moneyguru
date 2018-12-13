@@ -337,7 +337,7 @@ class BaseDocument:
         if (amount is not NOEDIT) and (len(entry.splits) == 1):
             entry.change_amount(amount)
         if (transfer is not NOEDIT) and (len(entry.splits) == 1) and (transfer != entry.transfer):
-            auto_create_type = AccountType.Expense if entry.split.amount < 0 else AccountType.Income
+            auto_create_type = AccountType.Expense if entry.amount < 0 else AccountType.Income
             transfer_account = self.accounts.find(transfer, auto_create_type) if transfer else None
             entry.splits[0].account = transfer_account
         self._change_transaction(

@@ -1257,7 +1257,7 @@ PyEntry_reconciliation_date(PyEntry *self)
 }
 
 static PyObject *
-PyEntry_reconciliation_key(PyEntry *self)
+_PyEntry_reconciliation_key(PyEntry *self)
 {
     PyObject *recdate = PySplit_reconciliation_date(self->split);
     if (recdate == Py_None) {
@@ -1572,8 +1572,8 @@ _PyEntryList_maybe_set_last_reconciled(PyEntryList *self, PyEntry *entry)
         if (self->last_reconciled == NULL) {
             self->last_reconciled = entry;
         } else {
-            PyObject *key1 = PyEntry_reconciliation_key(self->last_reconciled);
-            PyObject *key2 = PyEntry_reconciliation_key(entry);
+            PyObject *key1 = _PyEntry_reconciliation_key(self->last_reconciled);
+            PyObject *key2 = _PyEntry_reconciliation_key(entry);
             if (PyObject_RichCompareBool(key2, key1, Py_GE) > 0) {
                 self->last_reconciled = entry;
             }
@@ -2252,11 +2252,6 @@ PyAccount_dealloc(PyAccount *self)
 
 /* Oven functions */
 
-/* "Cook" splits into Entry with running balances
- *
- * This takes a list of (txn, split) pairs to cook as well as the account to
- * cook for. Returns a list of Entry.
- */
 static bool
 _py_oven_cook_splits(PyObject *splitpairs, PyAccount *account)
 {
@@ -2366,6 +2361,11 @@ _py_oven_cook_splits(PyObject *splitpairs, PyAccount *account)
     return true;
 }
 
+/* "Cook" txns into Entry with running balances
+ *
+ * This takes a list of transactions to cook. Adds entries directly in the
+ * proper accounts.
+ */
 static PyObject*
 py_oven_cook_txns(PyObject *self, PyObject *txns)
 {
@@ -2404,6 +2404,7 @@ py_oven_cook_txns(PyObject *self, PyObject *txns)
     }
     Py_RETURN_NONE;
 }
+
 /* Python Boilerplate */
 
 /* We need both __copy__ and __deepcopy__ methods for amounts to behave
@@ -2518,13 +2519,11 @@ static PyGetSetDef PyEntry_getseters[] = {
     {"checkno", (getter)PyEntry_checkno, NULL, NULL, NULL},
     {"date", (getter)PyEntry_date, NULL, NULL, NULL},
     {"description", (getter)PyEntry_description, NULL, NULL, NULL},
-    {"index", (getter)PyEntry_index, NULL, NULL, NULL},
     {"mtime", (getter)PyEntry_mtime, NULL, NULL, NULL},
     {"payee", (getter)PyEntry_payee, NULL, NULL, NULL},
     {"reconciled", (getter)PyEntry_reconciled, NULL, NULL, NULL},
     {"reconciled_balance", (getter)PyEntry_reconciled_balance, NULL, NULL, NULL},
     {"reconciliation_date", (getter)PyEntry_reconciliation_date, NULL, NULL, NULL},
-    {"reconciliation_key", (getter)PyEntry_reconciliation_key, NULL, NULL, NULL},
     {"reference", (getter)PyEntry_reference, NULL, NULL, NULL},
     {"split", (getter)PyEntry_split, (setter)PyEntry_split_set, NULL, NULL},
     {"splits", (getter)PyEntry_splits, NULL, NULL, NULL},
