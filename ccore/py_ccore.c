@@ -7,6 +7,14 @@
 #include "transaction.h"
 #include "account.h"
 
+// NOTE ABOUT DECREF AND ERRORS
+//
+// When I started writing this unit, I took care of properly decrefing stuff
+// in error conditions, but now I don't bother because this is not a library
+// and this is not permanent: those errors are never supposed to happen. I
+// write the "return NULL" to avoid segfaults and thus allow better debugging.
+// but we don't care about memory leaks in this context.
+
 /* Types */
 static PyObject *UnsupportedCurrencyError = NULL;
 
@@ -2249,23 +2257,13 @@ PyAccount_dealloc(PyAccount *self)
  * This takes a list of (txn, split) pairs to cook as well as the account to
  * cook for. Returns a list of Entry.
  */
-static PyObject*
-py_oven_cook_splits(PyObject *self, PyObject *args)
+static bool
+_py_oven_cook_splits(PyObject *splitpairs, PyAccount *account)
 {
-    PyObject *splitpairs;
-    PyAccount *account;
     Amount amount;
     Amount balance;
     Amount balance_with_budget;
     Amount reconciled_balance;
-
-    if (!PyArg_ParseTuple(args, "OO", &splitpairs, &account)) {
-        return NULL;
-    }
-    if (!Account_Check(account)) {
-        PyErr_SetString(PyExc_ValueError, "not an account");
-        return NULL;
-    }
 
     balance.currency = account->account.currency;
     balance_with_budget.currency = balance.currency;
@@ -2274,10 +2272,10 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
 
     PyEntryList *entries = (PyEntryList *)account->entries;
     if (!_PyEntryList_balance(entries, &balance, Py_None, false)) {
-        return NULL;
+        return false;
     }
     if (!_PyEntryList_balance(entries, &balance_with_budget, Py_None, true)) {
-        return NULL;
+        return false;
     }
     _PyEntryList_balance_of_reconciled(entries, &reconciled_balance);
     Py_ssize_t len = PySequence_Length(splitpairs);
@@ -2292,7 +2290,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
             Py_DECREF(item);
             Py_DECREF(entry);
             Py_DECREF(res);
-            return NULL;
+            return false;
         }
         entry->split = (PySplit *)PyTuple_GetItem(item, 1); // borrowed
         if (entry->split == NULL) {
@@ -2306,23 +2304,23 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         entry->index = i;
         PyObject *tmp = PyObject_GetAttrString(entry->transaction, "TYPE");
         if (tmp == NULL) {
-            return NULL;
+            return false;
         }
         int txn_type = PyLong_AsLong(tmp);
         Py_DECREF(tmp);
         tmp = PyEntry_date(entry);
         if (tmp == NULL) {
-            return NULL;
+            return false;
         }
         time_t date = pydate2time(tmp);
         if (date == 1) {
-            return NULL;
+            return false;
         }
         Py_DECREF(tmp);
 
         Split *split = &entry->split->split;
         if (!amount_convert(&amount, &split->amount, date)) {
-            return NULL;
+            return false;
         }
         if (txn_type != TXN_TYPE_BUDGET) {
             balance.val += amount.val;
@@ -2349,7 +2347,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
     if (PyList_Sort(rentries) == -1) {
         Py_DECREF(rentries);
         Py_DECREF(res);
-        return NULL;
+        return false;
     }
     for (int i=0; i<len; i++) {
         PyObject *tuple = PyList_GetItem(rentries, i); // borrowed
@@ -2365,9 +2363,47 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         _PyEntryList_add_entry(entries, entry);
     }
     Py_DECREF(res);
-    Py_RETURN_NONE;
+    return true;
 }
 
+static PyObject*
+py_oven_cook_txns(PyObject *self, PyObject *txns)
+{
+    Py_ssize_t len = PySequence_Length(txns);
+    PyObject *a2s = PyDict_New();
+    for (int i=0; i<len; i++) {
+        PyObject *txn = PyList_GetItem(txns, i); // borrowed
+        PyObject *splits = PyObject_GetAttrString(txn, "splits");
+        if (splits == NULL) {
+            return NULL;
+        }
+        Py_ssize_t slen = PySequence_Length(splits);
+        for (int j=0; j<slen; j++) {
+            PySplit *split = (PySplit *)PyList_GetItem(splits, j); // borrowed
+            if ((PyObject *)split->account == Py_None) {
+                continue;
+            }
+            PyObject *splitpairs = PyDict_GetItem(a2s, (PyObject *)split->account);
+            if (splitpairs == NULL) {
+                splitpairs = PyList_New(0);
+                PyDict_SetItem(a2s, (PyObject *)split->account, splitpairs);
+                Py_DECREF(splitpairs);
+            }
+            PyObject *pair = PyTuple_Pack(2, txn, split);
+            PyList_Append(splitpairs, pair);
+            Py_DECREF(pair);
+        }
+    }
+
+    Py_ssize_t pos = 0;
+    PyObject *k, *v;
+    while (PyDict_Next(a2s, &pos, &k, &v)) {
+        if (!_py_oven_cook_splits(v, (PyAccount *)k)) {
+            return NULL;
+        }
+    }
+    Py_RETURN_NONE;
+}
 /* Python Boilerplate */
 
 /* We need both __copy__ and __deepcopy__ methods for amounts to behave
@@ -2526,7 +2562,7 @@ static PyMethodDef module_methods[] = {
     {"currency_getrate", py_currency_getrate, METH_VARARGS},
     {"currency_set_CAD_value", py_currency_set_CAD_value, METH_VARARGS},
     {"currency_daterange", py_currency_daterange, METH_VARARGS},
-    {"oven_cook_splits", py_oven_cook_splits, METH_VARARGS},
+    {"oven_cook_txns", py_oven_cook_txns, METH_O},
     {NULL}  /* Sentinel */
 };
 

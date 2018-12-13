@@ -11,7 +11,7 @@ from operator import attrgetter
 
 from hscommon.util import flatten
 
-from ._ccore import oven_cook_splits
+from ._ccore import oven_cook_txns
 
 class Oven:
     """Computes raw data from transactions, schedules, budgets.
@@ -108,18 +108,7 @@ class Oven:
         # XXX now that budget's base date is the start date, isn't this untrue?
         tocook = [t for t in txns if from_date <= t.date]
         tocook.sort(key=attrgetter('date'))
-
-        def splitpairs(t):
-            return ((t, s) for s in t.splits)
-
-        splits = flatten(splitpairs(t) for t in tocook)
-        account2splits = defaultdict(list)
-        for txn, split in splits:
-            account = split.account
-            if account is not None:
-                account2splits[account].append((txn, split))
-        for account, splits in account2splits.items():
-            oven_cook_splits(splits, account)
+        oven_cook_txns(tocook)
         self.transactions += tocook
         self._cooked_until = until_date
 
