@@ -86,10 +86,6 @@ class Currencies:
         return Currencies.all[index][0]
 
     @staticmethod
-    def exponent(code):
-        return _ccore.currency_exponent(code)
-
-    @staticmethod
     def set_rates_db(db):
         """Sets a new currency ``RatesDB`` instance to be used with all ``Currency`` instances.
         """

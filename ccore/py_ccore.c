@@ -346,24 +346,6 @@ py_currency_daterange(PyObject *self, PyObject *args)
     return res;
 }
 
-static PyObject *
-py_currency_exponent(PyObject *self, PyObject *args)
-{
-    char *code;
-    Currency *c;
-
-    if (!PyArg_ParseTuple(args, "s", &code)) {
-        return NULL;
-    }
-
-    c = getcur(code);
-    if (c == NULL) {
-        return NULL;
-    }
-
-    return PyLong_FromLong(c->exponent);
-}
-
 /* Amount Methods */
 
 static PyObject *
@@ -376,20 +358,6 @@ create_amount(int64_t ival, Currency *currency)
     r->amount.val = ival;
     r->amount.currency = currency;
     return (PyObject *)r;
-}
-
-static PyObject *
-PyAmount_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
-{
-    PyAmount *self;
-
-    self = (PyAmount *)PyType_GenericAlloc(type, 0);
-    if (self == NULL) {
-        return NULL;
-    }
-    self->amount.val = 0;
-    self->amount.currency = NULL;
-    return (PyObject *)self;
 }
 
 static int
@@ -406,9 +374,8 @@ PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
-    c = currency_get(code);
+    c = getcur(code);
     if (c == NULL) {
-        PyErr_SetString(PyExc_ValueError, "couldn't find currency code");
         return -1;
     }
     self->amount.currency = c;
@@ -723,9 +690,8 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
     amount = get_amount(pyamount);
     if (!amount->val) {
         if (strlen(zero_currency)) {
-            c = currency_get(zero_currency);
+            c = getcur(zero_currency);
             if (c == NULL) {
-                PyErr_SetString(PyExc_ValueError, "currency not found");
                 return NULL;
             }
             amount->currency = c;
@@ -734,9 +700,8 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
         }
     }
     if (strlen(default_currency)) {
-        c = currency_get(default_currency);
+        c = getcur(default_currency);
         if (c == NULL) {
-            PyErr_SetString(PyExc_ValueError, "currency not found");
             return NULL;
         }
         show_currency = c != amount->currency;
@@ -1757,9 +1722,8 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
     }
 
     Amount dst;
-    dst.currency = currency_get(currency);
+    dst.currency = getcur(currency);
     if (dst.currency == NULL) {
-        PyErr_SetString(PyExc_ValueError, "invalid currency");
         return NULL;
     }
     if (!_PyEntryList_balance(self, &dst, date_p, with_budget)) {
@@ -1807,9 +1771,8 @@ PyEntryList_cash_flow(PyEntryList *self, PyObject *args)
     }
     Amount res;
     res.val = 0;
-    res.currency = currency_get(currency);
+    res.currency = getcur(currency);
     if (res.currency == NULL) {
-        PyErr_SetString(PyExc_ValueError, "invalid currency");
         return NULL;
     }
     Py_ssize_t len = PyList_Size(self->entries);
@@ -1888,7 +1851,7 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
     if (tmp == NULL) {
         return NULL;
     }
-    balance.currency = currency_get(PyUnicode_AsUTF8(tmp));
+    balance.currency = getcur(PyUnicode_AsUTF8(tmp));
     Py_DECREF(tmp);
     if (balance.currency == NULL) {
         return NULL;
@@ -2011,7 +1974,6 @@ static PyGetSetDef PyAmount_getseters[] = {
 };
 
 static PyType_Slot Amount_Slots[] = {
-    {Py_tp_new, PyAmount_new},
     {Py_tp_init, PyAmount_init},
     {Py_tp_repr, PyAmount_repr},
     {Py_tp_hash, PyAmount_hash},
@@ -2154,7 +2116,6 @@ static PyMethodDef module_methods[] = {
     {"currency_getrate", py_currency_getrate, METH_VARARGS},
     {"currency_set_CAD_value", py_currency_set_CAD_value, METH_VARARGS},
     {"currency_daterange", py_currency_daterange, METH_VARARGS},
-    {"currency_exponent", py_currency_exponent, METH_VARARGS},
     {"oven_cook_splits", py_oven_cook_splits, METH_VARARGS},
     {NULL}  /* Sentinel */
 };
