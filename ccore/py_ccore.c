@@ -1618,17 +1618,33 @@ _PyEntryList_find_date(PyEntryList *self, PyObject *date, bool equal)
     // over the threshold.
     int opid = equal ? Py_GT : Py_GE;
     Py_ssize_t len = PyList_Size(self->entries);
-    for (int i=0; i<len; i++) {
-        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
+    if (len == 0) {
+        return 0;
+    }
+    Py_ssize_t low = 0;
+    Py_ssize_t high = len - 1;
+    bool matched_once = false;
+    while ((high > low) || ((high == low) && !matched_once)) {
+        Py_ssize_t mid = ((high - low) / 2) + low;
+        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, mid); // borrowed
         PyObject *tdate = PyEntry_date(entry);
         int cmp = PyObject_RichCompareBool(tdate, date, opid);
         Py_DECREF(tdate);
         if (cmp > 0) {
-            return i;
+            matched_once = true;
+            high = mid;
+        } else {
+            low = mid + 1;
         }
     }
-    // Every date in list is smaller or equal
-    return len;
+    if (matched_once) {
+        // we have at least one entry with a higher date than "date"
+        return (int)high;
+    } else {
+        // All entries have a smaller date than "date". Return len.
+        return len;
+    }
+
 }
 
 static PyObject*
