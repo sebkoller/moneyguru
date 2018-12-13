@@ -42,10 +42,10 @@ Currency*
 currency_get(const char *code);
 
 CurrencyResult
-currency_getrate(struct tm *date, Currency *c1, Currency *c2, double *result);
+currency_getrate(time_t date, Currency *c1, Currency *c2, double *result);
 
 void
-currency_set_CAD_value(struct tm *date, Currency *currency, double value);
+currency_set_CAD_value(time_t date, Currency *currency, double value);
 
 bool
-currency_daterange(Currency *currency, struct tm *start, struct tm *stop);
+currency_daterange(Currency *currency, time_t *start, time_t *stop);

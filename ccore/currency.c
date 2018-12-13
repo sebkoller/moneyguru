@@ -24,15 +24,19 @@ static unsigned int g_currencies_max = 0;
 // Private
 
 static size_t
-date2str(char *s, const struct tm *date)
+date2str(char *s, const time_t date)
 {
-    return strftime(s, DATE_LEN + 1, "%Y%m%d", date);
+    return strftime(s, DATE_LEN + 1, "%Y%m%d", gmtime(&date));
 }
 
-static bool
-str2date(const char *s, struct tm *date)
+static time_t
+str2date(const char *s)
 {
-    return strptime(s, "%Y%m%d", date) != NULL;
+    struct tm date = {0};
+    if (strptime(s, "%Y%m%d", &date) == NULL) {
+        return 0;
+    }
+    return mktime(&date);
 }
 
 static bool
@@ -86,7 +90,7 @@ sqlite_getsingle_text(const char *sql, char *result)
 }
 
 static CurrencyResult
-seek_value_in_CAD(struct tm *date, Currency *currency, double *result)
+seek_value_in_CAD(time_t date, Currency *currency, double *result)
 {
     char strdate[DATE_LEN + 1];
     char sql[MAX_SQL_LEN + 1];
@@ -99,11 +103,11 @@ seek_value_in_CAD(struct tm *date, Currency *currency, double *result)
         *result = 1;
         return CURRENCY_OK;
     }
-    if (mktime(date) < currency->start_date) {
+    if (date < currency->start_date) {
         *result = currency->start_rate;
         return CURRENCY_OK;
     }
-    if (currency->stop_date > 0 && mktime(date) > currency->stop_date) {
+    if (currency->stop_date > 0 && date > currency->stop_date) {
         *result = currency->latest_rate;
         return CURRENCY_OK;
     }
@@ -276,7 +280,7 @@ currency_get(const char *code)
 }
 
 CurrencyResult
-currency_getrate(struct tm *date, Currency *c1, Currency *c2, double *result)
+currency_getrate(time_t date, Currency *c1, Currency *c2, double *result)
 {
     double value1 = 1;
     double value2 = 1;
@@ -303,7 +307,7 @@ currency_getrate(struct tm *date, Currency *c1, Currency *c2, double *result)
 }
 
 void
-currency_set_CAD_value(struct tm *date, Currency *currency, double value)
+currency_set_CAD_value(time_t date, Currency *currency, double value)
 {
     char strdate[DATE_LEN + 1];
     char sql[MAX_SQL_LEN + 1];
@@ -318,7 +322,7 @@ currency_set_CAD_value(struct tm *date, Currency *currency, double value)
 }
 
 bool
-currency_daterange(Currency *currency, struct tm *start, struct tm *stop)
+currency_daterange(Currency *currency, time_t *start, time_t *stop)
 {
     char sql[MAX_SQL_LEN + 1];
     char buf[SQL_RES_LEN + 1] = {0};
@@ -330,7 +334,8 @@ currency_daterange(Currency *currency, struct tm *start, struct tm *stop)
     if (!sqlite_getsingle_text(sql, buf)) {
         return false;
     }
-    if (!str2date(buf, start)) {
+    *start = str2date(buf);
+    if (!*start) {
         return false;
     }
     snprintf(
@@ -340,7 +345,8 @@ currency_daterange(Currency *currency, struct tm *start, struct tm *stop)
     if (!sqlite_getsingle_text(sql, buf)) {
         return false;
     }
-    if (!str2date(buf, stop)) {
+    *stop = str2date(buf);
+    if (!*stop) {
         return false;
     }
     return true;

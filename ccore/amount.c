@@ -565,7 +565,7 @@ amount_parse_expr(
 }
 
 bool
-amount_convert(Amount *dest, Amount *src, struct tm *date)
+amount_convert(Amount *dest, Amount *src, time_t date)
 {
     double rate;
 

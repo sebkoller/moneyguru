@@ -72,23 +72,11 @@ typedef struct {
 static PyObject *EntryList_Type;
 
 /* Utils */
-static bool
-pydate2tm(PyObject *pydate, struct tm *dest)
-{
-    if (!PyDate_Check(pydate)) {
-        PyErr_SetString(PyExc_ValueError, "pydate2tm needs a date value");
-        return false;
-    }
-    dest->tm_year = PyDateTime_GET_YEAR(pydate) - 1900;
-    dest->tm_mon = PyDateTime_GET_MONTH(pydate) - 1;
-    dest->tm_mday = PyDateTime_GET_DAY(pydate);
-    return true;
-}
-
 static PyObject*
-tm2pydate(struct tm *date)
+time2pydate(time_t date)
 {
-    return PyDate_FromDate(date->tm_year + 1900, date->tm_mon + 1, date->tm_mday);
+    struct tm *d = gmtime(&date);
+    return PyDate_FromDate(d->tm_year + 1900, d->tm_mon + 1, d->tm_mday);
 }
 
 static time_t
@@ -101,9 +89,13 @@ pydate2time(PyObject *pydate)
     if (pydate == Py_None) {
         return 0;
     }
-    if (!pydate2tm(pydate, &date)) {
+    if (!PyDate_Check(pydate)) {
+        PyErr_SetString(PyExc_ValueError, "pydate2tm needs a date value");
         return 1;
     }
+    date.tm_year = PyDateTime_GET_YEAR(pydate) - 1900;
+    date.tm_mon = PyDateTime_GET_MONTH(pydate) - 1;
+    date.tm_mday = PyDateTime_GET_DAY(pydate);
     return mktime(&date);
 }
 
@@ -267,7 +259,6 @@ static PyObject*
 py_currency_getrate(PyObject *self, PyObject *args)
 {
     PyObject *pydate;
-    struct tm date = {0};
     char *code1, *code2;
     Currency *c1, *c2;
     double rate;
@@ -276,7 +267,8 @@ py_currency_getrate(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (!pydate2tm(pydate, &date)) {
+    time_t date = pydate2time(pydate);
+    if (date == 1) {
         return NULL;
     }
 
@@ -286,7 +278,7 @@ py_currency_getrate(PyObject *self, PyObject *args)
         // Something's wrong, let's just return 1
         return PyLong_FromLong(1);
     }
-    if (currency_getrate(&date, c1, c2, &rate) != CURRENCY_OK) {
+    if (currency_getrate(date, c1, c2, &rate) != CURRENCY_OK) {
         Py_INCREF(Py_None);
         return Py_None;
     }
@@ -297,7 +289,6 @@ static PyObject*
 py_currency_set_CAD_value(PyObject *self, PyObject *args)
 {
     PyObject *pydate;
-    struct tm date = {0};
     char *code;
     Currency *c;
     double rate;
@@ -306,7 +297,8 @@ py_currency_set_CAD_value(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    if (!pydate2tm(pydate, &date)) {
+    time_t date = pydate2time(pydate);
+    if (date == 1) {
         return NULL;
     }
 
@@ -315,7 +307,7 @@ py_currency_set_CAD_value(PyObject *self, PyObject *args)
         return NULL;
     }
 
-    currency_set_CAD_value(&date, c, rate);
+    currency_set_CAD_value(date, c, rate);
     Py_INCREF(Py_None);
     return Py_None;
 }
@@ -325,8 +317,8 @@ py_currency_daterange(PyObject *self, PyObject *args)
 {
     char *code;
     Currency *c;
-    struct tm start = {0};
-    struct tm stop = {0};
+    time_t start = 0;
+    time_t stop = 0;
     PyObject *pystart, *pystop, *res;
 
     if (!PyArg_ParseTuple(args, "s", &code)) {
@@ -346,8 +338,8 @@ py_currency_daterange(PyObject *self, PyObject *args)
         return Py_None;
     }
 
-    pystart = tm2pydate(&start);
-    pystop = tm2pydate(&stop);
+    pystart = time2pydate(start);
+    pystop = time2pydate(stop);
     res = PyTuple_Pack(2, pystart, pystop);
     Py_DECREF(pystart);
     Py_DECREF(pystop);
@@ -867,7 +859,6 @@ py_amount_convert(PyObject *self, PyObject *args)
     PyObject *pyamount;
     char *code;
     PyObject *pydate;
-    struct tm date = {0};
     Amount *amount;
     Amount dest;
     double rate;
@@ -889,10 +880,11 @@ py_amount_convert(PyObject *self, PyObject *args)
         Py_INCREF(pyamount);
         return pyamount;
     }
-    if (!pydate2tm(pydate, &date)) {
+    time_t date = pydate2time(pydate);
+    if (date == 1) {
         return NULL;
     }
-    if (!amount_convert(&dest, amount, &date)) {
+    if (!amount_convert(&dest, amount, date)) {
         PyErr_SetString(PyExc_ValueError, "problems getting a rate");
         return NULL;
     }
@@ -1734,11 +1726,11 @@ _PyEntryList_balance(
         }
         Amount *src = with_budget ? &entry->balance_with_budget : &entry->balance;
         if (date_p != Py_None) {
-            struct tm date = {0};
-            if (!pydate2tm(date_p, &date)) {
-                return false;
+            time_t date = pydate2time(date_p);
+            if (date == 1) {
+                return NULL;
             }
-            if (amount_convert(dst, src, &date)) {
+            if (amount_convert(dst, src, date)) {
                 return true;
             } else {
                 return false;
@@ -1840,11 +1832,11 @@ PyEntryList_cash_flow(PyEntryList *self, PyObject *args)
             Amount dst;
             dst.currency = res.currency;
             Amount *src = &entry->split->split.amount;
-            struct tm date = {0};
-            if (!pydate2tm(date_p, &date)) {
+            time_t date = pydate2time(date_p);
+            if (date == 1) {
                 return NULL;
             }
-            if (!amount_convert(&dst, src, &date)) {
+            if (!amount_convert(&dst, src, date)) {
                 return NULL;
             }
             res.val += dst.val;
@@ -1956,14 +1948,14 @@ py_oven_cook_splits(PyObject *self, PyObject *args)
         if (tmp == NULL) {
             return NULL;
         }
-        struct tm date = {0};
-        if (!pydate2tm(tmp, &date)) {
+        time_t date = pydate2time(tmp);
+        if (date == 1) {
             return NULL;
         }
         Py_DECREF(tmp);
 
         Split *split = &entry->split->split;
-        if (!amount_convert(&amount, &split->amount, &date)) {
+        if (!amount_convert(&amount, &split->amount, date)) {
             return NULL;
         }
         if (txn_type != TXN_TYPE_BUDGET) {

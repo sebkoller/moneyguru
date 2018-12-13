@@ -142,4 +142,4 @@ amount_parse_expr(
  * We expect dest to already have a currency set.
  */
 bool
-amount_convert(Amount *dest, Amount *src, struct tm *date);
+amount_convert(Amount *dest, Amount *src, time_t date);
