@@ -2438,6 +2438,26 @@ PyAccountList_clear(PyAccountList *self, PyObject *args)
 }
 
 static PyObject*
+PyAccountList_create(PyAccountList *self, PyObject *args)
+{
+    PyObject *name, *currency, *type;
+
+    if (!PyArg_ParseTuple(args, "OOO", &name, &currency, &type)) {
+        return NULL;
+    }
+    PyAccount *account = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
+    PyObject *newargs = PyTuple_Pack(3, name, currency, type);
+    PyObject *kw = PyDict_New();
+    if (PyAccount_init(account, newargs, kw) < 0) {
+        return NULL;
+    }
+    Py_DECREF(kw);
+    Py_DECREF(newargs);
+    PyAccountList_add(self, account);
+    return (PyObject *)account;
+}
+
+static PyObject*
 PyAccountList_filter(PyAccountList *self, PyObject *args, PyObject *kwds)
 {
     PyObject *groupname = NULL;
@@ -2544,20 +2564,14 @@ PyAccountList_find(PyAccountList *self, PyObject *args)
     if (type == NULL) {
         Py_RETURN_NONE;
     }
-    PyAccount *account = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
     PyObject *aname = PyObject_CallMethod(name, "strip", NULL);
     PyObject *ccode = PyUnicode_FromString(self->default_currency->code);
     PyObject *newargs = PyTuple_Pack(3, aname, ccode, type);
-    Py_DECREF(ccode);
     Py_DECREF(aname);
-    PyObject *kw = PyDict_New();
-    if (PyAccount_init(account, newargs, kw) < 0) {
-        return NULL;
-    }
-    Py_DECREF(kw);
+    Py_DECREF(ccode);
+    PyAccount *account = (PyAccount *)PyAccountList_create(self, newargs);
     Py_DECREF(newargs);
     account->autocreated = true;
-    PyAccountList_add(self, account);
     return (PyObject *)account;
 }
 
@@ -3036,7 +3050,6 @@ static PyGetSetDef PyAccount_getseters[] = {
 };
 
 static PyType_Slot Account_Slots[] = {
-    {Py_tp_init, PyAccount_init},
     {Py_tp_methods, PyAccount_methods},
     {Py_tp_getset, PyAccount_getseters},
     {Py_tp_hash, PyAccount_hash},
@@ -3059,6 +3072,7 @@ static PyMethodDef PyAccountList_methods[] = {
     {"add", (PyCFunction)PyAccountList_add, METH_O, ""},
     {"clean_empty_categories", (PyCFunction)PyAccountList_clean_empty_categories, METH_VARARGS, ""},
     {"clear", (PyCFunction)PyAccountList_clear, METH_NOARGS, ""},
+    {"create", (PyCFunction)PyAccountList_create, METH_VARARGS, ""},
     // Returns all accounts of the given `type` and/or `groupname`.
     {"filter", (PyCFunction)PyAccountList_filter, METH_VARARGS|METH_KEYWORDS, ""},
     // Returns the first account matching with ``name`` (case insensitive)
@@ -3146,10 +3160,8 @@ PyInit__ccore(void)
     PyModule_AddObject(m, "Entry", Entry_Type);
 
     EntryList_Type = PyType_FromSpec(&EntryList_Type_Spec);
-    PyModule_AddObject(m, "EntryList", EntryList_Type);
 
     Account_Type = PyType_FromSpec(&Account_Type_Spec);
-    PyModule_AddObject(m, "Account", Account_Type);
 
     AccountList_Type = PyType_FromSpec(&AccountList_Type_Spec);
     PyModule_AddObject(m, "AccountList", AccountList_Type);

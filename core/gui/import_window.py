@@ -19,7 +19,7 @@ from .base import MainWindowGUIObject, LinkedSelectableList
 from .import_table import ImportTable
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 from core.document import ImportDocument
-from core.model._ccore import Account
+from core.model._ccore import AccountList
 
 
 DAY = 'day'
@@ -313,6 +313,7 @@ class ImportWindow(MainWindowGUIObject):
 
     def __init__(self, mainwindow):
         MainWindowGUIObject.__init__(self, mainwindow)
+        self._tmpaccounts = AccountList(self.document.default_currency)
         self._selected_pane_index = 0
         self._selected_target_index = 0
         self._import_action_plugins = []
@@ -545,7 +546,8 @@ class ImportWindow(MainWindowGUIObject):
             if acct is None:
                 return None
             if acct.name not in name2account:
-                copied_account = Account(acct.name, acct.currency, acct.type)
+                copied_account = self._tmpaccounts.create(
+                    acct.name, acct.currency, acct.type)
                 copied_account.reference = acct.reference
                 name2account[acct.name] = copied_account
                 return copied_account

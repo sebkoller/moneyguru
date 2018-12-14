@@ -8,7 +8,7 @@ from datetime import date
 
 from hscommon.testutil import eq_
 
-from ...model._ccore import Account, AccountList
+from ...model._ccore import AccountList
 from ...model.account import Group, AccountType, ACCOUNT_SORT_KEY
 from ...model.amount import Amount
 from ...model.currency import Currencies
@@ -20,17 +20,19 @@ from ...model.transaction_list import TransactionList
 class TestAccountComparison:
     def test_comparison(self):
         # Accounts are sorted by name. The sort is insensitive to case and accents.
-        bell = Account('Bell', 'USD', AccountType.Asset)
-        belarus = Account('Bélarus', 'USD', AccountType.Asset)
-        achigan = Account('achigan', 'USD', AccountType.Asset)
+        l = AccountList('USD')
+        bell = l.create('Bell', 'USD', AccountType.Asset)
+        belarus = l.create('Bélarus', 'USD', AccountType.Asset)
+        achigan = l.create('achigan', 'USD', AccountType.Asset)
         accounts = [bell, belarus, achigan]
         eq_(sorted(accounts, key=ACCOUNT_SORT_KEY), [achigan, belarus, bell])
 
     def test_equality(self):
         # Two different account objects are never equal.
-        zoo1 = Account('Zoo', 'USD', AccountType.Asset)
-        zoo2 = Account('Zoo', 'USD', AccountType.Asset)
-        zoo3 = Account('Zoö', 'USD', AccountType.Asset)
+        l = AccountList('USD')
+        zoo1 = l.create('Zoo', 'USD', AccountType.Asset)
+        zoo2 = l.create('Zoo', 'USD', AccountType.Asset)
+        zoo3 = l.create('Zoö', 'USD', AccountType.Asset)
         eq_(zoo1, zoo1)
         assert zoo1 != zoo2
         assert zoo1 != zoo3
@@ -60,9 +62,8 @@ class TestOneAccount:
         Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.9)
         Currencies.get_rates_db().set_CAD_value(date(2008, 1, 2), 'USD', 0.8)
         Currencies.get_rates_db().set_CAD_value(date(2008, 1, 3), 'USD', 0.7)
-        self.account = Account('Checking', 'USD', AccountType.Asset)
         accounts = AccountList('CAD')
-        accounts.add(self.account)
+        self.account = accounts.create('Checking', 'USD', AccountType.Asset)
         transactions = TransactionList([
             Transaction(date(2007, 12, 31), account=self.account, amount=Amount(20, 'USD')),
             Transaction(date(2008, 1, 1), account=self.account, amount=Amount(100, 'USD')),

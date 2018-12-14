@@ -9,7 +9,7 @@ from datetime import date
 
 from hscommon.util import first
 
-from ..model._ccore import Account
+from ..model._ccore import AccountList
 from ..model.account import AccountType
 from ..model.transaction import Split, Transaction
 from .base import MainWindowPanel
@@ -22,6 +22,9 @@ class PanelWithTransaction(MainWindowPanel):
         MainWindowPanel.__init__(self, mainwindow)
         self.transaction = Transaction(date.today())
         self._selected_splits = []
+        # Place to store temporarily created accounts during the editing of the
+        # transaction.
+        self._tmpaccounts = AccountList(self.document.default_currency)
         # completable_edit has to be set before split_table is created because split table fetches
         # our completable edit on __init__ (for Qt).
         self.completable_edit = CompletableEdit(mainwindow)
@@ -33,7 +36,8 @@ class PanelWithTransaction(MainWindowPanel):
                 account_type = split.account.type
             else:
                 account_type = AccountType.Expense if split.amount < 0 else AccountType.Income
-            split.account = Account(account_name, self.document.default_currency, account_type)
+            split.account = self._tmpaccounts.create(
+                account_name, self.document.default_currency, account_type)
         else:
             split.account = None
         split.amount = amount

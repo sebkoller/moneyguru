@@ -14,7 +14,7 @@ from hscommon.util import nonone, flatten, stripfalse, dedupe
 from hscommon.trans import tr
 
 from ..exception import FileFormatError
-from ..model._ccore import Account, AccountList
+from ..model._ccore import AccountList
 from ..model.account import Group, GroupList, AccountType
 from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
 from ..model.budget import Budget
@@ -295,7 +295,8 @@ class Loader:
                     account_currency = info.currency
             except ValueError:
                 pass # keep account_currency as self.default_currency
-            account = Account(info.name, account_currency, account_type)
+            account = self.accounts.create(
+                info.name, account_currency, account_type)
             if info.group:
                 group = self.groups.find(info.group, account_type)
                 account.groupname = group.name
@@ -306,7 +307,6 @@ class Loader:
             account.inactive = info.inactive
             account.notes = info.notes
             currencies.add(account.currency)
-            self.accounts.add(account)
 
         # Pre-parse transaction info. We bring all relevant info recorded at the txn level into the split level
         all_txn = self.transaction_infos + [r.transaction_info for r in self.recurrence_infos] +\

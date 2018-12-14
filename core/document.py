@@ -20,7 +20,7 @@ from hscommon.gui.base import GUIObject
 from .const import NOEDIT, DATE_FORMAT_FOR_PREFERENCES
 from .exception import FileFormatError, OperationAborted
 from .loader import native
-from .model._ccore import Account, AccountList
+from .model._ccore import AccountList
 from .model.account import Group, GroupList, AccountType
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
@@ -675,12 +675,11 @@ class Document(BaseDocument, Repeater, GUIObject):
         :rtype: :class:`.Account`
         """
         name = self.accounts.new_name(tr('New account'))
-        account = Account(name, self.default_currency, type)
+        account = self.accounts.create(name, self.default_currency, type)
         account.groupname = group.name if group else None
         action = Action(tr('Add account'))
         action.added_accounts.add(account)
         self._undoer.record(action)
-        self.accounts.add(account)
         self.notify('account_added')
         return account
 
