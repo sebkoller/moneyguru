@@ -1623,19 +1623,6 @@ PyEntry_dealloc(PyEntry *self)
 }
 
 /* EntryList */
-static int
-PyEntryList_init(PyEntryList *self, PyObject *args, PyObject *kwds)
-{
-    static char *kwlist[] = {NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist)) {
-        return -1;
-    }
-    self->entries = PyList_New(0);
-    self->last_reconciled = NULL;
-    return 0;
-}
-
 static void
 _PyEntryList_maybe_set_last_reconciled(PyEntryList *self, PyEntry *entry)
 {
@@ -2643,7 +2630,6 @@ static PyMethodDef PyEntryList_methods[] = {
 };
 
 static PyType_Slot EntryList_Slots[] = {
-    {Py_tp_init, PyEntryList_init},
     {Py_tp_methods, PyEntryList_methods},
     {Py_sq_length, PyEntryList_len},
     {Py_tp_iter, PyEntryList_iter},
