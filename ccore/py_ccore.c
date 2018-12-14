@@ -184,7 +184,7 @@ strset(char **dst, PyObject *src)
         return true;
     }
     Py_ssize_t len;
-    char *s = PyUnicode_AsUTF8AndSize(src, &len);
+    const char *s = PyUnicode_AsUTF8AndSize(src, &len);
     if (s == NULL) {
         return false;
     }
@@ -2370,7 +2370,7 @@ PyAccountList_init(PyAccountList *self, PyObject *args, PyObject *kwds)
 }
 
 static PyObject*
-_PyAccountList_find_reference(PyAccountList *self, char *reference)
+_PyAccountList_find_reference(PyAccountList *self, const char *reference)
 {
     if (reference == NULL || strlen(reference) == 0) {
         Py_RETURN_NONE;
@@ -2469,7 +2469,7 @@ PyAccountList_filter(PyAccountList *self, PyObject *args, PyObject *kwds)
     }
     PyObject *res = PySequence_List(self->accounts);
     if (groupname != NULL) {
-        char *tomatch;
+        const char *tomatch;
         if (groupname == Py_None) {
             tomatch = NULL;
         } else {
@@ -2578,7 +2578,7 @@ PyAccountList_find(PyAccountList *self, PyObject *args)
 static PyObject*
 PyAccountList_find_reference(PyAccountList *self, PyObject *reference)
 {
-    char *s = PyUnicode_AsUTF8(reference);
+    const char *s = PyUnicode_AsUTF8(reference);
     if (s == NULL) {
         return NULL;
     }
