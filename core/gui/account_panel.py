@@ -9,7 +9,6 @@ import weakref
 from hscommon.gui.selectable_list import GUISelectableList
 from hscommon.trans import tr
 
-from ..exception import DuplicateAccountNameError
 from ..model.account import AccountType
 from ..model.currency import Currencies
 from .base import MainWindowPanel, LinkedSelectableList
@@ -86,10 +85,7 @@ class AccountPanel(MainWindowPanel):
         )
         if self.can_change_currency:
             kwargs['currency'] = self.currency
-        try:
-            self.document.change_accounts([self.account], **kwargs)
-        except DuplicateAccountNameError:
-            pass
+        self.document.change_accounts([self.account], **kwargs)
 
     # --- Private
     def _init_fields(self):

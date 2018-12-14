@@ -8,7 +8,6 @@ from functools import partial
 
 from ._ccore import Account
 from .sort import sort_string
-from ..exception import DuplicateAccountNameError
 from ..const import Const
 
 class AccountType:
@@ -154,18 +153,6 @@ class AccountList(list):
         list.remove(self, account)
         self.auto_created.discard(account)
 
-    def set_account_name(self, account, new_name):
-        """Rename ``account`` to ``new_name``.
-
-        If this new name already exists in the list, ``DuplicateAccountNameError`` is raised.
-        """
-        if not new_name:
-            return
-        other = self.find(new_name)
-        if (other is not None) and (other is not account):
-            raise DuplicateAccountNameError()
-        account.name = new_name.strip()
-
 
 class GroupList(list):
     """Manages the list of :class:`Group` in a document.
@@ -218,14 +205,3 @@ class GroupList(list):
         account type. So we need to know within which type we check uniqueness.
         """
         return new_name(base_name, partial(self.find, base_type=base_type))
-
-    def set_group_name(self, group, newname):
-        """Rename ``group`` to ``newname``.
-
-        If this new name already exists in the list, ``DuplicateAccountNameError`` is raised.
-        """
-        other = self.find(newname, group.type)
-        if (other is not None) and (other is not group):
-            raise DuplicateAccountNameError()
-        group.name = newname
-

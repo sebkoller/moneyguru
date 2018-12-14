@@ -604,8 +604,11 @@ class Document(BaseDocument, Repeater, GUIObject):
         action = Action(tr('Change account'))
         action.change_accounts(accounts)
         for account in accounts:
-            if name is not NOEDIT:
-                self.accounts.set_account_name(account, name)
+            if name is not NOEDIT and name:
+                other = self.accounts.find(name)
+                if (other is not None) and (other is not account):
+                    return False
+                account.name = name.strip()
             if (type is not NOEDIT) and (type != account.type):
                 account.type = type
                 account.groupname = None
@@ -624,6 +627,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         self._cook()
         self.transactions.clear_cache()
         self.notify('account_changed')
+        return True
 
     def delete_accounts(self, accounts, reassign_to=None):
         """Removes ``accounts`` from the document.
@@ -716,12 +720,16 @@ class Document(BaseDocument, Repeater, GUIObject):
         action.change_groups([group])
         if name is not NOEDIT:
             oldname = group.name
-            self.groups.set_group_name(group, name)
+            other = self.groups.find(name, group.type)
+            if (other is not None) and (other is not group):
+                return False
+            group.name = name
             for account in self.accounts:
                 if account.groupname == oldname:
                     account.groupname = name
         self._undoer.record(action)
         self.notify('account_changed')
+        return True
 
     def delete_groups(self, groups):
         """Removes ``groups`` from the document.

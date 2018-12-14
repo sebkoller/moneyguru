@@ -11,7 +11,6 @@ from hscommon.gui import tree
 from hscommon.trans import tr
 from hscommon.gui.column import Columns
 
-from ..exception import DuplicateAccountNameError
 from ..model.account import ACCOUNT_SORT_KEY
 from .base import ViewChild, SheetViewNotificationsMixin, MESSAGES_DOCUMENT_CHANGED
 
@@ -275,12 +274,11 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
             return
         self.edited = None
         assert node.is_account or node.is_group
-        try:
-            if node.is_account:
-                self.document.change_accounts([node.account], name=node.name)
-            else:
-                self.document.change_group(node.group, name=node.name)
-        except DuplicateAccountNameError:
+        if node.is_account:
+            success = self.document.change_accounts([node.account], name=node.name)
+        else:
+            success = self.document.change_group(node.group, name=node.name)
+        if not success:
             msg = tr("The account '{0}' already exists.").format(node.name)
             # we use _name because we don't want to change self.edited
             node._name = node.account.name if node.is_account else node.group.name
