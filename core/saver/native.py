@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -64,8 +64,8 @@ def save(filename, document_id, properties, accounts, groups, transactions, sche
         attrib['name'] = account.name
         attrib['currency'] = account.currency
         attrib['type'] = account.type
-        if account.group:
-            attrib['group'] = account.group.name
+        if account.groupname:
+            attrib['group'] = account.groupname
         if account.reference is not None:
             attrib['reference'] = account.reference
         if account.account_number:

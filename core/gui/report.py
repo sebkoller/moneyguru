@@ -100,7 +100,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
             account_group = node.group
         elif isinstance(node, Node) and node.is_account:
             account_type = node.account.type
-            account_group = node.account.group
+            account_group = self.document.groups.group_of_account(node.account)
         else:
             # there are only 2 types per report
             path = self.selected_path
@@ -206,7 +206,8 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
         node = self._make_node(group.name)
         node.group = group
         node.is_group = True
-        accounts = self.document.accounts.filter(group=group)
+        groupname = group.name if group else None
+        accounts = self.document.accounts.filter(groupname=groupname)
         for account in sorted(accounts, key=ACCOUNT_SORT_KEY):
             node.append(self.make_account_node(account))
         node.is_excluded = bool(accounts) and set(accounts) <= self.document.excluded_accounts # all accounts excluded
@@ -226,7 +227,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
         node.is_type = True
         for group in sorted(self.document.groups.filter(type=type)):
             node.append(self.make_group_node(group))
-        accounts = self.document.accounts.filter(type=type, group=None)
+        accounts = self.document.accounts.filter(type=type, groupname=None)
         for account in sorted(accounts, key=ACCOUNT_SORT_KEY):
             node.append(self.make_account_node(account))
         accounts = self.document.accounts.filter(type=type)
@@ -322,7 +323,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
             if node.is_type:
                 affected_accounts |= set(self.document.accounts.filter(type=node.type))
             elif node.is_group:
-                affected_accounts |= set(self.document.accounts.filter(group=node.group))
+                affected_accounts |= set(self.document.accounts.filter(groupname=node.group.name))
             elif node.is_account:
                 affected_accounts.add(node.account)
         if affected_accounts:

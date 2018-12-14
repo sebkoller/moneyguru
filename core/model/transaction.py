@@ -333,7 +333,8 @@ class Transaction:
         query_group = query.get('group')
         if query_group is not None:
             for split in self.splits:
-                if split.account and split.account.group and split.account.group.name.lower() in query_group:
+                if split.account and split.account.groupname and \
+                        split.account.groupname.lower() in query_group:
                     return True
         return False
 

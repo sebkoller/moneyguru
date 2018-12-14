@@ -95,15 +95,15 @@ class AccountList(list):
         """Removes all elements from the list."""
         del self[:]
 
-    def filter(self, group=NOT_GIVEN, type=NOT_GIVEN):
-        """Returns all accounts of the given ``type`` and/or ``group``.
+    def filter(self, groupname=NOT_GIVEN, type=NOT_GIVEN):
+        """Returns all accounts of the given ``type`` and/or ``groupname``.
 
-        :param group: :class:`Group`
+        :param groupname: `str`
         :param type: :class:`AccountType`
         """
         result = self
-        if group is not NOT_GIVEN:
-            result = (a for a in result if a.group == group)
+        if groupname is not NOT_GIVEN:
+            result = (a for a in result if a.groupname == groupname)
         if type is not NOT_GIVEN:
             result = (a for a in result if a.type == type)
         return list(result)
@@ -201,6 +201,12 @@ class GroupList(list):
         for item in self:
             if item.name.lower() == lowered and item.type == base_type:
                 return item
+
+    def group_of_account(self, account):
+        if account.groupname:
+            return self.find(account.groupname, account.type)
+        else:
+            return None
 
     def new_name(self, base_name, base_type):
         """Returns a unique name from ``base_name``.

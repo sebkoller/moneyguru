@@ -35,8 +35,9 @@ class _AccountPieChart(PieChart, SheetViewNotificationsMixin):
         data = defaultdict(int)
         for account, amount in account_data:
             name = account.name
-            if (account.group is not None) and (not account.group.expanded):
-                name = account.group.name
+            group = self.document.groups.group_of_account(account)
+            if group and not group.expanded:
+                name = group.name
             data[name] += amount
         return data
 

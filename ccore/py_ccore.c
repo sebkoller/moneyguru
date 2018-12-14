@@ -41,8 +41,8 @@ typedef struct {
     // bank). Used to uniquely match an account in moneyGuru to one being
     // imported from another source.
     PyObject *reference;
-    // Group in which this account belongs. Can be `None` (no group).
-    PyObject *group;
+    // group name in which this account belongs. Can be `None` (no group).
+    PyObject *groupname;
     // Unique account identifier. Can be used instead of the account name in
     // the UI (faster than typing the name if you know your numbers).
     PyObject *account_number;
@@ -1954,18 +1954,18 @@ PyAccount_reference_set(PyAccount *self, PyObject *value)
 }
 
 static PyObject *
-PyAccount_group(PyAccount *self)
+PyAccount_groupname(PyAccount *self)
 {
-    Py_INCREF(self->group);
-    return self->group;
+    Py_INCREF(self->groupname);
+    return self->groupname;
 }
 
 static int
-PyAccount_group_set(PyAccount *self, PyObject *value)
+PyAccount_groupname_set(PyAccount *self, PyObject *value)
 {
-    Py_DECREF(self->group);
-    self->group = value;
-    Py_INCREF(self->group);
+    Py_DECREF(self->groupname);
+    self->groupname = value;
+    Py_INCREF(self->groupname);
     return 0;
 }
 
@@ -2053,8 +2053,8 @@ PyAccount_init(PyAccount *self, PyObject *args, PyObject *kwds)
     Py_INCREF(self->reference);
     self->account_number = PyUnicode_InternFromString("");
     self->notes = PyUnicode_InternFromString("");
-    self->group = Py_None;
-    Py_INCREF(self->group);
+    self->groupname = Py_None;
+    Py_INCREF(self->groupname);
     self->entries = PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
     ((PyEntryList *)self->entries)->entries = PyList_New(0);
     ((PyEntryList *)self->entries)->last_reconciled = NULL;
@@ -2224,8 +2224,8 @@ PyAccount_copy(PyAccount *self)
     Py_INCREF(r->account_number);
     r->notes = self->notes;
     Py_INCREF(r->notes);
-    r->group = self->group;
-    Py_INCREF(r->group);
+    r->groupname = self->groupname;
+    Py_INCREF(r->groupname);
     // We don't deep copy entries. not needed.
     r->entries = PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
     ((PyEntryList *)r->entries)->entries = PySequence_List(((PyEntryList *)self->entries)->entries);
@@ -2244,7 +2244,7 @@ PyAccount_dealloc(PyAccount *self)
 {
     Py_DECREF(self->name);
     Py_DECREF(self->reference);
-    Py_DECREF(self->group);
+    Py_DECREF(self->groupname);
     Py_DECREF(self->account_number);
     Py_DECREF(self->notes);
     Py_DECREF(self->entries);
@@ -2620,7 +2620,7 @@ static PyGetSetDef PyAccount_getseters[] = {
     {"type", (getter)PyAccount_type, (setter)PyAccount_type_set, NULL, NULL},
     {"name", (getter)PyAccount_name, (setter)PyAccount_name_set, NULL, NULL},
     {"reference", (getter)PyAccount_reference, (setter)PyAccount_reference_set, NULL, NULL},
-    {"group", (getter)PyAccount_group, (setter)PyAccount_group_set, NULL, NULL},
+    {"groupname", (getter)PyAccount_groupname, (setter)PyAccount_groupname_set, NULL, NULL},
     {"account_number", (getter)PyAccount_account_number, (setter)PyAccount_account_number_set, NULL, NULL},
     {"inactive", (getter)PyAccount_inactive, (setter)PyAccount_inactive_set, NULL, NULL},
     {"notes", (getter)PyAccount_notes, (setter)PyAccount_notes_set, NULL, NULL},

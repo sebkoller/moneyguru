@@ -296,7 +296,8 @@ class Loader:
                 pass # keep account_currency as self.default_currency
             account = Account(info.name, account_currency, account_type)
             if info.group:
-                account.group = self.groups.find(info.group, account_type)
+                group = self.groups.find(info.group, account_type)
+                account.groupname = group.name
             if info.budget:
                 self.budget_infos.append(BudgetInfo(info.name, info.budget_target, info.budget))
             account.reference = info.reference

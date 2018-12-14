@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-06-24
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -12,7 +10,7 @@ from hscommon.util import extract, flatten
 
 from ..model.recurrence import Spawn
 
-ACCOUNT_SWAP_ATTRS = ['name', 'currency', 'type', 'group', 'account_number', 'notes']
+ACCOUNT_SWAP_ATTRS = ['name', 'currency', 'type', 'groupname', 'account_number', 'notes']
 GROUP_SWAP_ATTRS = ['name', 'type']
 TRANSACTION_SWAP_ATTRS = ['date', 'description', 'payee', 'checkno', 'notes', 'position', 'splits']
 SPLIT_SWAP_ATTRS = ['account', 'amount', 'reconciliation_date']

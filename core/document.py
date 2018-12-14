@@ -608,12 +608,12 @@ class Document(BaseDocument, Repeater, GUIObject):
                 self.accounts.set_account_name(account, name)
             if (type is not NOEDIT) and (type != account.type):
                 account.type = type
-                account.group = None
+                account.groupname = None
             if currency is not NOEDIT:
                 assert not any(e.reconciled for e in account.entries)
                 account.currency = currency
             if group is not NOEDIT:
-                account.group = group
+                account.groupname = group.name if group else None
             if account_number is not NOEDIT:
                 account.account_number = account_number
             if inactive is not NOEDIT:
@@ -678,7 +678,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         """
         name = self.accounts.new_name(tr('New account'))
         account = Account(name, self.default_currency, type)
-        account.group = group
+        account.groupname = group.name if group else None
         action = Action(tr('Add account'))
         action.added_accounts.add(account)
         self._undoer.record(action)
@@ -715,7 +715,11 @@ class Document(BaseDocument, Repeater, GUIObject):
         action = Action(tr('Change group'))
         action.change_groups([group])
         if name is not NOEDIT:
+            oldname = group.name
             self.groups.set_group_name(group, name)
+            for account in self.accounts:
+                if account.groupname == oldname:
+                    account.groupname = name
         self._undoer.record(action)
         self.notify('account_changed')
 
@@ -728,7 +732,8 @@ class Document(BaseDocument, Repeater, GUIObject):
         :param groups: list of :class:`.Group`
         """
         groups = set(groups)
-        accounts = [a for a in self.accounts if a.group in groups]
+        groupnames = {g.name for g in groups}
+        accounts = [a for a in self.accounts if a.groupname in groupnames]
         action = Action(tr('Remove group'))
         action.deleted_groups |= groups
         action.change_accounts(accounts)
@@ -736,7 +741,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         for group in groups:
             self.groups.remove(group)
         for account in accounts:
-            account.group = None
+            account.groupname = None
         self.notify('account_deleted')
 
     def new_group(self, type):
@@ -1268,7 +1273,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             split.reconciliation_date = None
         for account in added_accounts:
             # we don't import groups, and we don't want them to mess our document
-            account.group = None
+            account.groupname = None
             account.name = self.accounts.new_name(account.name)
             self.accounts.add(account)
         if target_account is not ref_account and ref_account.reference is not None:
