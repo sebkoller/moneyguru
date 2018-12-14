@@ -14,7 +14,8 @@ from hscommon.util import nonone, flatten, stripfalse, dedupe
 from hscommon.trans import tr
 
 from ..exception import FileFormatError
-from ..model.account import Account, Group, AccountList, GroupList, AccountType
+from ..model._ccore import Account, AccountList
+from ..model.account import Group, GroupList, AccountType
 from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
 from ..model.budget import Budget
 from ..model.currency import Currencies

@@ -20,7 +20,8 @@ from hscommon.gui.base import GUIObject
 from .const import NOEDIT, DATE_FORMAT_FOR_PREFERENCES
 from .exception import FileFormatError, OperationAborted
 from .loader import native
-from .model.account import Account, Group, AccountList, GroupList, AccountType
+from .model._ccore import Account, AccountList
+from .model.account import Group, GroupList, AccountType
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
 from .model.budget import BudgetList
@@ -151,13 +152,6 @@ class BaseDocument:
                 self.transactions.move_last(transaction)
         self.transactions.clear_cache()
 
-    def _clean_empty_categories(self, from_account=None):
-        for account in list(self.accounts.auto_created):
-            if account is from_account:
-                continue
-            if not account.entries:
-                self.accounts.remove(account)
-
     def _clear(self):
         self.accounts.clear()
         self.transactions.clear()
@@ -200,7 +194,7 @@ class BaseDocument:
             payee=new.payee, checkno=new.checkno, notes=new.notes, global_scope=global_scope
         )
         self._cook(from_date=min_date)
-        self._clean_empty_categories()
+        self.accounts.clean_empty_categories()
 
     def change_transactions(
             self, transactions, date=NOEDIT, description=NOEDIT, payee=NOEDIT, checkno=NOEDIT,
@@ -244,7 +238,7 @@ class BaseDocument:
                 from_=from_, to=to, amount=amount, currency=currency, global_scope=global_scope
             )
         self._cook(from_date=min_date)
-        self._clean_empty_categories()
+        self.accounts.clean_empty_categories()
 
     def delete_transactions(self, transactions, from_account=None, global_scope=False):
         """Removes every transaction in ``transactions`` from the document.
@@ -256,7 +250,7 @@ class BaseDocument:
 
         ``from_account`` represents, in the UI, the account from which this deletion was triggered.
         By specifying it, you will prevent it from being automatically purged by
-        :meth:`_clean_empty_categories` (we don't want to delete an account that is actively being
+        `clean_empty_categories` (we don't want to delete an account that is actively being
         worked on by the user).
 
         :param transactions: a collection of :class:`.Transaction`.
@@ -273,7 +267,7 @@ class BaseDocument:
                 self.transactions.remove(txn)
         min_date = min(t.date for t in transactions)
         self._cook(from_date=min_date)
-        self._clean_empty_categories(from_account=from_account)
+        self.accounts.clean_empty_categories(from_account)
 
     def duplicate_transactions(self, transactions):
         """Create copies of ``transactions`` in the document.
@@ -345,7 +339,7 @@ class BaseDocument:
             payee=payee, checkno=checkno, global_scope=global_scope
         )
         self._cook(from_date=min_date)
-        self._clean_empty_categories()
+        self.accounts.clean_empty_categories()
 
     def delete_entries(self, entries):
         """Remove transactions in which ``entries`` belong from the document's transaction list.

@@ -8,7 +8,8 @@ from datetime import date
 
 from hscommon.testutil import eq_
 
-from ...model.account import Account, Group, AccountList, AccountType, ACCOUNT_SORT_KEY
+from ...model._ccore import Account, AccountList
+from ...model.account import Group, AccountType, ACCOUNT_SORT_KEY
 from ...model.amount import Amount
 from ...model.currency import Currencies
 from ...model.date import MonthRange

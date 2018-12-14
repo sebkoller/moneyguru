@@ -6,7 +6,6 @@
 
 from functools import partial
 
-from ._ccore import Account
 from .sort import sort_string
 from ..const import Const
 
@@ -66,92 +65,6 @@ def new_name(base_name, search_func):
         index += 1
         name = '%s %d' % (base_name, index)
     return name
-
-class AccountList(list):
-    """Manages the list of :class:`Account` in a document.
-
-    Mostly, ensures that name uniqueness is enforced, manages name clashes on new account creation.
-
-    ``default_currency`` is the currency that we want new accounts (created in :meth:`find`) to
-    have.
-
-    Subclasses ``list``.
-    """
-    def __init__(self, default_currency):
-        list.__init__(self)
-        self.default_currency = default_currency
-        self.auto_created = set()
-
-    def add(self, account):
-        """Adds ``account`` to the list.
-
-        Does nothing if its :attr:`Account.reference` is already present in the list.
-        """
-        if self.find_reference(account.reference) is None:
-            list.append(self, account)
-
-    def clear(self):
-        """Removes all elements from the list."""
-        del self[:]
-
-    def filter(self, groupname=NOT_GIVEN, type=NOT_GIVEN):
-        """Returns all accounts of the given ``type`` and/or ``groupname``.
-
-        :param groupname: `str`
-        :param type: :class:`AccountType`
-        """
-        result = self
-        if groupname is not NOT_GIVEN:
-            result = (a for a in result if a.groupname == groupname)
-        if type is not NOT_GIVEN:
-            result = (a for a in result if a.type == type)
-        return list(result)
-
-    def find(self, name, auto_create_type=None):
-        """Returns the first account matching with ``name`` (case insensitive)
-
-        If ``auto_create_type`` is not ``None`` and no account is found, create an account of type
-        ``auto_create_type`` and return it.
-        """
-        normalized = name.lower().strip()
-        for account in self:
-            if account.name.lower().strip() == normalized:
-                return account
-            elif account.account_number and normalized.startswith(account.account_number):
-                return account
-        if auto_create_type:
-            account = Account(name.strip(), self.default_currency, type=auto_create_type)
-            self.add(account)
-            self.auto_created.add(account)
-            return account
-
-    def find_reference(self, reference):
-        """Returns the account with ``reference`` or ``None`` if it isn't there."""
-        if reference is None:
-            return None
-        for account in self:
-            if account.reference == reference:
-                return account
-
-    def has_multiple_currencies(self):
-        """Returns whether there's at least one account with a different currency.
-
-        ... that is, a currency other than ``default_currency``.
-        """
-        return any(a.currency != self.default_currency for a in self)
-
-    def new_name(self, base_name):
-        """Returns a unique name from ``base_name``.
-
-        If ``base_name`` already exists, append an incrementing number to it until we find a unique
-        name.
-        """
-        return new_name(base_name, self.find)
-
-    def remove(self, account):
-        """Removes ``account`` from the list."""
-        list.remove(self, account)
-        self.auto_created.discard(account)
 
 
 class GroupList(list):

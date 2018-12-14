@@ -35,6 +35,7 @@ static PyObject *Amount_Type;
 typedef struct {
     PyObject_HEAD
     Account account;
+    bool autocreated;
     // EntryList belonging to that account. This list is computed from
     // `Document.transactions` by the Oven.
     PyObject *entries;
@@ -42,6 +43,21 @@ typedef struct {
 
 static PyObject *Account_Type;
 #define Account_Check(v) (Py_TYPE(v) == (PyTypeObject *)Account_Type)
+
+/* Manages the list of Account in a document.
+ *
+ * Mostly, ensures that name uniqueness is enforced, manages name clashes on
+ * new account creation.  `default_currency` is the currency that we want new
+ * accounts (created in `find`) to have.
+ */
+typedef struct {
+    PyObject_HEAD
+    Currency *default_currency;
+    PyObject *accounts;
+} PyAccountList;
+
+static PyObject *AccountList_Type;
+#define AccountList_Check(v) (Py_TYPE(v) == (PyTypeObject *)AccountList_Type)
 
 // Assignment of money to an Account within a Transaction.
 typedef struct {
@@ -318,6 +334,18 @@ same_currency(Amount *a, Amount *b)
     } else {
         return a->currency == b->currency;
     }
+}
+
+static PyObject*
+lower_and_strip(PyObject *s)
+{
+    PyObject *lowered = PyObject_CallMethod(s, "lower", NULL);
+    if (lowered == NULL) {
+        return NULL;
+    }
+    PyObject *res = PyObject_CallMethod(lowered, "strip", NULL);
+    Py_DECREF(lowered);
+    return res;
 }
 
 /* Currency functions */
@@ -1971,6 +1999,23 @@ PyAccount_type(PyAccount *self)
 }
 
 static int
+_PyAccount_str2type(const char *s)
+{
+    if (strcmp(s, "asset") == 0) {
+        return ACCOUNT_ASSET;
+    } else if (strcmp(s, "liability") == 0) {
+        return ACCOUNT_LIABILITY;
+    } else if (strcmp(s, "income") == 0) {
+        return ACCOUNT_INCOME;
+    } else if (strcmp(s, "expense") == 0) {
+        return ACCOUNT_EXPENSE;
+    } else {
+        PyErr_SetString(PyExc_ValueError, "invalid type");
+        return -1;
+    }
+}
+
+static int
 PyAccount_type_set(PyAccount *self, PyObject *value)
 {
     PyObject *tmp = PyUnicode_AsASCIIString(value);
@@ -1978,19 +2023,14 @@ PyAccount_type_set(PyAccount *self, PyObject *value)
         return -1;
     }
     char *s = PyBytes_AsString(tmp);
-    if (strcmp(s, "asset") == 0) {
-        self->account.type = ACCOUNT_ASSET;
-    } else if (strcmp(s, "liability") == 0) {
-        self->account.type = ACCOUNT_LIABILITY;
-    } else if (strcmp(s, "income") == 0) {
-        self->account.type = ACCOUNT_INCOME;
-    } else if (strcmp(s, "expense") == 0) {
-        self->account.type = ACCOUNT_EXPENSE;
+    int res = _PyAccount_str2type(s);
+    if (res >= 0) {
+        self->account.type = res;
+        return 0;
     } else {
         PyErr_SetString(PyExc_ValueError, "invalid type");
         return -1;
     }
-    return 0;
 }
 
 static PyObject *
@@ -2047,6 +2087,16 @@ PyAccount_inactive_set(PyAccount *self, PyObject *value)
 }
 
 static PyObject *
+PyAccount_autocreated(PyAccount *self)
+{
+    if (self->autocreated) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject *
 PyAccount_notes(PyAccount *self)
 {
     return strget(self->account.notes);
@@ -2095,6 +2145,7 @@ PyAccount_init(PyAccount *self, PyObject *args, PyObject *kwds)
     a->account_number = "";
     a->notes = "";
     a->groupname = NULL;
+    self->autocreated = false;
     self->entries = PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
     ((PyEntryList *)self->entries)->entries = PyList_New(0);
     ((PyEntryList *)self->entries)->last_reconciled = NULL;
@@ -2271,6 +2322,7 @@ PyAccount_copy(PyAccount *self)
     if (!strclone(&c->groupname, a->groupname)) {
         return NULL;
     }
+    r->autocreated = self->autocreated;
     // We don't deep copy entries. not needed.
     r->entries = PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
     ((PyEntryList *)r->entries)->entries = PySequence_List(((PyEntryList *)self->entries)->entries);
@@ -2294,6 +2346,315 @@ PyAccount_dealloc(PyAccount *self)
     strfree(&a->account_number);
     strfree(&a->notes);
     Py_DECREF(self->entries);
+}
+
+/* PyAccountList */
+static int
+PyAccountList_init(PyAccountList *self, PyObject *args, PyObject *kwds)
+{
+    char *currency;
+
+    static char *kwlist[] = {"default_currency", NULL};
+
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "s", kwlist, &currency);
+    if (!res) {
+        return -1;
+    }
+
+    self->default_currency = getcur(currency);
+    if (self->default_currency == NULL) {
+        return -1;
+    }
+    self->accounts = PyList_New(0);
+    return 0;
+}
+
+static PyObject*
+_PyAccountList_find_reference(PyAccountList *self, char *reference)
+{
+    if (reference == NULL || strlen(reference) == 0) {
+        Py_RETURN_NONE;
+    }
+    Py_ssize_t len = PyList_Size(self->accounts);
+    for (int i=0; i<len; i++) {
+        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
+        char *val = account->account.reference;
+        if (val == NULL) continue;
+        if (strcmp(reference, val) == 0) {
+            Py_INCREF(account);
+            return (PyObject *)account;
+        }
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyAccountList_add(PyAccountList *self, PyAccount *account)
+{
+    if (!Account_Check(account)) {
+        return NULL;
+    }
+    PyObject *found = _PyAccountList_find_reference(self, account->account.reference);
+    if (found == Py_None) {
+        PyList_Append(self->accounts, (PyObject *)account);
+    }
+    Py_DECREF(found);
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
+{
+    PyObject *from_account = NULL;
+
+    if (!PyArg_ParseTuple(args, "|O", &from_account)) {
+        return NULL;
+    }
+    Py_ssize_t len = PyList_Size(self->accounts);
+    for (int i=len-1; i>=0; i--) {
+        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
+        if (!account->autocreated) {
+            continue;
+        } else if ((PyObject *)account == from_account) {
+            continue;
+        } else if (PySequence_Length(account->entries) > 0) {
+            continue;
+        }
+        if (PyList_SetSlice(self->accounts, i, i+1, NULL) == -1) {
+            return NULL;
+        }
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyAccountList_clear(PyAccountList *self, PyObject *args)
+{
+    Py_ssize_t len = PyList_Size(self->accounts);
+    if (PyList_SetSlice(self->accounts, 0, len, NULL) == -1) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyAccountList_filter(PyAccountList *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *groupname = NULL;
+    char *type = NULL;
+    static char *kwlist[] = {"groupname", "type", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Os", kwlist, &groupname, &type)) {
+        return NULL;
+    }
+    PyObject *res = PySequence_List(self->accounts);
+    if (groupname != NULL) {
+        char *tomatch;
+        if (groupname == Py_None) {
+            tomatch = NULL;
+        } else {
+            tomatch = PyUnicode_AsUTF8(groupname);
+            if (tomatch == NULL) {
+                return NULL;
+            }
+        }
+        PyObject *newres = PyList_New(0);
+        Py_ssize_t len = PyList_Size(res);
+        for (int i=0; i<len; i++) {
+            PyAccount *account = (PyAccount *)PyList_GetItem(res, i); // borrowed
+            char *g = account->account.groupname;
+            if (tomatch == NULL) {
+                if (g == NULL) {
+                    PyList_Append(newres, (PyObject *)account);
+                }
+            } else {
+                if (g != NULL && (strcmp(g, tomatch) == 0)) {
+                    PyList_Append(newres, (PyObject *)account);
+                }
+            }
+        }
+        Py_DECREF(res);
+        res = newres;
+    }
+    if (type != NULL) {
+        int t = _PyAccount_str2type(type);
+        if (t < 0) {
+            return NULL;
+        }
+        PyObject *newres = PyList_New(0);
+        Py_ssize_t len = PyList_Size(res);
+        for (int i=0; i<len; i++) {
+            PyAccount *account = (PyAccount *)PyList_GetItem(res, i); // borrowed
+            if (account->account.type == (AccountType)t) {
+                PyList_Append(newres, (PyObject *)account);
+            }
+        }
+        Py_DECREF(res);
+        res = newres;
+    }
+    return res;
+}
+
+static PyObject*
+PyAccountList_find(PyAccountList *self, PyObject *args)
+{
+    PyObject *name;
+    PyObject *type = NULL;
+
+    if (!PyArg_ParseTuple(args, "O|O", &name, &type)) {
+        return NULL;
+    }
+    PyObject *normalized = lower_and_strip(name);
+    if (normalized == NULL) {
+        return NULL;
+    }
+    PyObject *res = NULL;
+    Py_ssize_t len = PyList_Size(self->accounts);
+    for (int i=0; i<len; i++) {
+        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
+        PyObject *aname = PyAccount_name(account);
+        PyObject *anorm = lower_and_strip(aname);
+        Py_DECREF(aname);
+        if (anorm == NULL) {
+            return NULL;
+        }
+        if (PyObject_RichCompareBool(anorm, normalized, Py_EQ) > 0) {
+            res = (PyObject *)account;
+            break;
+        }
+        PyObject *anum = PyAccount_account_number(account);
+        if (PyObject_IsTrue(anum)) {
+            PyObject *startswith = PyObject_CallMethod(
+                normalized, "startswith", "O", anum);
+            Py_DECREF(anum);
+            int r = PyObject_IsTrue(startswith);
+            Py_DECREF(startswith);
+            if (r) {
+                res = (PyObject *)account;
+                break;
+            }
+        } else {
+            Py_DECREF(anum);
+        }
+    }
+    if (res != NULL) {
+        Py_INCREF(res);
+        return res;
+    }
+    if (type == NULL) {
+        Py_RETURN_NONE;
+    }
+    PyAccount *account = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
+    PyObject *aname = PyObject_CallMethod(name, "strip", NULL);
+    PyObject *ccode = PyUnicode_FromString(self->default_currency->code);
+    PyObject *newargs = PyTuple_Pack(3, aname, ccode, type);
+    Py_DECREF(ccode);
+    Py_DECREF(aname);
+    PyObject *kw = PyDict_New();
+    if (PyAccount_init(account, newargs, kw) < 0) {
+        return NULL;
+    }
+    Py_DECREF(kw);
+    Py_DECREF(newargs);
+    account->autocreated = true;
+    PyAccountList_add(self, account);
+    return (PyObject *)account;
+}
+
+static PyObject*
+PyAccountList_find_reference(PyAccountList *self, PyObject *reference)
+{
+    char *s = PyUnicode_AsUTF8(reference);
+    if (s == NULL) {
+        return NULL;
+    }
+    return _PyAccountList_find_reference(self, s);
+}
+
+static PyObject*
+PyAccountList_has_multiple_currencies(PyAccountList *self, PyObject *args)
+{
+    Py_ssize_t len = PyList_Size(self->accounts);
+    for (int i=0; i<len; i++) {
+        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
+        if (account->account.currency != self->default_currency) {
+            Py_RETURN_TRUE;
+        }
+    }
+    Py_RETURN_FALSE;
+}
+
+static PyObject*
+PyAccountList_new_name(PyAccountList *self, PyObject *base_name)
+{
+    PyObject *name = base_name;
+    Py_INCREF(name);
+    int index = 0;
+    while (1) {
+        PyObject *args = PyTuple_Pack(1, name);
+        PyObject *found = PyAccountList_find(self, args);
+        Py_DECREF(args);
+        if (found == NULL) {
+            return NULL;
+        }
+        if (found == Py_None) {
+            Py_DECREF(found);
+            return name;
+        }
+        Py_DECREF(found);
+        Py_DECREF(name);
+        index++;
+        name = PyUnicode_FromFormat("%S %d", base_name, index);
+    }
+}
+
+static PyObject*
+PyAccountList_remove(PyAccountList *self, PyAccount *account)
+{
+    return PyObject_CallMethod(
+        self->accounts, "remove", "O", (PyObject *)account);
+}
+
+static PyObject*
+PyAccountList_iter(PyAccountList *self)
+{
+    return PyObject_GetIter(self->accounts);
+}
+
+static Py_ssize_t
+PyAccountList_len(PyAccountList *self)
+{
+    return PyList_Size(self->accounts);
+}
+
+static PyObject *
+PyAccountList_default_currency(PyAccountList *self)
+{
+    int len;
+    len = strlen(self->default_currency->code);
+    return PyUnicode_DecodeASCII(self->default_currency->code, len, NULL);
+}
+
+static int
+PyAccountList_default_currency_set(PyAccountList *self, PyObject *value)
+{
+    PyObject *tmp = PyUnicode_AsASCIIString(value);
+    if (tmp == NULL) {
+        return -1;
+    }
+    Currency *cur = getcur(PyBytes_AsString(tmp));
+    Py_DECREF(tmp);
+    if (cur == NULL) {
+        return -1;
+    }
+    self->default_currency = cur;
+    return 0;
+}
+
+static void
+PyAccountList_dealloc(PyAccountList *self)
+{
+    Py_DECREF(self->accounts);
 }
 
 /* Oven functions */
@@ -2669,6 +3030,7 @@ static PyGetSetDef PyAccount_getseters[] = {
     {"account_number", (getter)PyAccount_account_number, (setter)PyAccount_account_number_set, NULL, NULL},
     {"inactive", (getter)PyAccount_inactive, (setter)PyAccount_inactive_set, NULL, NULL},
     {"notes", (getter)PyAccount_notes, (setter)PyAccount_notes_set, NULL, NULL},
+    {"autocreated", (getter)PyAccount_autocreated, NULL, NULL, NULL},
     {"entries", (getter)PyAccount_entries, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
 };
@@ -2689,6 +3051,54 @@ PyType_Spec Account_Type_Spec = {
     0,
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     Account_Slots,
+};
+
+static PyMethodDef PyAccountList_methods[] = {
+    // Adds `account` to the list.
+    // Does nothing if its `Account.reference` is already present in the list.
+    {"add", (PyCFunction)PyAccountList_add, METH_O, ""},
+    {"clean_empty_categories", (PyCFunction)PyAccountList_clean_empty_categories, METH_VARARGS, ""},
+    {"clear", (PyCFunction)PyAccountList_clear, METH_NOARGS, ""},
+    // Returns all accounts of the given `type` and/or `groupname`.
+    {"filter", (PyCFunction)PyAccountList_filter, METH_VARARGS|METH_KEYWORDS, ""},
+    // Returns the first account matching with ``name`` (case insensitive)
+    // If `auto_create_type` is specified and no account is found, create an
+    // account of type `auto_create_type` and return it.
+    {"find", (PyCFunction)PyAccountList_find, METH_VARARGS, ""},
+    // Returns the account with `reference` or `None` if it isn't there.
+    {"find_reference", (PyCFunction)PyAccountList_find_reference, METH_O, ""},
+    // Returns whether there's at least one account with a different currency.
+    // ... that is, a currency other than `default_currency`.
+    {"has_multiple_currencies", (PyCFunction)PyAccountList_has_multiple_currencies, METH_NOARGS, ""},
+    // Returns a unique name from ``base_name``.
+    // If `base_name` already exists, append an incrementing number to it until
+    // we find a unique name.
+    {"new_name", (PyCFunction)PyAccountList_new_name, METH_O, ""},
+    {"remove", (PyCFunction)PyAccountList_remove, METH_O, ""},
+    {0, 0, 0, 0},
+};
+
+static PyGetSetDef PyAccountList_getseters[] = {
+    {"default_currency", (getter)PyAccountList_default_currency, (setter)PyAccountList_default_currency_set, NULL, NULL},
+    {0, 0, 0, 0, 0},
+};
+
+static PyType_Slot AccountList_Slots[] = {
+    {Py_tp_init, PyAccountList_init},
+    {Py_tp_methods, PyAccountList_methods},
+    {Py_tp_getset, PyAccountList_getseters},
+    {Py_sq_length, PyAccountList_len},
+    {Py_tp_iter, PyAccountList_iter},
+    {Py_tp_dealloc, PyAccountList_dealloc},
+    {0, 0},
+};
+
+PyType_Spec AccountList_Type_Spec = {
+    "_ccore.AccountList",
+    sizeof(PyAccountList),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    AccountList_Slots,
 };
 
 static struct PyModuleDef CCoreDef = {
@@ -2740,6 +3150,9 @@ PyInit__ccore(void)
 
     Account_Type = PyType_FromSpec(&Account_Type_Spec);
     PyModule_AddObject(m, "Account", Account_Type);
+
+    AccountList_Type = PyType_FromSpec(&AccountList_Type_Spec);
+    PyModule_AddObject(m, "AccountList", AccountList_Type);
     return m;
 }
 

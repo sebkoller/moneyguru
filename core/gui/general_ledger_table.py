@@ -1,14 +1,12 @@
-# Created By: Virgil Dupras
-# Created On: 2010-09-09
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2018 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from hscommon.trans import trget
 from hscommon.gui.column import Column
-from ..model.account import sort_accounts
+from ..model.account import ACCOUNT_SORT_KEY
 from .table import Row
 from .entry_table_base import EntryTableBase, EntryTableRow, TotalRow, PreviousBalanceRow
 
@@ -19,7 +17,7 @@ class AccountRow(Row):
         Row.__init__(self, table)
         self.account = account
         self.account_name = account.name
-    
+
 
 class GeneralLedgerRow(EntryTableRow):
     @property
@@ -28,7 +26,7 @@ class GeneralLedgerRow(EntryTableRow):
             return EntryTableRow.balance.fget(self)
         else:
             return ''
-    
+
 
 class GeneralLedgerTable(EntryTableBase):
     SAVENAME = 'GeneralLedgerTable'
@@ -45,11 +43,10 @@ class GeneralLedgerTable(EntryTableBase):
         Column('balance', display=trcol("Balance")),
     ]
     ENTRY_ROWCLASS = GeneralLedgerRow
-    
+
     # --- Override
     def _fill(self):
-        accounts = self.document.accounts
-        sort_accounts(accounts)
+        accounts = sorted(self.document.accounts, key=ACCOUNT_SORT_KEY)
         for account in accounts:
             rows = self._get_account_rows(account)
             if not rows:
@@ -57,25 +54,25 @@ class GeneralLedgerTable(EntryTableBase):
             self.append(AccountRow(self, account))
             for row in rows:
                 self.append(row)
-    
+
     def _get_current_account(self):
         row = self.selected_row
         return row.account if row is not None else None
-    
+
     def _get_totals_currency(self):
         return self.document.default_currency
-    
+
     # --- Public
     def is_account_row(self, row):
         return isinstance(row, AccountRow)
-    
+
     def is_bold_row(self, row):
         return isinstance(row, (TotalRow, PreviousBalanceRow))
-    
+
     # --- Event Handlers
     def date_range_changed(self):
         self.refresh(refresh_view=False)
         self._update_selection()
         self.view.refresh()
         self.view.show_selected_row()
-    
+

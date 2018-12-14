@@ -19,7 +19,7 @@ from .base import MainWindowGUIObject, LinkedSelectableList
 from .import_table import ImportTable
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 from core.document import ImportDocument
-from core.model.account import Account
+from core.model._ccore import Account
 
 
 DAY = 'day'

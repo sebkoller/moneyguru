@@ -59,7 +59,7 @@ def test_account_and_entry_values(loader):
     Currencies.register('PLN', 'PLN')
     loader.parse(testdata.filepath('moneyguru', 'simple.moneyguru'))
     loader.load()
-    accounts = loader.accounts
+    accounts = list(loader.accounts)
     eq_(len(accounts), 3)
     account = accounts[0]
     eq_(account.name, 'Account 1')

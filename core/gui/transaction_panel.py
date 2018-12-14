@@ -9,7 +9,8 @@ from datetime import date
 
 from hscommon.util import first
 
-from ..model.account import Account, AccountType
+from ..model._ccore import Account
+from ..model.account import AccountType
 from ..model.transaction import Split, Transaction
 from .base import MainWindowPanel
 from .split_table import SplitTable

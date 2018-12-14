@@ -78,7 +78,7 @@ def test_transactions_usd_account():
 def test_reference_desjardins():
     # OFX IDs are stored in the accounts and entries.
     loader = loader_desjardins()
-    account = loader.accounts[0]
+    account = list(loader.accounts)[0]
     eq_(account.reference, '700000100|0389347|815-30219-12345-EOP')
     transaction = loader.transaction_infos[0]
     eq_(transaction.reference, 'Th3DJACES')
@@ -115,7 +115,7 @@ def loader_fortis():
 def test_reference_fortis():
     # Fortis ofx files don't have a branch id. The reference should exist even without it.
     loader = loader_fortis()
-    account = loader.accounts[0]
+    account = list(loader.accounts)[0]
     eq_(account.reference, 'FORTIS||001-5587496-84')
     transaction = loader.transaction_infos[0]
     eq_(transaction.reference, '20080026')
@@ -131,10 +131,11 @@ def test_ccstmtrs():
     # Sometimes, instead of STMTRS tags, we have CCSTMTRS tags and they need to be correctly
     # handled
     loader = loader_ccstmtrs()
-    eq_(len(loader.accounts), 2)
-    account = loader.accounts[0]
+    accounts = list(loader.accounts)
+    eq_(len(accounts), 2)
+    account = accounts[0]
     eq_(account.name, '4XXXXXXXXXXXXXX5')
     eq_(len(account.entries), 2)
-    account = loader.accounts[1]
+    account = accounts[1]
     eq_(account.name, '4XXXXXXXXXXXXXX9')
     eq_(len(account.entries), 3)
