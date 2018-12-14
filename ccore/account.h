@@ -17,6 +17,19 @@ typedef struct {
     // Default currency of the account. Mostly determines how amounts are
     // displayed when viewing its entries listing.
     Currency *currency;
+    // Name of the account. Must be unique in the whole document.
+    char *name;
+    // External reference number (like, for example, a reference given by a
+    // bank). Used to uniquely match an account in moneyGuru to one being
+    // imported from another source.
+    char *reference;
+    // group name in which this account belongs. Can be `None` (no group).
+    char *groupname;
+    // Unique account identifier. Can be used instead of the account name in
+    // the UI (faster than typing the name if you know your numbers).
+    char *account_number;
+    // Freeform notes about the account.
+    char *notes;
     // Inactive accounts don't show up in auto-complete.
     bool inactive;
 } Account;

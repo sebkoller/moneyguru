@@ -35,19 +35,6 @@ static PyObject *Amount_Type;
 typedef struct {
     PyObject_HEAD
     Account account;
-    // Name of the account. Must be unique in the whole document.
-    PyObject *name;
-    // External reference number (like, for example, a reference given by a
-    // bank). Used to uniquely match an account in moneyGuru to one being
-    // imported from another source.
-    PyObject *reference;
-    // group name in which this account belongs. Can be `None` (no group).
-    PyObject *groupname;
-    // Unique account identifier. Can be used instead of the account name in
-    // the UI (faster than typing the name if you know your numbers).
-    PyObject *account_number;
-    // Freeform notes about the account.
-    PyObject *notes;
     // EntryList belonging to that account. This list is computed from
     // `Document.transactions` by the Oven.
     PyObject *entries;
@@ -137,6 +124,93 @@ pydate2time(PyObject *pydate)
     date.tm_mon = PyDateTime_GET_MONTH(pydate) - 1;
     date.tm_mday = PyDateTime_GET_DAY(pydate);
     return mktime(&date);
+}
+
+/* Frees a string created through strset()
+ *
+ * Returns false on error
+ */
+static bool
+strfree(char **dst)
+{
+    if (dst == NULL) {
+        // not supposed to happen
+        return false;
+    }
+    if (*dst == NULL || *dst[0] == '\0') {
+        // nothing to free
+        return true;
+    }
+    free(*dst);
+    *dst = NULL;
+    return true;
+}
+
+/* Sets `dst` to the UTF-8 repr of `src`.
+ *
+ * This manages lifecycle of `dst`: it mallocs and frees `dst`, except when
+ * `dst` is "", then it doesn't free it. Symmetrically, when `src` is empty,
+ * we set `dst` to "", a static value, not mallocated.
+ *
+ * If `dst` points to NULL, we consider us to be in a "initial set" situation,
+ * so we free nothing.
+ *
+ * Returns false on error.
+ */
+static bool
+strset(char **dst, PyObject *src)
+{
+    if (!strfree(dst)) {
+        return false;
+    }
+    if (src == Py_None) {
+        *dst = NULL;
+        return true;
+    }
+    Py_ssize_t len;
+    char *s = PyUnicode_AsUTF8AndSize(src, &len);
+    if (s == NULL) {
+        return false;
+    }
+    if (len) {
+        *dst = malloc(len+1);
+        strncpy(*dst, s, len+1);
+    } else {
+        *dst = "";
+    }
+    return true;
+}
+
+static PyObject*
+strget(const char *src)
+{
+    if (src == NULL) {
+        Py_RETURN_NONE;
+    } else if (src[0] == '\0') {
+        return PyUnicode_InternFromString("");
+    } else {
+        return PyUnicode_FromString(src);
+    }
+}
+
+static bool
+strclone(char **dst, const char *src)
+{
+    if (!strfree(dst)) {
+        return false;
+    }
+    if (src == NULL) {
+        *dst = NULL;
+        return true;
+    }
+    int len = strlen(src);
+    if (len) {
+        *dst = malloc(len+1);
+        strncpy(*dst, src, len+1);
+    } else {
+        *dst = "";
+    }
+    return true;
 }
 
 static Currency*
@@ -1004,8 +1078,7 @@ PySplit_account_name(PySplit *self)
     if ((PyObject *)self->account == Py_None) {
         return PyUnicode_InternFromString("");
     } else {
-        Py_INCREF(self->account->name);
-        return self->account->name;
+        strget(self->account->account.name);
     }
 }
 
@@ -1864,17 +1937,13 @@ PyEntryList_dealloc(PyEntryList *self)
 static PyObject *
 PyAccount_name(PyAccount *self)
 {
-    Py_INCREF(self->name);
-    return self->name;
+    return strget(self->account.name);
 }
 
 static int
 PyAccount_name_set(PyAccount *self, PyObject *value)
 {
-    Py_DECREF(self->name);
-    self->name = value;
-    Py_INCREF(self->name);
-    return 0;
+    return strset(&self->account.name, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -1940,49 +2009,37 @@ PyAccount_type_set(PyAccount *self, PyObject *value)
 static PyObject *
 PyAccount_reference(PyAccount *self)
 {
-    Py_INCREF(self->reference);
-    return self->reference;
+    return strget(self->account.reference);
 }
 
 static int
 PyAccount_reference_set(PyAccount *self, PyObject *value)
 {
-    Py_DECREF(self->reference);
-    self->reference = value;
-    Py_INCREF(self->reference);
-    return 0;
+    return strset(&self->account.reference, value) ? 0 : -1;
 }
 
 static PyObject *
 PyAccount_groupname(PyAccount *self)
 {
-    Py_INCREF(self->groupname);
-    return self->groupname;
+    return strget(self->account.groupname);
 }
 
 static int
 PyAccount_groupname_set(PyAccount *self, PyObject *value)
 {
-    Py_DECREF(self->groupname);
-    self->groupname = value;
-    Py_INCREF(self->groupname);
-    return 0;
+    return strset(&self->account.groupname, value) ? 0 : -1;
 }
 
 static PyObject *
 PyAccount_account_number(PyAccount *self)
 {
-    Py_INCREF(self->account_number);
-    return self->account_number;
+    return strget(self->account.account_number);
 }
 
 static int
 PyAccount_account_number_set(PyAccount *self, PyObject *value)
 {
-    Py_DECREF(self->account_number);
-    self->account_number = value;
-    Py_INCREF(self->account_number);
-    return 0;
+    return strset(&self->account.account_number, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -2005,17 +2062,13 @@ PyAccount_inactive_set(PyAccount *self, PyObject *value)
 static PyObject *
 PyAccount_notes(PyAccount *self)
 {
-    Py_INCREF(self->notes);
-    return self->notes;
+    return strget(self->account.notes);
 }
 
 static int
 PyAccount_notes_set(PyAccount *self, PyObject *value)
 {
-    Py_DECREF(self->notes);
-    self->notes = value;
-    Py_INCREF(self->notes);
-    return 0;
+    return strset(&self->account.notes, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -2044,17 +2097,17 @@ PyAccount_init(PyAccount *self, PyObject *args, PyObject *kwds)
     if (PyAccount_type_set(self, type) < 0) {
         return -1;
     }
-    self->account.id = account_newid();
-    self->account.inactive = false;
-
-    self->name = name;
-    Py_INCREF(name);
-    self->reference = Py_None;
-    Py_INCREF(self->reference);
-    self->account_number = PyUnicode_InternFromString("");
-    self->notes = PyUnicode_InternFromString("");
-    self->groupname = Py_None;
-    Py_INCREF(self->groupname);
+    Account *a = &self->account;
+    a->name = NULL;
+    if (!strset(&a->name, name)) {
+        return -1;
+    }
+    a->id = account_newid();
+    a->inactive = false;
+    a->reference = NULL;
+    a->account_number = "";
+    a->notes = "";
+    a->groupname = NULL;
     self->entries = PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
     ((PyEntryList *)self->entries)->entries = PyList_New(0);
     ((PyEntryList *)self->entries)->last_reconciled = NULL;
@@ -2064,14 +2117,7 @@ PyAccount_init(PyAccount *self, PyObject *args, PyObject *kwds)
 static PyObject *
 PyAccount_repr(PyAccount *self)
 {
-    PyObject *r, *fmt, *args;
-
-    args = Py_BuildValue("(O)", self->name);
-    fmt = PyUnicode_FromString("Account(%r)");
-    r = PyUnicode_Format(fmt, args);
-    Py_DECREF(fmt);
-    Py_DECREF(args);
-    return r;
+    return PyUnicode_FromFormat("Account(%s)", self->account.name);
 }
 
 static Py_hash_t
@@ -2200,11 +2246,11 @@ PyAccount_is_income_statement_account(PyAccount *self, PyObject *args)
 static PyObject*
 PyAccount_combined_display(PyAccount *self)
 {
-    if (PyUnicode_GetLength(self->account_number) > 0) {
-        return PyUnicode_FromFormat("%S - %S", self->account_number, self->name);
+    if (self->account.account_number[0] != '\0') {
+        return PyUnicode_FromFormat(
+            "%s - %s", self->account.account_number, self->account.name);
     } else {
-        Py_INCREF(self->name);
-        return self->name;
+        return PyAccount_name(self);
     }
 }
 
@@ -2212,20 +2258,32 @@ static PyObject *
 PyAccount_copy(PyAccount *self)
 {
     PyAccount *r = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
-    r->account.id = self->account.id;
-    r->account.type = self->account.type;
-    r->account.currency = self->account.currency;
-    r->account.inactive = self->account.inactive;
-    r->name = self->name;
-    Py_INCREF(r->name);
-    r->reference = self->reference;
-    Py_INCREF(r->reference);
-    r->account_number = self->account_number;
-    Py_INCREF(r->account_number);
-    r->notes = self->notes;
-    Py_INCREF(r->notes);
-    r->groupname = self->groupname;
-    Py_INCREF(r->groupname);
+    Account *a = &self->account;
+    Account *c = &r->account;
+    c->type = a->type;
+    c->currency = a->currency;
+    c->name = NULL;
+    if (!strclone(&c->name, a->name)) {
+        return NULL;
+    }
+    c->id = a->id;
+    c->inactive = a->inactive;
+    c->reference = NULL;
+    if (!strclone(&c->reference, a->reference)) {
+        return NULL;
+    }
+    c->account_number = NULL;
+    if (!strclone(&c->account_number, a->account_number)) {
+        return NULL;
+    }
+    c->notes = NULL;
+    if (!strclone(&c->notes, a->notes)) {
+        return NULL;
+    }
+    c->groupname = NULL;
+    if (!strclone(&c->groupname, a->groupname)) {
+        return NULL;
+    }
     // We don't deep copy entries. not needed.
     r->entries = PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
     ((PyEntryList *)r->entries)->entries = PySequence_List(((PyEntryList *)self->entries)->entries);
@@ -2242,11 +2300,12 @@ PyAccount_deepcopy(PyAccount *self, PyObject *args, PyObject *kwds)
 static void
 PyAccount_dealloc(PyAccount *self)
 {
-    Py_DECREF(self->name);
-    Py_DECREF(self->reference);
-    Py_DECREF(self->groupname);
-    Py_DECREF(self->account_number);
-    Py_DECREF(self->notes);
+    Account *a = &self->account;
+    strfree(&a->name);
+    strfree(&a->reference);
+    strfree(&a->groupname);
+    strfree(&a->account_number);
+    strfree(&a->notes);
     Py_DECREF(self->entries);
 }
 
