@@ -631,6 +631,8 @@ class ImportWindow(MainWindowGUIObject):
                 target_account = getfirst(
                     t for t in self.target_accounts if t.reference == account.reference
                 )
+            # Make sure that account names don't clash with target document.
+            account.name = self.document.accounts.new_name(account.name)
             self.panes.append(AccountPane(import_document,
                                           account,
                                           target_account))

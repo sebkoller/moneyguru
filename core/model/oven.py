@@ -108,7 +108,7 @@ class Oven:
         # XXX now that budget's base date is the start date, isn't this untrue?
         tocook = [t for t in txns if from_date <= t.date]
         tocook.sort(key=attrgetter('date'))
-        oven_cook_txns(tocook)
+        oven_cook_txns(self._accounts, tocook)
         self.transactions += tocook
         self._cooked_until = until_date
 

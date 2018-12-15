@@ -658,6 +658,7 @@ class Document(BaseDocument, Repeater, GUIObject):
                         budget.account = reassign_to
                 elif budget.target is account:
                     budget.target = reassign_to
+                budget.reset_spawn_cache()
             self.accounts.remove(account)
         self._cook()
         self.notify('account_deleted')
@@ -1183,8 +1184,9 @@ class Document(BaseDocument, Repeater, GUIObject):
                 self._properties[propname] = loader.properties[propname]
         for group in loader.groups:
             self.groups.append(group)
-        for account in loader.accounts:
-            self.accounts.add(account)
+        self.accounts = loader.accounts
+        self.oven._accounts = self.accounts
+        self._undoer._accounts = self.accounts
         for transaction in loader.transactions:
             self.transactions.add(transaction, position=transaction.position)
         for recurrence in loader.schedules:
@@ -1245,7 +1247,12 @@ class Document(BaseDocument, Repeater, GUIObject):
         added_accounts = set()
         to_unreconcile = set()
         if target_account is ref_account and target_account not in self.accounts:
-            added_accounts.add(target_account)
+            found = self.accounts.find(target_account.name)
+            if found:
+                target_account = found
+            else:
+                target_account = self.accounts.create_from(target_account)
+                added_accounts.add(target_account)
         for entry, ref in matches:
             if ref is not None:
                 for split in ref.transaction.splits:
@@ -1259,6 +1266,7 @@ class Document(BaseDocument, Repeater, GUIObject):
                     continue
                 account = self.accounts.find(split.account.name)
                 if account is None:
+                    split.account = self.accounts.create_from(split.account)
                     added_accounts.add(split.account)
                 else:
                     split.account = account
@@ -1272,14 +1280,11 @@ class Document(BaseDocument, Repeater, GUIObject):
 
         for split in to_unreconcile:
             split.reconciliation_date = None
-        for account in added_accounts:
-            # we don't import groups, and we don't want them to mess our document
-            account.groupname = None
-            account.name = self.accounts.new_name(account.name)
-            self.accounts.add(account)
         if target_account is not ref_account and ref_account.reference is not None:
             target_account.reference = ref_account.reference
         for entry, ref in matches:
+            for split in entry.transaction.splits:
+                assert not split.account or split.account in self.accounts
             if ref is not None:
                 ref.transaction.date = entry.date
                 ref.split.amount = entry.split.amount

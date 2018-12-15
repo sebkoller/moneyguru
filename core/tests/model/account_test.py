@@ -71,10 +71,11 @@ class TestOneAccount:
             Transaction(date(2008, 1, 3), account=self.account, amount=Amount(70, 'CAD')),
             Transaction(date(2008, 1, 31), account=self.account, amount=Amount(2, 'USD')),
         ])
-        oven = Oven(accounts, transactions, [], [])
-        oven.cook(date.min, date.max)
+        self.oven = Oven(accounts, transactions, [], [])
+        self.oven.cook(date.min, date.max)
 
     def test_balance(self):
+        self.account.entries.balance(date(2007, 12, 31), self.account.currency)
         eq_(
             self.account.entries.balance(date(2007, 12, 31), self.account.currency),
             Amount(20, 'USD'))

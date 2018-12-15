@@ -138,11 +138,15 @@ class Undoer:
     def _add_auto_created_accounts(self, transaction):
         for split in transaction.splits:
             if split.account is not None and split.account not in self._accounts:
-                self._accounts.add(split.account)
+                split.account = self._accounts.create_from(split.account)
 
     def _do_adds(self, accounts, groups, transactions, schedules, budgets):
         for account in accounts:
-            self._accounts.add(account)
+            new = self._accounts.create_from(account)
+            for txn in transactions:
+                for split in txn.splits:
+                    if split.account == account:
+                        split.account = new
         for group in groups:
             self._groups.append(group)
         for txn in transactions:
@@ -172,10 +176,11 @@ class Undoer:
 
     def _do_deletes(self, accounts, groups, transactions, schedules, budgets):
         for account in accounts:
-            try: # XXX this has no test. I got this crash without being able to figure how to reproduce it.
-                self._accounts.remove(account)
-            except ValueError:
-                pass
+            found = self._accounts.find(account.name)
+            if found:
+                self._accounts.remove(found)
+            else:
+                raise Exception("not supposed to happen")
         for group in groups:
             self._groups.remove(group)
         for txn in transactions:

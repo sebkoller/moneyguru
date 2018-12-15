@@ -38,7 +38,8 @@ class ChangeStructure(ImportActionPlugin):
 
     def perform_action(self, import_document, transactions, panes, selected_rows=None):
 
-        imbalance_account = import_document.accounts.find('imbalance account', AccountType.Expense)
+        imbalance_account = import_document.accounts.create(
+            'imbalance account', 'USD', AccountType.Expense)
 
         for transaction in transactions:
             if len(transaction.splits) == 2:

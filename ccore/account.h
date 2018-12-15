@@ -12,6 +12,8 @@ typedef enum {
 } AccountType;
 
 typedef struct {
+    // unique ID within an AccountList. Will not be reused. If 0, it means
+    // that the account is invalid (deleted)
     int id;
     AccountType type;
     // Default currency of the account. Mostly determines how amounts are
@@ -32,10 +34,16 @@ typedef struct {
     char *notes;
     // Inactive accounts don't show up in auto-complete.
     bool inactive;
+    // Was auto created through txn editing. Might be auto-purged
+    bool autocreated;
 } Account;
 
-int
-account_newid();
+typedef struct {
+    Currency *default_currency;
+    int id_counter;
+    int count;
+    Account *accounts;
+} AccountList;
 
 void
 account_normalize_amount(Account *account, Amount *dst);
@@ -51,3 +59,15 @@ account_is_debit(Account *account);
 
 bool
 account_is_income_statement(Account *account);
+
+void
+account_deinit(Account *account);
+
+void
+accounts_init(AccountList *accounts, int initial_count, Currency *default_currency);
+
+Account*
+accounts_create(AccountList *accounts);
+
+void
+accounts_deinit(AccountList *accounts);
