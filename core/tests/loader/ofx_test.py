@@ -30,8 +30,9 @@ def test_amounts_in_invalid_currency_account():
     loader.parse(testdata.filepath('ofx', 'invalid_currency.ofx'))
     loader.load()
     account = loader.accounts.find('815-30219-11111-EOP')
-    eq_(len(account.entries), 3)
-    entry = next(iter(account.entries))
+    entries = loader.accounts.entries_for_account(account)
+    eq_(len(entries), 3)
+    entry = next(iter(entries))
     eq_(entry.amount, Amount(0.02, 'USD'))
 
 def test_blank_line_ofx_attrs():
@@ -60,8 +61,9 @@ def test_accounts_desjardins():
 def test_transactions_usd_account():
     loader = loader_desjardins()
     account = loader.accounts.find('815-30219-11111-EOP')
-    eq_(len(account.entries), 3)
-    entries = list(account.entries)
+    entries = loader.accounts.entries_for_account(account)
+    eq_(len(entries), 3)
+    entries = list(entries)
     entry = entries[0]
     eq_(entry.date, date(2008, 1, 31))
     eq_(entry.description, 'Intérêt sur EOP/')
@@ -99,8 +101,9 @@ def test_accounts_ing():
 def test_entries_ing():
     loader = loader_ing()
     account = loader.accounts.find('123456')
-    eq_(len(account.entries), 1)
-    entry = next(iter(account.entries))
+    entries = loader.accounts.entries_for_account(account)
+    eq_(len(entries), 1)
+    entry = next(iter(entries))
     eq_(entry.date, date(2005, 9, 23))
     eq_(entry.description, 'Dépôt')
     eq_(entry.amount, Amount(100, 'CAD'))
@@ -135,7 +138,9 @@ def test_ccstmtrs():
     eq_(len(accounts), 2)
     account = accounts[0]
     eq_(account.name, '4XXXXXXXXXXXXXX5')
-    eq_(len(account.entries), 2)
+    entries = loader.accounts.entries_for_account(account)
+    eq_(len(entries), 2)
     account = accounts[1]
     eq_(account.name, '4XXXXXXXXXXXXXX9')
-    eq_(len(account.entries), 3)
+    entries = loader.accounts.entries_for_account(account)
+    eq_(len(entries), 3)

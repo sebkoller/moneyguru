@@ -13,7 +13,7 @@ import os.path as op
 from functools import wraps
 
 from hscommon.notify import Repeater
-from hscommon.util import nonone, allsame, dedupe, extract, first
+from hscommon.util import nonone, allsame, dedupe, extract, first, flatten
 from hscommon.trans import tr
 from hscommon.gui.base import GUIObject
 
@@ -602,12 +602,13 @@ class Document(BaseDocument, Repeater, GUIObject):
                 other = self.accounts.find(name)
                 if (other is not None) and (other is not account):
                     return False
-                account.name = name.strip()
+                self.accounts.rename_account(account, name.strip())
             if (type is not NOEDIT) and (type != account.type):
                 account.type = type
                 account.groupname = None
             if currency is not NOEDIT:
-                assert not any(e.reconciled for e in account.entries)
+                entries = self.accounts.entries_for_account(account)
+                assert not any(e.reconciled for e in entries)
                 account.currency = currency
             if group is not NOEDIT:
                 account.groupname = group.name if group else None
@@ -632,9 +633,16 @@ class Document(BaseDocument, Repeater, GUIObject):
         :param accounts: List of :class:`.Account` to be removed.
         :param accounts: :class:`.Account` to use for reassignment.
         """
+        # Recording the "Remove account" action into the Undoer is quite something...
         action = Action(tr('Remove account'))
         accounts = set(accounts)
-        action.delete_accounts(accounts, reassign=reassign_to is not None)
+        action.deleted_accounts |= accounts
+        all_entries = flatten(self.accounts.entries_for_account(a) for a in accounts)
+        if reassign_to is None:
+            transactions = {e.transaction for e in all_entries if not isinstance(e.transaction, Spawn)}
+            transactions = {t for t in transactions if not t.affected_accounts() - accounts}
+            action.deleted_transactions |= transactions
+        action.change_splits(e.split for e in all_entries)
         affected_schedules = [s for s in self.schedules if accounts & s.affected_accounts()]
         for schedule in affected_schedules:
             action.change_schedule(schedule)
@@ -1243,16 +1251,26 @@ class Document(BaseDocument, Repeater, GUIObject):
         # PREPARATION
         # We have to look which transactions are added, which are changed. We have to see which
         # accounts will be added. Those with a name clash must be replaced (in the splits).
+
         added_transactions = set()
         added_accounts = set()
         to_unreconcile = set()
-        if target_account is ref_account and target_account not in self.accounts:
-            found = self.accounts.find(target_account.name)
+
+        def internalize(account):
+            if account.reference:
+                found = self.accounts.find_reference(account.reference)
+                if found:
+                    return found
+            found = self.accounts.find(account.name)
             if found:
-                target_account = found
+                return found
             else:
-                target_account = self.accounts.create_from(target_account)
-                added_accounts.add(target_account)
+                result = self.accounts.create_from(account)
+                added_accounts.add(result)
+                return result
+
+        if target_account is ref_account and target_account not in self.accounts:
+            target_account = internalize(target_account)
         for entry, ref in matches:
             if ref is not None:
                 for split in ref.transaction.splits:
@@ -1264,12 +1282,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             for split in entry.splits:
                 if split.account is None:
                     continue
-                account = self.accounts.find(split.account.name)
-                if account is None:
-                    split.account = self.accounts.create_from(split.account)
-                    added_accounts.add(split.account)
-                else:
-                    split.account = account
+                split.account = internalize(split.account)
             if target_account is not ref_account:
                 entry.split.account = target_account
         action = Action(tr('Import'))

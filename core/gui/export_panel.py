@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-10-24
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -43,7 +41,10 @@ class ExportPanel(GUIPanel):
             daterange = self.document.date_range
         else:
             daterange = None
-        save_func(self.export_path, accounts, daterange=daterange)
+        account_pairs = [
+            (a, self.document.accounts.entries_for_account(a))
+            for a in accounts]
+        save_func(self.export_path, account_pairs, daterange=daterange)
 
     # --- Public
     def is_exported(self, name):

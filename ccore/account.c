@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "account.h"
 #include "amount.h"
 
@@ -22,6 +23,26 @@ strfree(char **dst)
     }
     free(*dst);
     *dst = NULL;
+    return true;
+}
+
+static bool
+strclone(char **dst, const char *src)
+{
+    if (!strfree(dst)) {
+        return false;
+    }
+    if (src == NULL) {
+        *dst = NULL;
+        return true;
+    }
+    int len = strlen(src);
+    if (len) {
+        *dst = malloc(len+1);
+        strncpy(*dst, src, len+1);
+    } else {
+        *dst = "";
+    }
     return true;
 }
 
@@ -56,6 +77,45 @@ bool
 account_is_income_statement(Account *account)
 {
     return account->type == ACCOUNT_INCOME || account->type == ACCOUNT_EXPENSE;
+}
+
+bool
+account_copy(Account *dst, const Account *src)
+{
+    if (dst == src) {
+        // not supposed to be tried
+        return false;
+    }
+    if (src->id < 1) {
+        // not supposed to be tried
+        return false;
+    }
+    dst->type = src->type;
+    dst->currency = src->currency;
+    dst->name = NULL;
+    if (!strclone(&dst->name, src->name)) {
+        return false;
+    }
+    dst->inactive = src->inactive;
+    dst->reference = NULL;
+    if (!strclone(&dst->reference, src->reference)) {
+        return false;
+    }
+    dst->account_number = NULL;
+    if (!strclone(&dst->account_number, src->account_number)) {
+        return false;
+    }
+    dst->notes = NULL;
+    if (!strclone(&dst->notes, src->notes)) {
+        return false;
+    }
+    dst->groupname = NULL;
+    if (!strclone(&dst->groupname, src->groupname)) {
+        return false;
+    }
+    dst->autocreated = src->autocreated;
+    dst->deleted = src->deleted;
+    return true;
 }
 
 void
@@ -111,7 +171,7 @@ accounts_create(AccountList *accounts)
 }
 
 Account *
-accounts_find_by_name(AccountList *accounts, const char *name)
+accounts_find_by_name(const AccountList *accounts, const char *name)
 {
     if (name == NULL) {
         return NULL;
@@ -125,6 +185,20 @@ accounts_find_by_name(AccountList *accounts, const char *name)
         }
     }
     return NULL;
+}
+
+bool
+accounts_copy(AccountList *dst, const AccountList *src)
+{
+    accounts_init(dst, src->count, src->default_currency);
+    dst->id_counter = src->id_counter;
+    for (int i=0; i<dst->count; i++) {
+        if (src->accounts[i].id < 1) continue;
+        if (!account_copy(&dst->accounts[i], &src->accounts[i])) {
+            return false;
+        }
+    }
+    return true;
 }
 
 void

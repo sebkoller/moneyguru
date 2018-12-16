@@ -64,6 +64,9 @@ account_is_debit(Account *account);
 bool
 account_is_income_statement(Account *account);
 
+bool
+account_copy(Account *dst, const Account *src);
+
 void
 account_deinit(Account *account);
 
@@ -74,7 +77,11 @@ Account*
 accounts_create(AccountList *accounts);
 
 Account*
-accounts_find_by_name(AccountList *accounts, const char *name);
+accounts_find_by_name(const AccountList *accounts, const char *name);
+
+// dst must be uninitalized
+bool
+accounts_copy(AccountList *dst, const AccountList *src);
 
 void
 accounts_deinit(AccountList *accounts);

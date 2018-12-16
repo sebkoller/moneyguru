@@ -75,7 +75,8 @@ class AccountPanel(MainWindowPanel):
             self.currency_list.select(Currencies.index(self.currency))
         except IndexError:
             pass
-        self.can_change_currency = not any(e.reconciled for e in account.entries)
+        entries = self.document.accounts.entries_for_account(account)
+        self.can_change_currency = not any(e.reconciled for e in entries)
         self.account = account # for the save() assert
 
     def _save(self):

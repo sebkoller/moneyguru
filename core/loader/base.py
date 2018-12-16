@@ -325,11 +325,14 @@ class Loader:
                     str_amount += split_info.currency
                 amount = self.parse_amount(str_amount, self.default_currency)
                 auto_create_type = AccountType.Income if amount >= 0 else AccountType.Expense
-                split_info.account = (
-                    self.accounts.find(split_info.account, auto_create_type)
-                    if split_info.account
-                    else None
-                )
+                aname = split_info.account
+                if aname:
+                    split_info.account = self.accounts.find(aname)
+                    if split_info.account is None:
+                        split_info.account = self.accounts.create(
+                            aname, self.default_currency, auto_create_type)
+                else:
+                    split_info.account = None
                 currency = split_info.account.currency if split_info.account is not None else self.default_currency
                 split_info.amount = self.parse_amount(str_amount, currency)
                 if split_info.amount:

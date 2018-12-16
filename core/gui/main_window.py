@@ -272,7 +272,8 @@ class MainWindow(Repeater, GUIObject):
 
     def _visible_entries_for_account(self, account):
         date_range = self.document.date_range
-        entries = [e for e in account.entries if e.date in date_range]
+        entries = self.document.accounts.entries_for_account(account)
+        entries = [e for e in entries if e.date in date_range]
         query_string = self.document.filter_string
         filter_type = self.document.filter_type
         if query_string:

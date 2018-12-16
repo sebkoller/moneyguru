@@ -175,7 +175,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
         anodes = [n for n in selected_nodes if n.is_account]
         if anodes:
             accounts = [n.account for n in anodes]
-            if any(a.entries for a in accounts):
+            if any(self.document.accounts.entries_for_account(a) for a in accounts):
                 panel = self.parent_view.get_account_reassign_panel()
                 panel.load(accounts)
             else:

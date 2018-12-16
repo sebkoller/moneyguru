@@ -6,11 +6,11 @@
 
 import copy
 
-from hscommon.util import extract, flatten
+from hscommon.util import extract
 
 from ..model.recurrence import Spawn
 
-ACCOUNT_SWAP_ATTRS = ['name', 'currency', 'type', 'groupname', 'account_number', 'notes']
+ACCOUNT_SWAP_ATTRS = ['currency', 'type', 'groupname', 'account_number', 'notes']
 GROUP_SWAP_ATTRS = ['name', 'type']
 TRANSACTION_SWAP_ATTRS = ['date', 'description', 'payee', 'checkno', 'notes', 'position', 'splits']
 SPLIT_SWAP_ATTRS = ['account', 'amount', 'reconciliation_date']
@@ -93,25 +93,6 @@ class Action:
         """Record imminent changes to ``splits``."""
         self.changed_splits |= set((s, copy.copy(s)) for s in splits)
 
-    def delete_accounts(self, accounts, reassign=False):
-        """Record the imminent deletion of ``accounts``.
-
-        Use this method rather than directly modifying the ``deleted_accounts`` set because we also
-        trigger the modification of all transasctions related to that account (their splits are
-        going to be reassigned).
-
-        If transactions are going to be reassigned, set the ``reassign`` flag so that we don't
-        consider orphaned txns as deleted.
-        """
-        accounts = set(accounts)
-        self.deleted_accounts |= accounts
-        all_entries = flatten(a.entries for a in accounts)
-        if not reassign:
-            transactions = {e.transaction for e in all_entries if not isinstance(e.transaction, Spawn)}
-            transactions = {t for t in transactions if not t.affected_accounts() - accounts}
-            self.deleted_transactions |= transactions
-        self.change_splits(e.split for e in all_entries)
-
 
 class Undoer:
     """Manages undo/redo operation for a document.
@@ -158,8 +139,15 @@ class Undoer:
             self._budgets.append(budget)
 
     def _do_changes(self, action):
+        new_changed_accounts = set()
         for account, old in action.changed_accounts:
-            swapvalues(account, old, ACCOUNT_SWAP_ATTRS)
+            newold = copy.copy(account)
+            if account.name != old.name:
+                self._accounts.rename_account(account, old.name)
+            for attrname in ACCOUNT_SWAP_ATTRS:
+                setattr(account, attrname, getattr(old, attrname))
+            new_changed_accounts.add((account, newold))
+        action.changed_accounts = new_changed_accounts
         for group, old in action.changed_groups:
             swapvalues(group, old, GROUP_SWAP_ATTRS)
         for txn, old in action.changed_transactions:
@@ -194,8 +182,12 @@ class Undoer:
     def _remove_auto_created_account(self, transaction):
         for split in transaction.splits:
             account = split.account
+            if account is not None:
+                entries = self._accounts.entries_for_account(account)
+            else:
+                entries = []
             # if len(account.entries) == 1, it means that the transactions was last
-            if account and account.autocreated and len(account.entries) == 1:
+            if account and account.autocreated and len(entries) == 1:
                 self._accounts.remove(account)
 
     # --- Public

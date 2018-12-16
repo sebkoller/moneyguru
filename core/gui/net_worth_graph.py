@@ -14,8 +14,11 @@ class NetWorthGraph(BalanceGraph, SheetViewNotificationsMixin):
         BalanceGraph.__init__(self, networth_view)
 
     def _balance_for_date(self, date):
-        balances = (a.entries.balance(date, self._currency) for a in self._accounts)
-        return sum(balances)
+        def bal(a):
+            entries = self.document.accounts.entries_for_account(a)
+            return entries.balance(date, self._currency)
+
+        return sum(map(bal, self._accounts))
 
     def _budget_for_date(self, date):
         date_range = DateRange(date.min, date)

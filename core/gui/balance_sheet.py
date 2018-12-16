@@ -30,14 +30,15 @@ class BalanceSheet(Report):
     # --- Override
     def _compute_account_node(self, node):
         account = node.account
+        entries = self.document.accounts.entries_for_account(account)
         date_range = self.document.date_range
         start_date = date_range.start
         end_date = date_range.end
         currency = self.document.default_currency
-        start_amount = account.normal_balance(start_date - timedelta(1))
-        start_amount_native = account.normal_balance(start_date - timedelta(1), currency)
-        end_amount = account.normal_balance(end_date)
-        end_amount_native = account.normal_balance(end_date, currency)
+        start_amount = entries.normal_balance(start_date - timedelta(1))
+        start_amount_native = entries.normal_balance(start_date - timedelta(1), currency)
+        end_amount = entries.normal_balance(end_date)
+        end_amount_native = entries.normal_balance(end_date, currency)
         budget_date_range = DateRange(date.today(), end_date)
         budgeted_amount = self.document.budgeted_amount_for_target(account, budget_date_range)
         budgeted_amount_native = convert_amount(budgeted_amount, currency, date_range.end)

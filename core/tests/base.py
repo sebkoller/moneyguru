@@ -694,7 +694,14 @@ def compare_apps(first, second, qif_mode=False):
             if not qif_mode:
                 for attr in ['currency', 'account_number', 'inactive', 'notes']:
                     eq_(getattr(account1, attr), getattr(account2, attr))
-            eq_(len(account1.entries), len(account2.entries))
+            if hasattr(first, 'entrycounts'):
+                # We have a doc copy created in undo_test
+                expected_count = first.entrycounts[account1.name]
+            else:
+                entries = first.accounts.entries_for_account(account1)
+                expected_count = len(entries)
+            entries = second.accounts.entries_for_account(account2)
+            eq_(expected_count, len(entries))
         except AssertionError:
             raise
     eq_(len(first.transactions), len(second.transactions))

@@ -21,7 +21,13 @@ class ProfitGraph(BarGraph, SheetViewNotificationsMixin):
         self.document.oven.continue_cooking(date_range.end) # it's possible that the overflow is not cooked
         accounts = {a for a in self.document.accounts if a.is_income_statement_account()}
         accounts = accounts - self.document.excluded_accounts
-        cash_flow = -sum(a.entries.cash_flow(date_range, self.document.default_currency) for a in accounts)
+
+        def getentries(a):
+            return self.document.accounts.entries_for_account(a)
+
+        cash_flow = -sum(
+            getentries(a).cash_flow(date_range, self.document.default_currency)
+            for a in accounts)
         budgeted_amount = self.document.budgeted_amount_for_target(None, date_range)
         return cash_flow + budgeted_amount
 

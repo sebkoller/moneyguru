@@ -41,8 +41,9 @@ class ActionSelectionOptions:
 
 
 class AccountPane:
-    def __init__(self, import_document, account, target_account):
+    def __init__(self, import_document, document, account, target_account):
         self.import_document = import_document
+        self.document = document
         self.parsing_date_format = self.import_document.parsing_date_format
         self.account = account
         self.binding_plugins = [
@@ -51,7 +52,8 @@ class AccountPane:
         ]
         self._selected_target = target_account
         self.name = account.name
-        self.count = len(account.entries)
+        entries = import_document.accounts.entries_for_account(account)
+        self.count = len(entries)
         self.matches = [] # [[ref, imported]]
         self.max_day = 31
         self.max_month = 12
@@ -228,7 +230,8 @@ class AccountPane:
         This is called by the owning ``ImportWindow`` class.
         """
         self.account = self.import_document.accounts.find(self.name)
-        import_entries = list(self.account.entries) if not import_entries else import_entries
+        entries = self.import_document.accounts.entries_for_account(self.account)
+        import_entries = list(entries) if not import_entries else import_entries
         existing_entries = self.existing_entries
 
         for plugin in self.binding_plugins:
@@ -290,14 +293,17 @@ class AccountPane:
 
     @property
     def import_entries(self):
-        return list(self.import_document.accounts.find(self.name).entries)
+        account = self.import_document.accounts.find(self.name)
+        entries = self.import_document.accounts.entries_for_account(account)
+        return list(entries)
 
     @property
     def existing_entries(self):
         if not self.selected_target:
             return []
         else:
-            return list(self.selected_target.entries)
+            entries = self.document.accounts.entries_for_account(self.selected_target)
+            return list(entries)
 
 
 class ImportWindow(MainWindowGUIObject):
@@ -366,7 +372,10 @@ class ImportWindow(MainWindowGUIObject):
         pane_groups = unique_groups(panes, lambda p: p.import_document)
         selected_group = None
         for ps in pane_groups:
-            transactions = [e.transaction for p in ps for e in p.account.entries]
+            def getentries(p):
+                return p.import_document.accounts.entries_for_account(p.account)
+
+            transactions = [e.transaction for p in ps for e in getentries(p)]
             transactions = dedupe(transactions)
             can_perform_action = import_action.can_perform_action(ps[0].import_document, transactions, ps)
             if not can_perform_action:
@@ -546,8 +555,7 @@ class ImportWindow(MainWindowGUIObject):
             if acct is None:
                 return None
             if acct.name not in name2account:
-                copied_account = self._tmpaccounts.create(
-                    acct.name, acct.currency, acct.type)
+                copied_account = copy.copy(acct)
                 copied_account.reference = acct.reference
                 name2account[acct.name] = copied_account
                 return copied_account
@@ -618,12 +626,23 @@ class ImportWindow(MainWindowGUIObject):
         import_document = ImportDocument(self.app)
 
         self.refresh_targets()
-        accounts = [a for a in self.mainwindow.loader.accounts if a.is_balance_sheet_account() and a.entries]
 
         parsing_date_format = DateFormat.from_sysformat(self.mainwindow.loader.parsing_date_format)
         import_document.reset_from_loader(self.mainwindow.loader, parsing_date_format)
         import_document.cook()
+
+        def getentries(a):
+            return import_document.accounts.entries_for_account(a)
+
+        accounts = [
+            a for a in self.mainwindow.loader.accounts
+            if a.is_balance_sheet_account() if getentries(a)]
+
         for account in accounts:
+            # Make sure that account names don't clash with target document.
+            newname = self.document.accounts.new_name(account.name)
+            if newname != account.name:
+                import_document.accounts.rename_account(account, newname)
             target_account = None
             if self.mainwindow.loader.target_account is not None:
                 target_account = self.mainwindow.loader.target_account
@@ -631,11 +650,8 @@ class ImportWindow(MainWindowGUIObject):
                 target_account = getfirst(
                     t for t in self.target_accounts if t.reference == account.reference
                 )
-            # Make sure that account names don't clash with target document.
-            account.name = self.document.accounts.new_name(account.name)
-            self.panes.append(AccountPane(import_document,
-                                          account,
-                                          target_account))
+            self.panes.append(AccountPane(
+                import_document, self.document, account, target_account))
         # XXX Should replace by _update_selected_pane()?
 
         self._always_perform_actions()

@@ -36,8 +36,7 @@ class PanelWithTransaction(MainWindowPanel):
                 account_type = split.account.type
             else:
                 account_type = AccountType.Expense if split.amount < 0 else AccountType.Income
-            split.account = self._tmpaccounts.create(
-                account_name, self.document.default_currency, account_type)
+            split.account = self._tmpaccounts.find(account_name, account_type)
         else:
             split.account = None
         split.amount = amount

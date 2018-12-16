@@ -1,4 +1,4 @@
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -26,12 +26,13 @@ class IncomeStatement(Report):
     # --- Override
     def _compute_account_node(self, node):
         account = node.account
+        entries = self.document.accounts.entries_for_account(account)
         date_range = self.document.date_range
         currency = self.document.default_currency
-        cash_flow = account.normal_cash_flow(date_range)
-        cash_flow_native = account.normal_cash_flow(date_range, currency)
-        last_cash_flow = account.normal_cash_flow(date_range.prev())
-        last_cash_flow_native = account.normal_cash_flow(date_range.prev(), currency)
+        cash_flow = entries.normal_cash_flow(date_range)
+        cash_flow_native = entries.normal_cash_flow(date_range, currency)
+        last_cash_flow = entries.normal_cash_flow(date_range.prev())
+        last_cash_flow_native = entries.normal_cash_flow(date_range.prev(), currency)
         remaining = self.document.budgets.normal_amount_for_account(account, date_range)
         remaining_native = self.document.budgets.normal_amount_for_account(account, date_range, currency)
         delta = cash_flow - last_cash_flow

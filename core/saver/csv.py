@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-10-26
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,13 +9,13 @@ import csv
 from ..model.amount import format_amount
 from ..model.date import format_date
 
-def save(filename, accounts, daterange=None):
+# account_pairs: (account, entries)
+def save(filename, account_pairs, daterange=None):
     fp = open(filename, 'wt', encoding='utf-8')
     writer = csv.writer(fp, delimiter=';', quotechar='"')
     HEADER = ['Account', 'Date', 'Description', 'Payee', 'Check #', 'Transfer', 'Amount', 'Currency']
     writer.writerow(HEADER)
-    for account in accounts:
-        entries = account.entries
+    for account, entries in account_pairs:
         if daterange is not None:
             entries = [e for e in entries if e.date in daterange]
         for entry in entries:

@@ -175,7 +175,8 @@ class EntryTableRow(BaseEntryTableRow):
 
     def _get_autofill_rows(self):
         original = self.entry
-        entries = sorted(self.account.entries, key=attrgetter('mtime'), reverse=True)
+        entries = self.table.document.accounts.entries_for_account(self.account)
+        entries = sorted(entries, key=attrgetter('mtime'), reverse=True)
         for entry in entries:
             if entry is original:
                 continue
@@ -385,7 +386,8 @@ class EntryTableBase(TransactionTableBase):
         result = []
         date_range = self.document.date_range
         if account.is_balance_sheet_account():
-            prev_entry = account.entries.last_entry(date_range.start-ONE_DAY)
+            entries = self.document.accounts.entries_for_account(account)
+            prev_entry = entries.last_entry(date_range.start-ONE_DAY)
             if prev_entry is not None:
                 balance = prev_entry.balance_with_budget
                 rbalance = prev_entry.reconciled_balance

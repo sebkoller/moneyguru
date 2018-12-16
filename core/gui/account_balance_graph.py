@@ -17,7 +17,8 @@ class AccountBalanceGraph(BalanceGraph):
     def _balance_for_date(self, date):
         if self._account is None:
             return 0
-        entry = self._account.entries.last_entry(date)
+        entries = self.document.accounts.entries_for_account(self._account)
+        entry = entries.last_entry(date)
         return entry.normal_balance() if entry else 0
 
     def _budget_for_date(self, date):
