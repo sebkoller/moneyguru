@@ -2266,32 +2266,36 @@ PyAccount_combined_display(PyAccount *self)
 }
 
 static bool
-_account_copy(Account *dst, Account *src)
+_account_copy(Account *dst, const Account *src)
 {
+    if (dst == src) {
+        return false;
+    }
     dst->type = src->type;
     dst->currency = src->currency;
     dst->name = NULL;
     if (!strclone(&dst->name, src->name)) {
-        return NULL;
+        return false;
     }
     dst->inactive = src->inactive;
     dst->reference = NULL;
     if (!strclone(&dst->reference, src->reference)) {
-        return NULL;
+        return false;
     }
     dst->account_number = NULL;
     if (!strclone(&dst->account_number, src->account_number)) {
-        return NULL;
+        return false;
     }
     dst->notes = NULL;
     if (!strclone(&dst->notes, src->notes)) {
-        return NULL;
+        return false;
     }
     dst->groupname = NULL;
     if (!strclone(&dst->groupname, src->groupname)) {
-        return NULL;
+        return false;
     }
     dst->autocreated = src->autocreated;
+    return true;
 }
 
 static PyObject *
@@ -2387,6 +2391,7 @@ PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
         } else if (PySequence_Length(account->entries) > 0) {
             continue;
         }
+        account->account->deleted = true;
         if (PyList_SetSlice(self->accounts, i, i+1, NULL) == -1) {
             return NULL;
         }
@@ -2398,6 +2403,10 @@ static PyObject*
 PyAccountList_clear(PyAccountList *self, PyObject *args)
 {
     Py_ssize_t len = PyList_Size(self->accounts);
+    for (int i=len-1; i>=0; i--) {
+        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
+        account->account->deleted = true;
+    }
     if (PyList_SetSlice(self->accounts, 0, len, NULL) == -1) {
         return NULL;
     }
@@ -2431,6 +2440,7 @@ PyAccountList_create(PyAccountList *self, PyObject *args)
     a->account_number = "";
     a->notes = "";
     a->autocreated = false;
+    a->deleted = false;
     account->entries = (PyObject *)_PyEntryList_new();
     PyList_Append(self->accounts, (PyObject *)account);
     return (PyObject *)account;
@@ -2459,10 +2469,21 @@ PyAccountList_create_from(PyAccountList *self, PyAccount *account)
     Py_DECREF(found);
     PyAccount *res = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
     account->owned = false;
-    res->account = accounts_create(&self->alist);
-    _account_copy(res->account, account->account);
-    // we don't import groups, and we don't want them to mess our document
-    strfree(&res->account->groupname);
+    // if an account (deleted or not) with the same name is present, let's
+    // reuse the instance.
+    res->account = accounts_find_by_name(&self->alist, account->account->name);
+    if (res->account == NULL) {
+        // no account with the same name, we create a new account.
+        res->account = accounts_create(&self->alist);
+        _account_copy(res->account, account->account);
+    } else if (res->account != account->account) {
+        // We found an Account with the same name, but this Account's strings
+        // must be deallocated before we copy over them.
+        // This is not done if both PyAccounts point to the same Account.
+        account_deinit(res->account);
+        _account_copy(res->account, account->account);
+    }
+    res->account->deleted = false;
     res->entries = (PyObject *)_PyEntryList_new();
     PyList_Append(self->accounts, (PyObject *)res);
     return (PyObject *)res;
@@ -2633,9 +2654,51 @@ PyAccountList_new_name(PyAccountList *self, PyObject *base_name)
     }
 }
 
+// Borrowed
+static PyAccount*
+_PyAccountList_find_by_inner_pointer(PyAccountList *self, Account *p)
+{
+    Py_ssize_t len = PyList_Size(self->accounts);
+    for (int i=0; i<len; i++) {
+        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
+        if (account->account == p) {
+            return account;
+        }
+    }
+    return NULL;
+}
+
 static PyObject*
 PyAccountList_remove(PyAccountList *self, PyAccount *account)
 {
+    if (!Account_Check(account)) {
+        PyErr_SetString(PyExc_ValueError, "not an account");
+        return NULL;
+    }
+    char *name = ((PyAccount *)account)->account->name;
+    if (name == NULL) {
+        PyErr_SetString(PyExc_ValueError, "deleted account");
+        return NULL;
+    }
+    Account *a = accounts_find_by_name(&self->alist,name);
+    if (a == NULL) {
+        PyErr_SetString(PyExc_ValueError, "account not in list");
+        return NULL;
+    }
+    if (a->deleted) {
+        PyErr_SetString(PyExc_ValueError, "account already deleted");
+        return NULL;
+    }
+    PyAccount *todelete = _PyAccountList_find_by_inner_pointer(self, a); // borrowed
+    if (todelete == NULL) {
+        PyErr_SetString(PyExc_ValueError, "something's wrong");
+        return NULL;
+    }
+    if (PyObject_CallMethod(self->accounts, "remove", "O", todelete) == NULL) {
+        return NULL;
+    }
+    a->deleted = true;
+    Py_RETURN_NONE;
     // If account is owned, it will take care of its deallocation. If it's not
     // owned, we should deallocate it now to free a slot in its AccountList.
     /* if (!account->owned) {
@@ -2646,8 +2709,6 @@ PyAccountList_remove(PyAccountList *self, PyAccount *account)
     // end up with tons of references to accounts that might have been deleted.
     // In the near future, I hope to straigten out this situation, bur for now,
     // we simply don't delete them.
-    return PyObject_CallMethod(
-        self->accounts, "remove", "O", (PyObject *)account);
 }
 
 static PyObject*
@@ -2660,6 +2721,24 @@ static Py_ssize_t
 PyAccountList_len(PyAccountList *self)
 {
     return PyList_Size(self->accounts);
+}
+
+static int
+PyAccountList_contains(PyAccountList *self, PyObject *account)
+{
+    if (!Account_Check(account)) {
+        return 0;
+    }
+    char *name = ((PyAccount *)account)->account->name;
+    if (name == NULL) {
+        return 0;
+    }
+    Account *a = accounts_find_by_name(&self->alist, name);
+    if ((a != NULL) && !a->deleted){
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 static PyObject *
@@ -3139,6 +3218,7 @@ static PyType_Slot AccountList_Slots[] = {
     {Py_tp_methods, PyAccountList_methods},
     {Py_tp_getset, PyAccountList_getseters},
     {Py_sq_length, PyAccountList_len},
+    {Py_sq_contains, PyAccountList_contains},
     {Py_tp_iter, PyAccountList_iter},
     {Py_tp_dealloc, PyAccountList_dealloc},
     {0, 0},

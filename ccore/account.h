@@ -36,6 +36,10 @@ typedef struct {
     bool inactive;
     // Was auto created through txn editing. Might be auto-purged
     bool autocreated;
+    // Was deleted. Not the same thing as having id=0 because a deleted account
+    // is not a free slot. We want to keep information in it intact for various
+    // reasons.
+    bool deleted;
 } Account;
 
 typedef struct {
@@ -68,6 +72,9 @@ accounts_init(AccountList *accounts, int initial_count, Currency *default_curren
 
 Account*
 accounts_create(AccountList *accounts);
+
+Account*
+accounts_find_by_name(AccountList *accounts, const char *name);
 
 void
 accounts_deinit(AccountList *accounts);

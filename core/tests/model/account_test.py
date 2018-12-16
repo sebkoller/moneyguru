@@ -4,6 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
+import copy
 from datetime import date
 
 from hscommon.testutil import eq_
@@ -90,4 +91,18 @@ class TestOneAccount:
 
         # Each entry is converted using the entry's day rate.
         eq_(self.account.entries.cash_flow(range, 'CAD'), Amount(201.40, 'CAD'))
+
+def test_accountlist_contains():
+    # AccountList membership is based on account name, not Account instances.
+    # Account name tests are exact though, so it's not the exact same thing
+    # as in find()
+    al = AccountList('CAD')
+    a1 = al.create('foo', 'CAD', AccountType.Asset)
+    assert a1 in al
+    a2 = copy.copy(a1)
+    assert a2 in al
+    # we can also remove by with another PyAccount instance
+    al.remove(a2)
+    assert a1 not in al
+    assert a2 not in al
 

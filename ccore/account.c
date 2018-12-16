@@ -110,6 +110,23 @@ accounts_create(AccountList *accounts)
     return res;
 }
 
+Account *
+accounts_find_by_name(AccountList *accounts, const char *name)
+{
+    if (name == NULL) {
+        return NULL;
+    }
+    for (int i=0; i<accounts->count; i++) {
+        // id == 0 means deleted or not initialized
+        if (accounts->accounts[i].id > 0) {
+            if (strcmp(name, accounts->accounts[i].name) == 0) {
+                return &accounts->accounts[i];
+            }
+        }
+    }
+    return NULL;
+}
+
 void
 accounts_deinit(AccountList *accounts)
 {

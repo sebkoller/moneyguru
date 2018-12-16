@@ -1570,6 +1570,9 @@ class ImportDocument(BaseDocument):
         self.clear()
         self.parsing_date_format = parsing_date_format
         self.accounts = loader.accounts
+        # we don't import groups, and we don't want them to mess our document
+        for account in self.accounts:
+            account.groupname = None
         self.transactions = loader.transactions
         self.schedules = loader.schedules
         self.budgets = loader.budgets
