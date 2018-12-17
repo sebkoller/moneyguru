@@ -63,7 +63,9 @@ static PyObject *AccountList_Type;
 // Assignment of money to an Account within a Transaction.
 typedef struct {
     PyObject_HEAD
-    Split split;
+    Split *split;
+    // If true, we own the Split instance and have to free it.
+    bool owned;
 } PySplit;
 
 static PyObject *Split_Type;
@@ -1227,7 +1229,7 @@ PyAccount_dealloc(PyAccount *self)
 static PyObject *
 PySplit_reconciliation_date(PySplit *self)
 {
-    return time2pydate(self->split.reconciliation_date);
+    return time2pydate(self->split->reconciliation_date);
 }
 
 static int
@@ -1237,7 +1239,7 @@ PySplit_reconciliation_date_set(PySplit *self, PyObject *value)
     if (res == 1) {
         return -1;
     } else {
-        self->split.reconciliation_date = res;
+        self->split->reconciliation_date = res;
         return 0;
     }
 }
@@ -1245,34 +1247,34 @@ PySplit_reconciliation_date_set(PySplit *self, PyObject *value)
 static PyObject *
 PySplit_memo(PySplit *self)
 {
-    return _strget(self->split.memo);
+    return _strget(self->split->memo);
 }
 
 static int
 PySplit_memo_set(PySplit *self, PyObject *value)
 {
-    return _strset(&self->split.memo, value) ? 0 : -1;
+    return _strset(&self->split->memo, value) ? 0 : -1;
 }
 
 static PyObject *
 PySplit_reference(PySplit *self)
 {
-    return _strget(self->split.reference);
+    return _strget(self->split->reference);
 }
 
 static int
 PySplit_reference_set(PySplit *self, PyObject *value)
 {
-    return _strset(&self->split.reference, value) ? 0 : -1;
+    return _strset(&self->split->reference, value) ? 0 : -1;
 }
 
 static PyObject *
 PySplit_account(PySplit *self)
 {
-    if (self->split.account == NULL) {
+    if (self->split->account == NULL) {
         Py_RETURN_NONE;
     } else {
-        return (PyObject *)_PyAccount_from_account(self->split.account);
+        return (PyObject *)_PyAccount_from_account(self->split->account);
     }
 }
 
@@ -1288,8 +1290,8 @@ PySplit_account_set(PySplit *self, PyObject *value)
         PyAccount *account = (PyAccount *)value;
         newval = account->account;
     }
-    if (newval != self->split.account) {
-        self->split.account = newval;
+    if (newval != self->split->account) {
+        self->split->account = newval;
         PySplit_reconciliation_date_set(self, Py_None);
     }
     return 0;
@@ -1298,7 +1300,7 @@ PySplit_account_set(PySplit *self, PyObject *value)
 static PyObject *
 PySplit_amount(PySplit *self)
 {
-    Split *split = &self->split;
+    Split *split = self->split;
     return create_amount(split->amount.val, split->amount.currency);
 }
 
@@ -1308,27 +1310,27 @@ PySplit_amount_set(PySplit *self, PyObject *value)
     Amount *amount;
 
     amount = get_amount(value);
-    if (self->split.amount.currency && amount->currency != self->split.amount.currency) {
+    if (self->split->amount.currency && amount->currency != self->split->amount.currency) {
         PySplit_reconciliation_date_set(self, Py_None);
     }
-    amount_copy(&self->split.amount, amount);
+    amount_copy(&self->split->amount, amount);
     return 0;
 }
 
 static PyObject *
 PySplit_account_name(PySplit *self)
 {
-    if (self->split.account == NULL) {
+    if (self->split->account == NULL) {
         return PyUnicode_InternFromString("");
     } else {
-        _strget(self->split.account->name);
+        _strget(self->split->account->name);
     }
 }
 
 static PyObject *
 PySplit_credit(PySplit *self)
 {
-    Amount *a = &self->split.amount;
+    Amount *a = &self->split->amount;
     if (a->val < 0) {
         return create_amount(-a->val, a->currency);
     } else {
@@ -1339,7 +1341,7 @@ PySplit_credit(PySplit *self)
 static PyObject *
 PySplit_debit(PySplit *self)
 {
-    Amount *a = &self->split.amount;
+    Amount *a = &self->split->amount;
     if (a->val > 0) {
         return create_amount(a->val, a->currency);
     } else {
@@ -1350,7 +1352,7 @@ PySplit_debit(PySplit *self)
 static PyObject *
 PySplit_reconciled(PySplit *self)
 {
-    if (self->split.reconciliation_date == 0) {
+    if (self->split->reconciliation_date == 0) {
         Py_RETURN_FALSE;
     } else {
         Py_RETURN_TRUE;
@@ -1372,8 +1374,10 @@ PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
+    self->split = malloc(sizeof(Split));
+    self->owned = true;
     amount = get_amount(amount_p);
-    split_init(&self->split, NULL, amount);
+    split_init(self->split, NULL, amount);
     if (PySplit_account_set(self, account) != 0) {
         return -1;
     }
@@ -1390,8 +1394,8 @@ PySplit_repr(PySplit *self)
         return NULL;
     }
     args = Py_BuildValue(
-        "(Ois)", aname, self->split.amount.val,
-        self->split.amount.currency->code);
+        "(Ois)", aname, self->split->amount.val,
+        self->split->amount.currency->code);
     fmt = PyUnicode_FromString("Split(%r Amount(%r, %r))");
     r = PyUnicode_Format(fmt, args);
     Py_DECREF(fmt);
@@ -1402,7 +1406,11 @@ PySplit_repr(PySplit *self)
 static void
 PySplit_dealloc(PySplit *self)
 {
-    split_deinit(&self->split);
+    if (self->owned) {
+        split_deinit(self->split);
+        free(self->split);
+        self->split = NULL;
+    }
 }
 
 static PyObject *
@@ -1417,7 +1425,7 @@ PySplit_copy_from(PySplit *self, PyObject *args)
         PyErr_SetString(PyExc_TypeError, "not a split");
         return NULL;
     }
-    if (!split_copy(&self->split, &((PySplit *)other)->split)) {
+    if (!split_copy(self->split, ((PySplit *)other)->split)) {
         PyErr_SetString(PyExc_ValueError, "something wen't wrong");
         return NULL;
     }
@@ -1436,7 +1444,7 @@ PySplit_is_on_same_side(PySplit *self, PyObject *args)
         PyErr_SetString(PyExc_TypeError, "not a split");
         return NULL;
     }
-    if ((self->split.amount.val > 0) == (((PySplit *)other)->split.amount.val > 0)) {
+    if ((self->split->amount.val > 0) == (((PySplit *)other)->split->amount.val > 0)) {
         Py_RETURN_TRUE;
     } else {
         Py_RETURN_FALSE;
@@ -1447,6 +1455,9 @@ static PyObject *
 PySplit_copy(PySplit *self)
 {
     PySplit *r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
+    r->split = malloc(sizeof(Split));
+    r->owned = true;
+    split_init(r->split, NULL, amount_zero());
     PyObject *args = PyTuple_Pack(1, self);
     PySplit_copy_from(r, args);
     Py_DECREF(args);
@@ -1705,7 +1716,7 @@ PyEntry_change_amount(PyEntry *self, PyObject *args)
     Py_DECREF(splits);
     PySplit_amount_set(self->split, amount_p);
     Amount *amount = get_amount(amount_p);
-    Amount *other_amount = &other->split.amount;
+    Amount *other_amount = &other->split->amount;
     bool is_mct = false;
     if (!same_currency(amount, other_amount)) {
         bool is_asset = false;
@@ -1739,7 +1750,7 @@ PyEntry_change_amount(PyEntry *self, PyObject *args)
 
     if (is_mct) {
         // don't touch other side unless we have a logical imbalance
-        if ((self->split->split.amount.val > 0) == (other_amount->val > 0)) {
+        if ((self->split->split->amount.val > 0) == (other_amount->val > 0)) {
             PyObject *tmp = create_amount(
                 other_amount->val * -1, other_amount->currency);
             PySplit_amount_set(other, tmp);
@@ -1871,7 +1882,7 @@ _PyEntryList_maybe_set_last_reconciled(PyEntryList *self, PyEntry *entry)
 {
     // we don't bother increfing last_reconciled: implicit in entries'
     // membership
-    if (entry->split->split.reconciliation_date != 0) {
+    if (entry->split->split->reconciliation_date != 0) {
         if (self->last_reconciled == NULL) {
             self->last_reconciled = entry;
         } else {
@@ -2110,7 +2121,7 @@ _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
         if (PySequence_Contains(daterange, date_p)) {
             Amount a;
             a.currency = dst->currency;
-            Amount *src = &entry->split->split.amount;
+            Amount *src = &entry->split->split->amount;
             time_t date = pydate2time(date_p);
             if (date == 1) {
                 return false;
@@ -2799,7 +2810,7 @@ _py_oven_cook_splits(
         }
         Py_DECREF(tmp);
 
-        Split *split = &entry->split->split;
+        Split *split = entry->split->split;
         if (!amount_convert(&amount, &split->amount, date)) {
             return false;
         }
@@ -2833,8 +2844,8 @@ _py_oven_cook_splits(
     for (int i=0; i<len; i++) {
         PyObject *tuple = PyList_GetItem(rentries, i); // borrowed
         PyEntry *entry = (PyEntry *)PyTuple_GetItem(tuple, 3); // borrowed
-        if (entry->split->split.reconciliation_date != 0) {
-            reconciled_balance.val += entry->split->split.amount.val;
+        if (entry->split->split->reconciliation_date != 0) {
+            reconciled_balance.val += entry->split->split->amount.val;
         }
         amount_copy(&entry->reconciled_balance, &reconciled_balance);
     }
@@ -2872,7 +2883,7 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
         Py_ssize_t slen = PySequence_Length(splits);
         for (int j=0; j<slen; j++) {
             PySplit *split_p = (PySplit *)PyList_GetItem(splits, j); // borrowed
-            Split *split = &split_p->split;
+            Split *split = split_p->split;
             if (split->account == NULL) {
                 continue;
             }
