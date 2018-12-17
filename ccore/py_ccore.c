@@ -1290,10 +1290,7 @@ PySplit_account_set(PySplit *self, PyObject *value)
         PyAccount *account = (PyAccount *)value;
         newval = account->account;
     }
-    if (newval != self->split->account) {
-        self->split->account = newval;
-        PySplit_reconciliation_date_set(self, Py_None);
-    }
+    split_account_set(self->split, newval);
     return 0;
 }
 
@@ -1310,10 +1307,7 @@ PySplit_amount_set(PySplit *self, PyObject *value)
     Amount *amount;
 
     amount = get_amount(value);
-    if (self->split->amount.currency && amount->currency != self->split->amount.currency) {
-        PySplit_reconciliation_date_set(self, Py_None);
-    }
-    amount_copy(&self->split->amount, amount);
+    split_amount_set(self->split, amount);
     return 0;
 }
 
@@ -1684,9 +1678,10 @@ PyEntry_transfer(PyEntry *self)
     PyObject *r = PyList_New(0);
     for (int i=0; i<len; i++) {
         PySplit *split = (PySplit *)PyList_GetItem(splits, i); // borrowed
-        PyObject *account = PySplit_account(split);
-        if (account != Py_None) {
+        if (split->split->account != NULL) {
+            PyObject *account = PySplit_account(split);
             PyList_Append(r, account);
+            Py_DECREF(account);
         }
     }
     return r;
@@ -1714,34 +1709,20 @@ PyEntry_change_amount(PyEntry *self, PyObject *args)
     }
     PySplit *other = (PySplit *)PyList_GetItem(splits, 0); // borrowed
     Py_DECREF(splits);
-    PySplit_amount_set(self->split, amount_p);
     Amount *amount = get_amount(amount_p);
+    split_amount_set(self->split->split, amount);
     Amount *other_amount = &other->split->amount;
     bool is_mct = false;
     if (!same_currency(amount, other_amount)) {
         bool is_asset = false;
         bool other_is_asset = false;
-        PyObject *account = PySplit_account(self->split);
-        if (account != Py_None) {
-            PyObject *tmp = PyObject_CallMethod(
-                account, "is_balance_sheet_account", NULL);
-            Py_DECREF(account);
-            if (tmp == NULL) {
-                return NULL;
-            }
-            is_asset = PyObject_IsTrue(tmp);
-            Py_DECREF(tmp);
+        Account *a = self->split->split->account;
+        if (a != NULL) {
+            is_asset = account_is_balance_sheet(a);
         }
-        account = PySplit_account(other);
-        if (account != Py_None) {
-            PyObject *tmp = PyObject_CallMethod(
-                account, "is_balance_sheet_account", NULL);
-            Py_DECREF(account);
-            if (tmp == NULL) {
-                return NULL;
-            }
-            other_is_asset = PyObject_IsTrue(tmp);
-            Py_DECREF(tmp);
+        a = other->split->account;
+        if (a != NULL) {
+            other_is_asset = account_is_balance_sheet(a);
         }
         if (is_asset && other_is_asset) {
             is_mct = true;
@@ -1751,15 +1732,16 @@ PyEntry_change_amount(PyEntry *self, PyObject *args)
     if (is_mct) {
         // don't touch other side unless we have a logical imbalance
         if ((self->split->split->amount.val > 0) == (other_amount->val > 0)) {
-            PyObject *tmp = create_amount(
-                other_amount->val * -1, other_amount->currency);
-            PySplit_amount_set(other, tmp);
-            Py_DECREF(tmp);
+            Amount a;
+            amount_copy(&a, other_amount);
+            a.val *= -1;
+            split_amount_set(other->split, &a);
         }
     } else {
-        PyObject *tmp = create_amount(-amount->val, amount->currency);
-        PySplit_amount_set(other, tmp);
-        Py_DECREF(tmp);
+        Amount a;
+        amount_copy(&a, amount);
+        a.val *= -1;
+        split_amount_set(other->split, &a);
     }
     Py_RETURN_NONE;
 }
@@ -1769,17 +1751,11 @@ PyEntry_normal_balance(PyEntry *self, PyObject *args)
 {
     Amount amount;
     amount_copy(&amount, &self->balance);
-    PyObject *account = PySplit_account(self->split);
-    if (account != Py_None) {
-        PyObject *tmp = PyObject_CallMethod(account, "is_credit_account", NULL);
-        Py_DECREF(account);
-        if (tmp == NULL) {
-            return NULL;
-        }
-        if (PyObject_IsTrue(tmp)) {
+    Account *a = self->split->split->account;
+    if (a != NULL) {
+        if (account_is_credit(a)) {
             amount.val *= -1;
         }
-        Py_DECREF(tmp);
     }
     return create_amount(amount.val, amount.currency);
 }

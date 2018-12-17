@@ -11,6 +11,24 @@ split_init(Split *split, Account *account, const Amount *amount)
     split->reference = NULL;
 }
 
+void
+split_account_set(Split *split, Account *account)
+{
+    if (account != split->account) {
+        split->reconciliation_date = 0;
+        split->account = account;
+    }
+}
+
+void
+split_amount_set(Split *split, const Amount *amount)
+{
+    if (split->amount.currency && amount->currency != split->amount.currency) {
+        split->reconciliation_date = 0;
+    }
+    amount_copy(&split->amount, amount);
+}
+
 bool
 split_copy(Split *dst, const Split *src)
 {

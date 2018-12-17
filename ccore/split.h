@@ -18,6 +18,12 @@ typedef struct {
 void
 split_init(Split *split, Account *account, const Amount *amount);
 
+void
+split_account_set(Split *split, Account *account);
+
+void
+split_amount_set(Split *split, const Amount *amount);
+
 bool
 split_copy(Split *dst, const Split *src);
 
