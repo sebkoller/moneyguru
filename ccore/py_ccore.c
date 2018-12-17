@@ -64,10 +64,6 @@ static PyObject *AccountList_Type;
 typedef struct {
     PyObject_HEAD
     Split split;
-    // Freeform memo about that split.
-    PyObject *memo;
-    // Unique reference from an external source.
-    PyObject *reference;
 } PySplit;
 
 static PyObject *Split_Type;
@@ -1249,33 +1245,25 @@ PySplit_reconciliation_date_set(PySplit *self, PyObject *value)
 static PyObject *
 PySplit_memo(PySplit *self)
 {
-    Py_INCREF(self->memo);
-    return self->memo;
+    return _strget(self->split.memo);
 }
 
 static int
 PySplit_memo_set(PySplit *self, PyObject *value)
 {
-    Py_DECREF(self->memo);
-    self->memo = value;
-    Py_INCREF(self->memo);
-    return 0;
+    return _strset(&self->split.memo, value) ? 0 : -1;
 }
 
 static PyObject *
 PySplit_reference(PySplit *self)
 {
-    Py_INCREF(self->reference);
-    return self->reference;
+    return _strget(self->split.reference);
 }
 
 static int
 PySplit_reference_set(PySplit *self, PyObject *value)
 {
-    Py_DECREF(self->reference);
-    self->reference = value;
-    Py_INCREF(self->reference);
-    return 0;
+    return _strset(&self->split.reference, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -1384,15 +1372,11 @@ PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
+    amount = get_amount(amount_p);
+    split_init(&self->split, NULL, amount);
     if (PySplit_account_set(self, account) != 0) {
         return -1;
     }
-    amount = get_amount(amount_p);
-    amount_copy(&self->split.amount, amount);
-    self->memo = PyUnicode_InternFromString("");
-    self->split.reconciliation_date = 0;
-    self->reference = Py_None;
-    Py_INCREF(self->reference);
     return 0;
 }
 
@@ -1418,8 +1402,7 @@ PySplit_repr(PySplit *self)
 static void
 PySplit_dealloc(PySplit *self)
 {
-    Py_DECREF(self->memo);
-    Py_DECREF(self->reference);
+    split_deinit(&self->split);
 }
 
 static PyObject *
@@ -1434,13 +1417,10 @@ PySplit_copy_from(PySplit *self, PyObject *args)
         PyErr_SetString(PyExc_TypeError, "not a split");
         return NULL;
     }
-    self->split.account = ((PySplit *)other)->split.account;
-    amount_copy(&self->split.amount, &((PySplit *)other)->split.amount);
-    self->memo = ((PySplit *)other)->memo;
-    Py_INCREF(self->memo);
-    self->split.reconciliation_date = ((PySplit *)other)->split.reconciliation_date;
-    self->reference = ((PySplit *)other)->reference;
-    Py_INCREF(self->reference);
+    if (!split_copy(&self->split, &((PySplit *)other)->split)) {
+        PyErr_SetString(PyExc_ValueError, "something wen't wrong");
+        return NULL;
+    }
     Py_RETURN_NONE;
 }
 

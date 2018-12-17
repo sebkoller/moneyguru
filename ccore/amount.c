@@ -64,7 +64,7 @@ amount_free(Amount *amount)
 }
 
 void
-amount_copy(Amount *dest, Amount *src)
+amount_copy(Amount *dest, const Amount *src)
 {
     dest->val = src->val;
     dest->currency = src->currency;

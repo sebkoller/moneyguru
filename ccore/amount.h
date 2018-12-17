@@ -16,7 +16,7 @@ void
 amount_free(Amount *amount);
 
 void
-amount_copy(Amount *dest, Amount *src);
+amount_copy(Amount *dest, const Amount *src);
 
 Amount*
 amount_zero(void);
