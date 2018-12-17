@@ -6,6 +6,7 @@
 #include "split.h"
 #include "transaction.h"
 #include "account.h"
+#include "util.h"
 
 // NOTE ABOUT DECREF AND ERRORS
 //
@@ -142,63 +143,22 @@ pydate2time(PyObject *pydate)
     return mktime(&date);
 }
 
-/* Frees a string created through strset()
- *
- * Returns false on error
- */
 static bool
-strfree(char **dst)
+_strset(char **dst, PyObject *src)
 {
-    if (dst == NULL) {
-        // not supposed to happen
-        return false;
-    }
-    if (*dst == NULL || *dst[0] == '\0') {
-        // nothing to free
-        return true;
-    }
-    free(*dst);
-    *dst = NULL;
-    return true;
-}
-
-/* Sets `dst` to the UTF-8 repr of `src`.
- *
- * This manages lifecycle of `dst`: it mallocs and frees `dst`, except when
- * `dst` is "", then it doesn't free it. Symmetrically, when `src` is empty,
- * we set `dst` to "", a static value, not mallocated.
- *
- * If `dst` points to NULL, we consider us to be in a "initial set" situation,
- * so we free nothing.
- *
- * Returns false on error.
- */
-static bool
-strset(char **dst, PyObject *src)
-{
-    if (!strfree(dst)) {
-        return false;
-    }
     if (src == Py_None) {
-        *dst = NULL;
-        return true;
-    }
-    Py_ssize_t len;
-    const char *s = PyUnicode_AsUTF8AndSize(src, &len);
-    if (s == NULL) {
-        return false;
-    }
-    if (len) {
-        *dst = malloc(len+1);
-        strncpy(*dst, s, len+1);
+        return strset(dst, NULL);
     } else {
-        *dst = "";
+        const char *s = PyUnicode_AsUTF8(src);
+        if (s == NULL) {
+            return false;
+        }
+        return strset(dst, s);
     }
-    return true;
 }
 
 static PyObject*
-strget(const char *src)
+_strget(const char *src)
 {
     if (src == NULL) {
         Py_RETURN_NONE;
@@ -991,7 +951,7 @@ _PyAccount_from_account(Account *account)
 static PyObject *
 PyAccount_name(PyAccount *self)
 {
-    return strget(self->account->name);
+    return _strget(self->account->name);
 }
 
 static PyObject *
@@ -1069,37 +1029,37 @@ PyAccount_type_set(PyAccount *self, PyObject *value)
 static PyObject *
 PyAccount_reference(PyAccount *self)
 {
-    return strget(self->account->reference);
+    return _strget(self->account->reference);
 }
 
 static int
 PyAccount_reference_set(PyAccount *self, PyObject *value)
 {
-    return strset(&self->account->reference, value) ? 0 : -1;
+    return _strset(&self->account->reference, value) ? 0 : -1;
 }
 
 static PyObject *
 PyAccount_groupname(PyAccount *self)
 {
-    return strget(self->account->groupname);
+    return _strget(self->account->groupname);
 }
 
 static int
 PyAccount_groupname_set(PyAccount *self, PyObject *value)
 {
-    return strset(&self->account->groupname, value) ? 0 : -1;
+    return _strset(&self->account->groupname, value) ? 0 : -1;
 }
 
 static PyObject *
 PyAccount_account_number(PyAccount *self)
 {
-    return strget(self->account->account_number);
+    return _strget(self->account->account_number);
 }
 
 static int
 PyAccount_account_number_set(PyAccount *self, PyObject *value)
 {
-    return strset(&self->account->account_number, value) ? 0 : -1;
+    return _strset(&self->account->account_number, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -1132,13 +1092,13 @@ PyAccount_autocreated(PyAccount *self)
 static PyObject *
 PyAccount_notes(PyAccount *self)
 {
-    return strget(self->account->notes);
+    return _strget(self->account->notes);
 }
 
 static int
 PyAccount_notes_set(PyAccount *self, PyObject *value)
 {
-    return strset(&self->account->notes, value) ? 0 : -1;
+    return _strset(&self->account->notes, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -1373,7 +1333,7 @@ PySplit_account_name(PySplit *self)
     if (self->split.account == NULL) {
         return PyUnicode_InternFromString("");
     } else {
-        strget(self->split.account->name);
+        _strget(self->split.account->name);
     }
 }
 
@@ -2449,7 +2409,7 @@ PyAccountList_create(PyAccountList *self, PyObject *args)
         a->id = 0;
         return NULL;
     }
-    if (!strset(&a->name, name)) {
+    if (!_strset(&a->name, name)) {
         return NULL;
     }
     a->inactive = false;
@@ -2730,7 +2690,7 @@ PyAccountList_rename_account(PyAccountList *self, PyObject *args)
     }
     PyDict_SetItem(self->entries, newname, entries);
     PyDict_DelItemString(self->entries, a->name);
-    strset(&a->name, newname);
+    _strset(&a->name, newname);
     Py_RETURN_NONE;
 }
 
