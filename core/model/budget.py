@@ -158,7 +158,7 @@ class BudgetList(list):
         """
         if not date_range.future:
             return 0
-        budgets = [b for b in self if b.account is account and b.amount]
+        budgets = [b for b in self if b.account == account and b.amount]
         if not budgets:
             return 0
         currency = currency or account.currency

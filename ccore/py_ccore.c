@@ -63,7 +63,6 @@ static PyObject *AccountList_Type;
 typedef struct {
     PyObject_HEAD
     Split split;
-    PyAccount *account;
     // Freeform memo about that split.
     PyObject *memo;
     // Unique reference from an external source.
@@ -979,6 +978,295 @@ py_amount_convert(PyObject *self, PyObject *args)
     return create_amount(dest.val, dest.currency);
 }
 
+/* Account */
+static PyAccount*
+_PyAccount_from_account(Account *account)
+{
+    PyAccount *res = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
+    res->account = account;
+    res->owned = false;
+    return res;
+}
+
+static PyObject *
+PyAccount_name(PyAccount *self)
+{
+    return strget(self->account->name);
+}
+
+static PyObject *
+PyAccount_currency(PyAccount *self)
+{
+    int len;
+    len = strlen(self->account->currency->code);
+    return PyUnicode_DecodeASCII(self->account->currency->code, len, NULL);
+}
+
+static int
+PyAccount_currency_set(PyAccount *self, PyObject *value)
+{
+    PyObject *tmp = PyUnicode_AsASCIIString(value);
+    if (tmp == NULL) {
+        return -1;
+    }
+    Currency *cur = getcur(PyBytes_AsString(tmp));
+    Py_DECREF(tmp);
+    if (cur == NULL) {
+        return -1;
+    }
+    self->account->currency = cur;
+    return 0;
+}
+
+static PyObject *
+PyAccount_type(PyAccount *self)
+{
+    char *s;
+    switch (self->account->type) {
+        case ACCOUNT_ASSET: s = "asset"; break;
+        case ACCOUNT_LIABILITY: s = "liability"; break;
+        case ACCOUNT_INCOME: s = "income"; break;
+        case ACCOUNT_EXPENSE: s = "expense"; break;
+    }
+    return PyUnicode_InternFromString(s);
+}
+
+static int
+_PyAccount_str2type(const char *s)
+{
+    if (strcmp(s, "asset") == 0) {
+        return ACCOUNT_ASSET;
+    } else if (strcmp(s, "liability") == 0) {
+        return ACCOUNT_LIABILITY;
+    } else if (strcmp(s, "income") == 0) {
+        return ACCOUNT_INCOME;
+    } else if (strcmp(s, "expense") == 0) {
+        return ACCOUNT_EXPENSE;
+    } else {
+        PyErr_SetString(PyExc_ValueError, "invalid type");
+        return -1;
+    }
+}
+
+static int
+PyAccount_type_set(PyAccount *self, PyObject *value)
+{
+    PyObject *tmp = PyUnicode_AsASCIIString(value);
+    if (tmp == NULL) {
+        return -1;
+    }
+    char *s = PyBytes_AsString(tmp);
+    int res = _PyAccount_str2type(s);
+    if (res >= 0) {
+        self->account->type = res;
+        return 0;
+    } else {
+        PyErr_SetString(PyExc_ValueError, "invalid type");
+        return -1;
+    }
+}
+
+static PyObject *
+PyAccount_reference(PyAccount *self)
+{
+    return strget(self->account->reference);
+}
+
+static int
+PyAccount_reference_set(PyAccount *self, PyObject *value)
+{
+    return strset(&self->account->reference, value) ? 0 : -1;
+}
+
+static PyObject *
+PyAccount_groupname(PyAccount *self)
+{
+    return strget(self->account->groupname);
+}
+
+static int
+PyAccount_groupname_set(PyAccount *self, PyObject *value)
+{
+    return strset(&self->account->groupname, value) ? 0 : -1;
+}
+
+static PyObject *
+PyAccount_account_number(PyAccount *self)
+{
+    return strget(self->account->account_number);
+}
+
+static int
+PyAccount_account_number_set(PyAccount *self, PyObject *value)
+{
+    return strset(&self->account->account_number, value) ? 0 : -1;
+}
+
+static PyObject *
+PyAccount_inactive(PyAccount *self)
+{
+    if (self->account->inactive) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static int
+PyAccount_inactive_set(PyAccount *self, PyObject *value)
+{
+    self->account->inactive = PyObject_IsTrue(value);
+    return 0;
+}
+
+static PyObject *
+PyAccount_autocreated(PyAccount *self)
+{
+    if (self->account->autocreated) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject *
+PyAccount_notes(PyAccount *self)
+{
+    return strget(self->account->notes);
+}
+
+static int
+PyAccount_notes_set(PyAccount *self, PyObject *value)
+{
+    return strset(&self->account->notes, value) ? 0 : -1;
+}
+
+static PyObject *
+PyAccount_repr(PyAccount *self)
+{
+    return PyUnicode_FromFormat("Account(%s)", self->account->name);
+}
+
+static Py_hash_t
+PyAccount_hash(PyAccount *self)
+{
+    return self->account->id;
+}
+
+static PyObject *
+PyAccount_richcompare(PyAccount *a, PyObject *b, int op)
+{
+    if (!Account_Check(b)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+    if ((op == Py_EQ) || (op == Py_NE)) {
+        // TODO: change this to name comparison
+        bool match = a->account == ((PyAccount *)b)->account;
+        if (op == Py_NE) {
+            match = !match;
+        }
+        if (match) {
+            Py_RETURN_TRUE;
+        } else {
+            Py_RETURN_FALSE;
+        }
+    } else {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+}
+
+static PyObject*
+PyAccount_normalize_amount(PyAccount *self, PyObject *amount)
+{
+    if (!check_amount(amount)) {
+        PyErr_SetString(PyExc_ValueError, "not an amount");
+        return NULL;
+    }
+    Amount res;
+    amount_copy(&res, &((PyAmount *)amount)->amount);
+    account_normalize_amount(self->account, &res);
+    return create_amount(res.val, res.currency);
+}
+
+static PyObject*
+PyAccount_is_balance_sheet_account(PyAccount *self, PyObject *args)
+{
+    if (account_is_balance_sheet(self->account)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject*
+PyAccount_is_credit_account(PyAccount *self, PyObject *args)
+{
+    if (account_is_credit(self->account)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject*
+PyAccount_is_debit_account(PyAccount *self, PyObject *args)
+{
+    if (account_is_debit(self->account)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject*
+PyAccount_is_income_statement_account(PyAccount *self, PyObject *args)
+{
+    if (account_is_income_statement(self->account)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject*
+PyAccount_combined_display(PyAccount *self)
+{
+    if (self->account->account_number[0] != '\0') {
+        return PyUnicode_FromFormat(
+            "%s - %s", self->account->account_number, self->account->name);
+    } else {
+        return PyAccount_name(self);
+    }
+}
+
+static PyObject *
+PyAccount_copy(PyAccount *self)
+{
+    PyAccount *r = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
+    r->owned = true;
+    r->account = malloc(sizeof(Account));
+    account_copy(r->account, self->account);
+    r->account->id = self->account->id;
+    return (PyObject *)r;
+}
+
+static PyObject *
+PyAccount_deepcopy(PyAccount *self, PyObject *args, PyObject *kwds)
+{
+    return PyAccount_copy(self);
+}
+
+static void
+PyAccount_dealloc(PyAccount *self)
+{
+    // Unless we own our Account through copy(), we don't dealloc our Account.
+    // AccountList takes care of that.
+    if (self->owned) {
+        account_deinit(self->account);
+        free(self->account);
+    }
+}
+
 /* Split attrs */
 static PyObject *
 PySplit_reconciliation_date(PySplit *self)
@@ -1033,31 +1321,29 @@ PySplit_reference_set(PySplit *self, PyObject *value)
 static PyObject *
 PySplit_account(PySplit *self)
 {
-    Py_INCREF(self->account);
-    return (PyObject *)self->account;
+    if (self->split.account == NULL) {
+        Py_RETURN_NONE;
+    } else {
+        return (PyObject *)_PyAccount_from_account(self->split.account);
+    }
 }
 
 static int
 PySplit_account_set(PySplit *self, PyObject *value)
 {
-    if (value == (PyObject *)self->account) {
-        return 0;
-    }
+    Account *newval = NULL;
     if (value != Py_None) {
         if (!Account_Check(value)) {
             PyErr_SetString(PyExc_ValueError, "not an account");
             return -1;
         }
         PyAccount *account = (PyAccount *)value;
-        self->split.account = account->account;
-    } else {
-        self->split.account = NULL;
+        newval = account->account;
     }
-    Py_XDECREF(self->account);
-    self->account = (PyAccount *)value;
-    Py_INCREF(self->account);
-
-    PySplit_reconciliation_date_set(self, Py_None);
+    if (newval != self->split.account) {
+        self->split.account = newval;
+        PySplit_reconciliation_date_set(self, Py_None);
+    }
     return 0;
 }
 
@@ -1084,10 +1370,10 @@ PySplit_amount_set(PySplit *self, PyObject *value)
 static PyObject *
 PySplit_account_name(PySplit *self)
 {
-    if ((PyObject *)self->account == Py_None) {
+    if (self->split.account == NULL) {
         return PyUnicode_InternFromString("");
     } else {
-        strget(self->account->account->name);
+        strget(self->split.account->name);
     }
 }
 
@@ -1138,7 +1424,6 @@ PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
-    self->account = NULL;
     if (PySplit_account_set(self, account) != 0) {
         return -1;
     }
@@ -1173,7 +1458,6 @@ PySplit_repr(PySplit *self)
 static void
 PySplit_dealloc(PySplit *self)
 {
-    Py_DECREF(self->account);
     Py_DECREF(self->memo);
     Py_DECREF(self->reference);
 }
@@ -1190,7 +1474,7 @@ PySplit_copy_from(PySplit *self, PyObject *args)
         PyErr_SetString(PyExc_TypeError, "not a split");
         return NULL;
     }
-    PySplit_account_set(self, (PyObject *)((PySplit *)other)->account);
+    self->split.account = ((PySplit *)other)->split.account;
     amount_copy(&self->split.amount, &((PySplit *)other)->split.amount);
     self->memo = ((PySplit *)other)->memo;
     Py_INCREF(self->memo);
@@ -1223,7 +1507,6 @@ static PyObject *
 PySplit_copy(PySplit *self)
 {
     PySplit *r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
-    r->account = NULL;
     PyObject *args = PyTuple_Pack(1, self);
     PySplit_copy_from(r, args);
     Py_DECREF(args);
@@ -1450,8 +1733,9 @@ PyEntry_transfer(PyEntry *self)
     PyObject *r = PyList_New(0);
     for (int i=0; i<len; i++) {
         PySplit *split = (PySplit *)PyList_GetItem(splits, i); // borrowed
-        if ((PyObject *)split->account != Py_None) {
-            PyList_Append(r, (PyObject *)split->account);
+        PyObject *account = PySplit_account(split);
+        if (account != Py_None) {
+            PyList_Append(r, account);
         }
     }
     return r;
@@ -2003,264 +2287,6 @@ PyEntryList_dealloc(PyEntryList *self)
     Py_DECREF(self->entries);
 }
 
-/* Account */
-static PyObject *
-PyAccount_name(PyAccount *self)
-{
-    return strget(self->account->name);
-}
-
-static PyObject *
-PyAccount_currency(PyAccount *self)
-{
-    int len;
-    len = strlen(self->account->currency->code);
-    return PyUnicode_DecodeASCII(self->account->currency->code, len, NULL);
-}
-
-static int
-PyAccount_currency_set(PyAccount *self, PyObject *value)
-{
-    PyObject *tmp = PyUnicode_AsASCIIString(value);
-    if (tmp == NULL) {
-        return -1;
-    }
-    Currency *cur = getcur(PyBytes_AsString(tmp));
-    Py_DECREF(tmp);
-    if (cur == NULL) {
-        return -1;
-    }
-    self->account->currency = cur;
-    return 0;
-}
-
-static PyObject *
-PyAccount_type(PyAccount *self)
-{
-    char *s;
-    switch (self->account->type) {
-        case ACCOUNT_ASSET: s = "asset"; break;
-        case ACCOUNT_LIABILITY: s = "liability"; break;
-        case ACCOUNT_INCOME: s = "income"; break;
-        case ACCOUNT_EXPENSE: s = "expense"; break;
-    }
-    return PyUnicode_InternFromString(s);
-}
-
-static int
-_PyAccount_str2type(const char *s)
-{
-    if (strcmp(s, "asset") == 0) {
-        return ACCOUNT_ASSET;
-    } else if (strcmp(s, "liability") == 0) {
-        return ACCOUNT_LIABILITY;
-    } else if (strcmp(s, "income") == 0) {
-        return ACCOUNT_INCOME;
-    } else if (strcmp(s, "expense") == 0) {
-        return ACCOUNT_EXPENSE;
-    } else {
-        PyErr_SetString(PyExc_ValueError, "invalid type");
-        return -1;
-    }
-}
-
-static int
-PyAccount_type_set(PyAccount *self, PyObject *value)
-{
-    PyObject *tmp = PyUnicode_AsASCIIString(value);
-    if (tmp == NULL) {
-        return -1;
-    }
-    char *s = PyBytes_AsString(tmp);
-    int res = _PyAccount_str2type(s);
-    if (res >= 0) {
-        self->account->type = res;
-        return 0;
-    } else {
-        PyErr_SetString(PyExc_ValueError, "invalid type");
-        return -1;
-    }
-}
-
-static PyObject *
-PyAccount_reference(PyAccount *self)
-{
-    return strget(self->account->reference);
-}
-
-static int
-PyAccount_reference_set(PyAccount *self, PyObject *value)
-{
-    return strset(&self->account->reference, value) ? 0 : -1;
-}
-
-static PyObject *
-PyAccount_groupname(PyAccount *self)
-{
-    return strget(self->account->groupname);
-}
-
-static int
-PyAccount_groupname_set(PyAccount *self, PyObject *value)
-{
-    return strset(&self->account->groupname, value) ? 0 : -1;
-}
-
-static PyObject *
-PyAccount_account_number(PyAccount *self)
-{
-    return strget(self->account->account_number);
-}
-
-static int
-PyAccount_account_number_set(PyAccount *self, PyObject *value)
-{
-    return strset(&self->account->account_number, value) ? 0 : -1;
-}
-
-static PyObject *
-PyAccount_inactive(PyAccount *self)
-{
-    if (self->account->inactive) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static int
-PyAccount_inactive_set(PyAccount *self, PyObject *value)
-{
-    self->account->inactive = PyObject_IsTrue(value);
-    return 0;
-}
-
-static PyObject *
-PyAccount_autocreated(PyAccount *self)
-{
-    if (self->account->autocreated) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static PyObject *
-PyAccount_notes(PyAccount *self)
-{
-    return strget(self->account->notes);
-}
-
-static int
-PyAccount_notes_set(PyAccount *self, PyObject *value)
-{
-    return strset(&self->account->notes, value) ? 0 : -1;
-}
-
-static PyObject *
-PyAccount_repr(PyAccount *self)
-{
-    return PyUnicode_FromFormat("Account(%s)", self->account->name);
-}
-
-static Py_hash_t
-PyAccount_hash(PyAccount *self)
-{
-    return self->account->id;
-}
-
-static PyObject*
-PyAccount_normalize_amount(PyAccount *self, PyObject *amount)
-{
-    if (!check_amount(amount)) {
-        PyErr_SetString(PyExc_ValueError, "not an amount");
-        return NULL;
-    }
-    Amount res;
-    amount_copy(&res, &((PyAmount *)amount)->amount);
-    account_normalize_amount(self->account, &res);
-    return create_amount(res.val, res.currency);
-}
-
-static PyObject*
-PyAccount_is_balance_sheet_account(PyAccount *self, PyObject *args)
-{
-    if (account_is_balance_sheet(self->account)) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static PyObject*
-PyAccount_is_credit_account(PyAccount *self, PyObject *args)
-{
-    if (account_is_credit(self->account)) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static PyObject*
-PyAccount_is_debit_account(PyAccount *self, PyObject *args)
-{
-    if (account_is_debit(self->account)) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static PyObject*
-PyAccount_is_income_statement_account(PyAccount *self, PyObject *args)
-{
-    if (account_is_income_statement(self->account)) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static PyObject*
-PyAccount_combined_display(PyAccount *self)
-{
-    if (self->account->account_number[0] != '\0') {
-        return PyUnicode_FromFormat(
-            "%s - %s", self->account->account_number, self->account->name);
-    } else {
-        return PyAccount_name(self);
-    }
-}
-
-static PyObject *
-PyAccount_copy(PyAccount *self)
-{
-    PyAccount *r = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
-    r->owned = true;
-    r->account = malloc(sizeof(Account));
-    account_copy(r->account, self->account);
-    r->account->id = self->account->id;
-    return (PyObject *)r;
-}
-
-static PyObject *
-PyAccount_deepcopy(PyAccount *self, PyObject *args, PyObject *kwds)
-{
-    return PyAccount_copy(self);
-}
-
-static void
-PyAccount_dealloc(PyAccount *self)
-{
-    // Unless we own our Account through copy(), we don't dealloc our Account.
-    // AccountList takes care of that.
-    if (self->owned) {
-        account_deinit(self->account);
-        free(self->account);
-    }
-}
-
 /* PyAccountList */
 static int
 PyAccountList_init(PyAccountList *self, PyObject *args, PyObject *kwds)
@@ -2307,23 +2333,28 @@ _PyAccountList_find_reference(PyAccountList *self, const char *reference)
 static PyObject*
 PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
 {
-    PyObject *from_account = NULL;
+    PyObject *from_account_p = NULL;
+    Account *from_account = NULL;
 
-    if (!PyArg_ParseTuple(args, "|O", &from_account)) {
+    if (!PyArg_ParseTuple(args, "|O", &from_account_p)) {
         return NULL;
+    }
+    if (from_account_p != NULL && from_account_p != Py_None) {
+        from_account = ((PyAccount *)from_account_p)->account;
     }
     Py_ssize_t len = PyList_Size(self->accounts);
     for (int i=len-1; i>=0; i--) {
-        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
-        PyObject *entries = PyDict_GetItemString(self->entries, account->account->name);
-        if (!account->account->autocreated) {
+        PyAccount *account_p = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
+        Account *account = account_p->account;
+        PyObject *entries = PyDict_GetItemString(self->entries, account->name);
+        if (!account->autocreated) {
             continue;
-        } else if ((PyObject *)account == from_account) {
+        } else if (account == from_account) {
             continue;
         } else if (PySequence_Length(entries) > 0) {
             continue;
         }
-        account->account->deleted = true;
+        account->deleted = true;
         if (PyList_SetSlice(self->accounts, i, i+1, NULL) == -1) {
             return NULL;
         }
@@ -2451,23 +2482,24 @@ PyAccountList_create_from(PyAccountList *self, PyAccount *account)
         return found;
     }
     Py_DECREF(found);
-    PyAccount *res = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
-    account->owned = false;
     // if an account (deleted or not) with the same name is present, let's
     // reuse the instance.
-    res->account = accounts_find_by_name(&self->alist, account->account->name);
-    if (res->account == NULL) {
+    Account *a = accounts_find_by_name(&self->alist, account->account->name);
+    if (a == NULL) {
         // no account with the same name, we create a new account.
-        res->account = accounts_create(&self->alist);
-        account_copy(res->account, account->account);
-    } else if (res->account != account->account) {
+        a = accounts_create(&self->alist);
+        account_copy(a, account->account);
+    } else if (a != account->account) {
         // We found an Account with the same name, but this Account's strings
         // must be deallocated before we copy over them.
         // This is not done if both PyAccounts point to the same Account.
-        account_deinit(res->account);
-        account_copy(res->account, account->account);
+        account_deinit(a);
+        account_copy(a, account->account);
     }
-    res->account->deleted = false;
+    // if we ended up finding a deleted account, let's undelete it. It's coming
+    // back into service!
+    a->deleted = false;
+    PyAccount *res = _PyAccount_from_account(a);
     PyList_Append(self->accounts, (PyObject *)res);
     return (PyObject *)res;
 }
@@ -3167,6 +3199,7 @@ static PyType_Slot Account_Slots[] = {
     {Py_tp_getset, PyAccount_getseters},
     {Py_tp_hash, PyAccount_hash},
     {Py_tp_repr, PyAccount_repr},
+    {Py_tp_richcompare, PyAccount_richcompare},
     {Py_tp_dealloc, PyAccount_dealloc},
     {0, 0},
 };

@@ -647,7 +647,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         for schedule in affected_schedules:
             action.change_schedule(schedule)
         for account in accounts:
-            affected_budgets = [b for b in self.budgets if b.account is account or b.target is account]
+            affected_budgets = [b for b in self.budgets if b.account == account or b.target is account]
             if account.is_income_statement_account() and reassign_to is None:
                 action.deleted_budgets |= set(affected_budgets)
             else:
@@ -659,7 +659,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             for schedule in affected_schedules:
                 schedule.reassign_account(account, reassign_to)
             for budget in affected_budgets:
-                if budget.account is account:
+                if budget.account == account:
                     if reassign_to is None:
                         self.budgets.remove(budget)
                     else:
@@ -1269,7 +1269,7 @@ class Document(BaseDocument, Repeater, GUIObject):
                 added_accounts.add(result)
                 return result
 
-        if target_account is ref_account and target_account not in self.accounts:
+        if target_account == ref_account and target_account not in self.accounts:
             target_account = internalize(target_account)
         for entry, ref in matches:
             if ref is not None:
@@ -1283,7 +1283,7 @@ class Document(BaseDocument, Repeater, GUIObject):
                 if split.account is None:
                     continue
                 split.account = internalize(split.account)
-            if target_account is not ref_account:
+            if target_account != ref_account:
                 entry.split.account = target_account
         action = Action(tr('Import'))
         action.added_accounts |= added_accounts
@@ -1293,7 +1293,7 @@ class Document(BaseDocument, Repeater, GUIObject):
 
         for split in to_unreconcile:
             split.reconciliation_date = None
-        if target_account is not ref_account and ref_account.reference is not None:
+        if target_account != ref_account and ref_account.reference is not None:
             target_account.reference = ref_account.reference
         for entry, ref in matches:
             for split in entry.transaction.splits:

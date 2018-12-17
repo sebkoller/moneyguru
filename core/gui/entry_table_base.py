@@ -354,7 +354,7 @@ class EntryTableBase(TransactionTableBase):
         for index, row in enumerate(self):
             if not isinstance(row, EntryTableRow):
                 continue
-            if row.account is not account:
+            if row.account != account:
                 continue
             last_suitable_index = index
             if row._date > entry.date:

@@ -85,7 +85,7 @@ class Transaction:
 
         .. seealso:: :func:`.convert_amount`
         """
-        splits = (s for s in self.splits if s.account is account)
+        splits = (s for s in self.splits if s.account == account)
         return sum(convert_amount(s.amount, currency, self.date) for s in splits)
 
     def affected_accounts(self):
@@ -372,7 +372,7 @@ class Transaction:
         :param reassign_to: :class:`.Account`
         """
         for split in self.splits:
-            if split.account is account:
+            if split.account == account:
                 split.reconciliation_date = None
                 split.account = reassign_to
 

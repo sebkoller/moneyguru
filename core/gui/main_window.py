@@ -420,7 +420,7 @@ class MainWindow(Repeater, GUIObject):
     def open_account(self, account):
         if account is not None:
             # Try to find a suitable pane, or add a new one
-            index = first(i for i, p in enumerate(self.panes) if p.account is account)
+            index = first(i for i, p in enumerate(self.panes) if p.account == account)
             if index is None:
                 self._add_pane(self._create_pane(PaneType.Account, account))
             else:
