@@ -2194,46 +2194,6 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static bool
-_PyEntryList_balance(
-    PyEntryList *self, Amount *dst, time_t date, bool with_budget)
-{
-    Py_ssize_t len = PyList_Size(self->entries);
-    if (!len) {
-        dst->val = 0;
-        return true;
-    }
-    int index;
-    if (date == 0) {
-        index = len;
-    } else {
-        EntryList *el = _PyEntryList_entries(self);
-        index = entries_find_date(el, date, true);
-    }
-    // We want the entry *before* the threshold
-    index--;
-    if (index >= 0) {
-        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, index); // borrowed
-        if (entry == NULL) {
-            return false;
-        }
-        Amount *src = with_budget ? &entry->entry.balance_with_budget : &entry->entry.balance;
-        if (date > 0) {
-            if (amount_convert(dst, src, date)) {
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            amount_copy(dst, src);
-            return true;
-        }
-    } else {
-        dst->val = 0;
-        return true;
-    }
-}
-
 static PyObject*
 PyEntryList_balance(PyEntryList *self, PyObject *args)
 {
@@ -2254,7 +2214,8 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
     if (date == 1) {
         return NULL;
     }
-    if (!_PyEntryList_balance(self, &dst, date, with_budget)) {
+    EntryList *el = _PyEntryList_entries(self);
+    if (!entries_balance(el, &dst, date, with_budget)) {
         return NULL;
     } else {
         if (dst.currency != NULL) {
@@ -2362,7 +2323,8 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
     if (date == 1) {
         return NULL;
     }
-    if (!_PyEntryList_balance(self, &res, date, false)) {
+    EntryList *el = _PyEntryList_entries(self);
+    if (!entries_balance(el, &res, date, false)) {
         return NULL;
     } else {
         account_normalize_amount(self->account, &res);
@@ -2954,10 +2916,11 @@ _py_oven_cook_splits(
     reconciled_balance.currency = balance.currency;
     amount.currency = balance.currency;
 
-    if (!_PyEntryList_balance(entries, &balance, 0, false)) {
+    EntryList *el = _PyEntryList_entries(entries);
+    if (!entries_balance(el, &balance, 0, false)) {
         return false;
     }
-    if (!_PyEntryList_balance(entries, &balance_with_budget, 0, true)) {
+    if (!entries_balance(el, &balance_with_budget, 0, true)) {
         return false;
     }
     _PyEntryList_balance_of_reconciled(entries, &reconciled_balance);

@@ -57,3 +57,41 @@ entries_find_date(EntryList *entries, time_t date, bool equal)
     }
 
 }
+
+bool
+entries_balance(EntryList *entries, Amount *dst, time_t date, bool with_budget)
+{
+    if (entries->count == 0) {
+        dst->val = 0;
+        return true;
+    }
+    int index;
+    if (date == 0) {
+        index = entries->count;
+    } else {
+        index = entries_find_date(entries, date, true);
+    }
+    // We want the entry *before* the threshold
+    index--;
+    if (index >= entries->count) {
+        // Something's wrong
+        return false;
+    }
+    if (index >= 0) {
+        Entry *entry = entries->entries[index];
+        Amount *src = with_budget ? &entry->balance_with_budget : &entry->balance;
+        if (date > 0) {
+            if (amount_convert(dst, src, date)) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            amount_copy(dst, src);
+            return true;
+        }
+    } else {
+        dst->val = 0;
+        return true;
+    }
+}

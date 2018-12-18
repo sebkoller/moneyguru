@@ -34,3 +34,6 @@ entry_copy(Entry *dst, const Entry *src);
 
 int
 entries_find_date(EntryList *entries, time_t date, bool equal);
+
+bool
+entries_balance(EntryList *entries, Amount *dst, time_t date, bool with_budget);
