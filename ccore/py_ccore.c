@@ -138,7 +138,8 @@ pydate2time(PyObject *pydate)
     date.tm_year = PyDateTime_GET_YEAR(pydate) - 1900;
     date.tm_mon = PyDateTime_GET_MONTH(pydate) - 1;
     date.tm_mday = PyDateTime_GET_DAY(pydate);
-    return mktime(&date);
+    time_t r = mktime(&date);
+    return r;
 }
 
 static bool
@@ -2100,13 +2101,12 @@ _PyEntryList_add_entry(PyEntryList *self, PyEntry *entry)
 }
 
 static int
-_PyEntryList_find_date(PyEntryList *self, PyObject *date, bool equal)
+_PyEntryList_find_date(PyEntryList *self, time_t date, bool equal)
 {
     // equal=true: find index with closest smaller-or-equal date to "date"
     // equal=false: find smaller only
     // Returns the index *following* the nearest result. Returned index goes
     // over the threshold.
-    int opid = equal ? Py_GT : Py_GE;
     Py_ssize_t len = PyList_Size(self->entries);
     if (len == 0) {
         return 0;
@@ -2117,10 +2117,10 @@ _PyEntryList_find_date(PyEntryList *self, PyObject *date, bool equal)
     while ((high > low) || ((high == low) && !matched_once)) {
         Py_ssize_t mid = ((high - low) / 2) + low;
         PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, mid); // borrowed
-        PyObject *tdate = PyEntry_date(entry);
-        int cmp = PyObject_RichCompareBool(tdate, date, opid);
-        Py_DECREF(tdate);
-        if (cmp > 0) {
+        time_t tdate = entry->entry.txn->date;
+        // operator *look* like they're inverted, but they're not.
+        bool match = equal ? tdate > date : tdate >= date;
+        if (match) {
             matched_once = true;
             high = mid;
         } else {
@@ -2140,9 +2140,9 @@ _PyEntryList_find_date(PyEntryList *self, PyObject *date, bool equal)
 static PyObject*
 PyEntryList_last_entry(PyEntryList *self, PyObject *args)
 {
-    PyObject *date = NULL;
+    PyObject *date_p;
 
-    if (!PyArg_ParseTuple(args, "|O", &date)) {
+    if (!PyArg_ParseTuple(args, "O", &date_p)) {
         return NULL;
     }
     Py_ssize_t len = PyList_Size(self->entries);
@@ -2150,9 +2150,13 @@ PyEntryList_last_entry(PyEntryList *self, PyObject *args)
         Py_RETURN_NONE;
     }
     int index;
-    if (date == Py_None) {
+    if (date_p == Py_None) {
         index = len;
     } else {
+        time_t date = pydate2time(date_p);
+        if (date == 1) {
+            return NULL;
+        }
         index = _PyEntryList_find_date(self, date, true);
     }
     // We want the entry *before* the threshold
@@ -2173,16 +2177,20 @@ PyEntryList_last_entry(PyEntryList *self, PyObject *args)
 static PyObject*
 PyEntryList_clear(PyEntryList *self, PyObject *args)
 {
-    PyObject *date;
+    PyObject *date_p;
 
-    if (!PyArg_ParseTuple(args, "O", &date)) {
+    if (!PyArg_ParseTuple(args, "O", &date_p)) {
         return NULL;
     }
     Py_ssize_t len = PyList_Size(self->entries);
     int index;
-    if (date == Py_None) {
+    if (date_p == Py_None) {
         index = 0;
     } else {
+        time_t date = pydate2time(date_p);
+        if (date == 1) {
+            return NULL;
+        }
         index = _PyEntryList_find_date(self, date, false);
         if (index >= len) {
             // Everything is smaller, don't clear anything.
@@ -2202,7 +2210,7 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
 
 static bool
 _PyEntryList_balance(
-    PyEntryList *self, Amount *dst, PyObject *date_p, bool with_budget)
+    PyEntryList *self, Amount *dst, time_t date, bool with_budget)
 {
     Py_ssize_t len = PyList_Size(self->entries);
     if (!len) {
@@ -2210,10 +2218,10 @@ _PyEntryList_balance(
         return true;
     }
     int index;
-    if (date_p == Py_None) {
+    if (date == 0) {
         index = len;
     } else {
-        index = _PyEntryList_find_date(self, date_p, true);
+        index = _PyEntryList_find_date(self, date, true);
     }
     // We want the entry *before* the threshold
     index--;
@@ -2223,11 +2231,7 @@ _PyEntryList_balance(
             return false;
         }
         Amount *src = with_budget ? &entry->entry.balance_with_budget : &entry->entry.balance;
-        if (date_p != Py_None) {
-            time_t date = pydate2time(date_p);
-            if (date == 1) {
-                return NULL;
-            }
+        if (date > 0) {
             if (amount_convert(dst, src, date)) {
                 return true;
             } else {
@@ -2259,7 +2263,11 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
     if (dst.currency == NULL) {
         return NULL;
     }
-    if (!_PyEntryList_balance(self, &dst, date_p, with_budget)) {
+    time_t date = pydate2time(date_p);
+    if (date == 1) {
+        return NULL;
+    }
+    if (!_PyEntryList_balance(self, &dst, date, with_budget)) {
         return NULL;
     } else {
         if (dst.currency != NULL) {
@@ -2348,10 +2356,10 @@ PyEntryList_cash_flow(PyEntryList *self, PyObject *args)
 static PyObject*
 PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
 {
-    PyObject *date = Py_None;
+    PyObject *date_p = Py_None;
     char *currency = NULL;
 
-    if (!PyArg_ParseTuple(args, "|Os", &date, &currency)) {
+    if (!PyArg_ParseTuple(args, "|Os", &date_p, &currency)) {
         return NULL;
     }
     Amount res;
@@ -2362,6 +2370,10 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
         if (res.currency == NULL) {
             return NULL;
         }
+    }
+    time_t date = pydate2time(date_p);
+    if (date == 1) {
+        return NULL;
     }
     if (!_PyEntryList_balance(self, &res, date, false)) {
         return NULL;
@@ -2952,10 +2964,10 @@ _py_oven_cook_splits(
     reconciled_balance.currency = balance.currency;
     amount.currency = balance.currency;
 
-    if (!_PyEntryList_balance(entries, &balance, Py_None, false)) {
+    if (!_PyEntryList_balance(entries, &balance, 0, false)) {
         return false;
     }
-    if (!_PyEntryList_balance(entries, &balance_with_budget, Py_None, true)) {
+    if (!_PyEntryList_balance(entries, &balance_with_budget, 0, true)) {
         return false;
     }
     _PyEntryList_balance_of_reconciled(entries, &reconciled_balance);
@@ -2982,6 +2994,7 @@ _py_oven_cook_splits(
         }
         Py_INCREF(entry->split);
         Py_INCREF(entry->txn);
+        entry_init(&entry->entry, entry->split->split, &entry->txn->txn);
         entry->entry.index = i;
 
         Split *split = entry->split->split;
