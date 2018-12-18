@@ -110,6 +110,14 @@ typedef struct {
 
 static PyObject *EntryList_Type;
 
+typedef struct {
+    PyObject_HEAD
+    Transaction txn;
+} PyTransaction;
+
+static PyObject *Transaction_Type;
+#define Transaction_Check(v) (Py_TYPE(v) == (PyTypeObject *)Transaction_Type)
+
 /* Utils */
 static PyObject*
 time2pydate(time_t date)
@@ -147,11 +155,45 @@ _strset(char **dst, PyObject *src)
     if (src == Py_None) {
         return strset(dst, NULL);
     } else {
-        const char *s = PyUnicode_AsUTF8(src);
+        Py_ssize_t len;
+        const char *s = PyUnicode_AsUTF8AndSize(src, &len);
         if (s == NULL) {
             return false;
         }
+        // It's possible that we get a string that has an embedded \0 in it.
+        // It's not going to fare well on the C side. Let's see if we have one
+        // by comparing reported lengths.
+        if (len != (Py_ssize_t)strlen(s)) {
+            // different lengths! oh no! let's replace \0s with spaces. But
+            // everything gets more complicated because Python gave us a const
+            // char, so we need to copy the whole thing in a buffer.
+            char *buf = malloc(len+1);
+            // not strcpy, it will stop at the first \0!
+            memcpy(buf, s, len);
+            for (int i=0; i<len; i++) {
+                if (buf[i] == '\0') {
+                    buf[i] = ' ';
+                }
+            }
+            buf[len] = '\0';
+            bool res = strset(dst, buf);
+            free(buf);
+            return res;
+        }
         return strset(dst, s);
+    }
+}
+
+static bool
+_strsetnn(char **dst, PyObject *src)
+{
+    if (_strset(dst, src)) {
+        if (*dst == NULL) {
+            *dst = "";
+        }
+        return true;
+    } else {
+        return false;
     }
 }
 
@@ -2723,6 +2765,147 @@ PyAccountList_dealloc(PyAccountList *self)
     accounts_deinit(&self->alist);
 }
 
+/* Transaction */
+static PyObject *
+PyTransaction_date(PyTransaction *self)
+{
+    return time2pydate(self->txn.date);
+}
+
+static int
+PyTransaction_date_set(PyTransaction *self, PyObject *value)
+{
+    time_t res = pydate2time(value);
+    if (res == 1) {
+        return -1;
+    } else {
+        self->txn.date = res;
+        return 0;
+    }
+}
+
+static PyObject *
+PyTransaction_description(PyTransaction *self)
+{
+    return _strget(self->txn.description);
+}
+
+static int
+PyTransaction_description_set(PyTransaction *self, PyObject *value)
+{
+    return _strsetnn(&self->txn.description, value) ? 0 : -1;
+}
+
+static PyObject *
+PyTransaction_payee(PyTransaction *self)
+{
+    return _strget(self->txn.payee);
+}
+
+static int
+PyTransaction_payee_set(PyTransaction *self, PyObject *value)
+{
+    return _strsetnn(&self->txn.payee, value) ? 0 : -1;
+}
+
+static PyObject *
+PyTransaction_checkno(PyTransaction *self)
+{
+    return _strget(self->txn.checkno);
+}
+
+static int
+PyTransaction_checkno_set(PyTransaction *self, PyObject *value)
+{
+    return _strsetnn(&self->txn.checkno, value) ? 0 : -1;
+}
+
+static PyObject *
+PyTransaction_notes(PyTransaction *self)
+{
+    return _strget(self->txn.notes);
+}
+
+static int
+PyTransaction_notes_set(PyTransaction *self, PyObject *value)
+{
+    return _strsetnn(&self->txn.notes, value) ? 0 : -1;
+}
+
+static PyObject *
+PyTransaction_position(PyTransaction *self)
+{
+    return PyLong_FromLong(self->txn.position);
+}
+
+static int
+PyTransaction_position_set(PyTransaction *self, PyObject *value)
+{
+    self->txn.position = PyLong_AsLong(value);
+    return 0;
+}
+
+static PyObject *
+PyTransaction_mtime(PyTransaction *self)
+{
+    return PyLong_FromLong(self->txn.mtime);
+}
+
+static int
+PyTransaction_mtime_set(PyTransaction *self, PyObject *value)
+{
+    if (!PyLong_Check(value)) {
+        // float from time.time()
+        PyObject *truncated = PyNumber_Long(value);
+        if (truncated == NULL) {
+            return -1;
+        }
+        self->txn.mtime = PyLong_AsLong(truncated);
+        Py_DECREF(truncated);
+    } else {
+        self->txn.mtime = PyLong_AsLong(value);
+    }
+    return 0;
+}
+
+static PyObject *
+PyTransaction_copy_from(PyTransaction *self, PyTransaction *other)
+{
+    if (!transaction_copy(&self->txn, &other->txn)) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static int
+PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *date_p, *description, *payee, *checkno;
+
+    static char *kwlist[] = {"date", "description", "payee", "checkno", NULL};
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args, kwds, "O|OOO", kwlist, &date_p, &description, &payee, &checkno);
+    if (!res) {
+        return -1;
+    }
+
+    time_t date = pydate2time(date_p);
+    if (date == 1) {
+        return -1;
+    }
+    transaction_init(&self->txn, date);
+    PyTransaction_description_set(self, description);
+    PyTransaction_payee_set(self, payee);
+    PyTransaction_checkno_set(self, checkno);
+    return 0;
+}
+
+static void
+PyTransaction_dealloc(PyTransaction *self)
+{
+}
+
 /* Oven functions */
 
 static bool
@@ -3189,6 +3372,38 @@ PyType_Spec AccountList_Type_Spec = {
     AccountList_Slots,
 };
 
+static PyMethodDef PyTransaction_methods[] = {
+    {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
+    {0, 0, 0, 0},
+};
+
+static PyGetSetDef PyTransaction_getseters[] = {
+    {"date", (getter)PyTransaction_date, (setter)PyTransaction_date_set, NULL, NULL},
+    {"description", (getter)PyTransaction_description, (setter)PyTransaction_description_set, NULL, NULL},
+    {"payee", (getter)PyTransaction_payee, (setter)PyTransaction_payee_set, NULL, NULL},
+    {"checkno", (getter)PyTransaction_checkno, (setter)PyTransaction_checkno_set, NULL, NULL},
+    {"notes", (getter)PyTransaction_notes, (setter)PyTransaction_notes_set, NULL, NULL},
+    {"position", (getter)PyTransaction_position, (setter)PyTransaction_position_set, NULL, NULL},
+    {"mtime", (getter)PyTransaction_mtime, (setter)PyTransaction_mtime_set, NULL, NULL},
+    {0, 0, 0, 0, 0},
+};
+
+static PyType_Slot Transaction_Slots[] = {
+    {Py_tp_init, PyTransaction_init},
+    {Py_tp_methods, PyTransaction_methods},
+    {Py_tp_getset, PyTransaction_getseters},
+    {Py_tp_dealloc, PyTransaction_dealloc},
+    {0, 0},
+};
+
+PyType_Spec Transaction_Type_Spec = {
+    "_ccore.Transaction",
+    sizeof(PyTransaction),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    Transaction_Slots,
+};
+
 static struct PyModuleDef CCoreDef = {
     PyModuleDef_HEAD_INIT,
     "_ccore",
@@ -3239,5 +3454,8 @@ PyInit__ccore(void)
 
     AccountList_Type = PyType_FromSpec(&AccountList_Type_Spec);
     PyModule_AddObject(m, "AccountList", AccountList_Type);
+
+    Transaction_Type = PyType_FromSpec(&Transaction_Type_Spec);
+    PyModule_AddObject(m, "Transaction", Transaction_Type);
     return m;
 }

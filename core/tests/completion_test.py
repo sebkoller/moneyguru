@@ -40,7 +40,7 @@ def test_dont_complete_with_inactive_accounts():
 # --- Empty account with whitespace in name
 def app_empty_account_with_whitespace_in_name(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account('  Foobar  ')
     app.add_account('foobaz')
     app.show_account()
@@ -54,7 +54,7 @@ def test_complete_transfer_empty_account_with_whitespace_in_name(app):
 # --- Three empty accounts
 def app_three_empty_accounts(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account('one')
     app.add_account('two')
     app.add_account('three') # This is the selected account (in second position)
@@ -79,7 +79,7 @@ def test_complete_description(app):
 # --- Income account shown
 def app_income_account_shown(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account('foobar', account_type=AccountType.Income)
     app.show_account()
     return app
@@ -92,7 +92,7 @@ def test_complete_transfer_income_account_shown(app):
 # --- Different account types
 def app_different_account_types(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account('income', account_type=AccountType.Income)
     app.add_account('asset')
     app.show_account()
@@ -106,7 +106,7 @@ def test_complete_transfer_different_account_types(app):
 # --- Entry in editing mode
 def app_entry_in_editing_mode(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account()
     app.show_account()
     app.etable.add()
@@ -124,7 +124,7 @@ def test_complete(app):
 # --- One entry
 def app_one_entry(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account('Checking')
     app.show_account()
     app.add_entry('10/10/2007', 'Deposit', payee='Payee', transfer='Salary', increase='42')
@@ -256,7 +256,7 @@ def test_dont_complete_with_inactive_account_with_transactions(app):
 # --- Entry with blank description
 def app_entry_with_blank_description(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account()
     app.show_account()
     app.add_entry('10/10/2007', description='', transfer='Salary', increase='42')
@@ -281,7 +281,7 @@ def test_complete_empty_string(app):
 # --- Entry with whitespace in description
 def app_entry_with_whitespace_in_description(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account()
     app.show_account()
     app.add_entry('10/10/2007', description='  foobar  ', increase='1')
@@ -300,7 +300,7 @@ def test_completion_strip_whitespace(app):
 # --- Two entries
 def app_two_entries(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account()
     app.show_account()
     app.add_entry('2/10/2007', 'first', increase='102.00')
@@ -327,7 +327,7 @@ def test_amount_completion_already_set(app):
 # --- Three entries in two account types
 def app_three_entries_in_two_account_types(monkeypatch):
     app = TestApp()
-    monkeypatch.patch_time_ticking()
+    monkeypatch.patch_time_ticking(force_int_diff=True)
     app.add_account()
     app.show_account()
     app.add_entry(description='first')

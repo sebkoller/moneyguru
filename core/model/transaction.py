@@ -6,16 +6,16 @@
 
 import time
 from collections import defaultdict
-from copy import copy
+from copy import copy, deepcopy
 import datetime
 
-from hscommon.util import allsame, first, nonone, stripfalse
+from hscommon.util import allsame, first, stripfalse
 
 from ..const import NOEDIT
 from .amount import Amount, convert_amount, of_currency
-from ._ccore import Split
+from ._ccore import Split, Transaction as TransactionBase
 
-class Transaction:
+class Transaction(TransactionBase):
     """A movement of money between two or more accounts at a specific date.
 
     Money movements that a transaction implies are listed in :attr:`splits`. The splits of a
@@ -33,29 +33,21 @@ class Transaction:
     TYPE = 1 # Used in CCore
 
     def __init__(self, date, description=None, payee=None, checkno=None, account=None, amount=None):
-        #: Date at which the transation occurs.
-        self.date = date
-        #: Description of the transaction.
-        self.description = nonone(description, '')
-        #: Person or entity related to the transaction.
-        self.payee = nonone(payee, '')
-        #: Check number related to the transaction.
-        self.checkno = nonone(checkno, '')
-        #: Freeform note about the transaction.
-        self.notes = ''
+        TransactionBase.__init__(self, date, description, payee, checkno)
         if amount is not None:
             self.splits = [Split(account, amount), Split(None, -amount)]
         else:
             #: The list of :class:`Split` affecting this transaction. These splits always balance.
             self.splits = []
-        #: Ordering attributes. When two transactions have the same date, we order them with this.
-        self.position = 0
-        #: Timestamp of the last modification. Used in the UI to let the user sort his transactions.
-        #: This is useful for finding a mistake that we know was introduced recently.
-        self.mtime = 0
 
     def __repr__(self):
         return '<%s %r %r>' % (self.__class__.__name__, self.date, self.description)
+
+    def __deepcopy__(self, *args, **kwargs):
+        res = Transaction(self.date)
+        res.copy_from(self)
+        res.splits = deepcopy(self.splits)
+        return res
 
     @classmethod
     def from_transaction(cls, transaction):
