@@ -6,7 +6,7 @@
 
 import time
 from collections import defaultdict
-from copy import copy, deepcopy
+from copy import copy
 import datetime
 
 from hscommon.util import allsame, first, stripfalse
@@ -33,12 +33,7 @@ class Transaction(TransactionBase):
     TYPE = 1 # Used in CCore
 
     def __init__(self, date, description=None, payee=None, checkno=None, account=None, amount=None):
-        TransactionBase.__init__(self, date, description, payee, checkno)
-        if amount is not None:
-            self.splits = [Split(account, amount), Split(None, -amount)]
-        else:
-            #: The list of :class:`Split` affecting this transaction. These splits always balance.
-            self.splits = []
+        TransactionBase.__init__(self, date, description, payee, checkno, account, amount)
 
     def __repr__(self):
         return '<%s %r %r>' % (self.__class__.__name__, self.date, self.description)
@@ -46,7 +41,6 @@ class Transaction(TransactionBase):
     def __deepcopy__(self, *args, **kwargs):
         res = Transaction(self.date)
         res.copy_from(self)
-        res.splits = deepcopy(self.splits)
         return res
 
     @classmethod

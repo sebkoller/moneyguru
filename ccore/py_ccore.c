@@ -113,6 +113,7 @@ static PyObject *EntryList_Type;
 typedef struct {
     PyObject_HEAD
     Transaction txn;
+    PyObject *splits;
 } PyTransaction;
 
 static PyObject *Transaction_Type;
@@ -1397,6 +1398,18 @@ PySplit_reconciled(PySplit *self)
 }
 
 /* Split Methods */
+// supplied split is copied and owned by the new instance
+static PySplit*
+_PySplit_from_split(const Split *split)
+{
+    PySplit *r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
+    r->owned = true;
+    r->split = malloc(sizeof(Split));
+    memset(r->split, 0, sizeof(Split));
+    split_copy(r->split, split);
+    return r;
+}
+
 static int
 PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
 {
@@ -2870,10 +2883,34 @@ PyTransaction_mtime_set(PyTransaction *self, PyObject *value)
 }
 
 static PyObject *
+PyTransaction_splits(PyTransaction *self)
+{
+    Py_INCREF(self->splits);
+    return self->splits;
+}
+
+static PyObject *
+PyTransaction_splits_set(PyTransaction *self, PyObject *value)
+{
+    Py_DECREF(self->splits);
+    Py_INCREF(value);
+    self->splits = value;
+    return 0;
+}
+
+static PyObject *
 PyTransaction_copy_from(PyTransaction *self, PyTransaction *other)
 {
     if (!transaction_copy(&self->txn, &other->txn)) {
         return NULL;
+    }
+    Py_DECREF(self->splits);
+    Py_ssize_t len = PyList_Size(other->splits);
+    self->splits = PyList_New(len);
+    for (int i=0; i<len; i++) {
+        PyObject *split = PyList_GetItem(other->splits, i); // borrowed
+        PyObject *new = PySplit_copy((PySplit *)split);
+        PyList_SetItem(self->splits, i, new); // stolen
     }
     Py_RETURN_NONE;
 }
@@ -2881,12 +2918,14 @@ PyTransaction_copy_from(PyTransaction *self, PyTransaction *other)
 static int
 PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *date_p, *description, *payee, *checkno;
+    PyObject *date_p, *description, *payee, *checkno, *account_p, *amount_p;
 
-    static char *kwlist[] = {"date", "description", "payee", "checkno", NULL};
+    static char *kwlist[] = {"date", "description", "payee", "checkno",
+        "account", "amount", NULL};
 
     int res = PyArg_ParseTupleAndKeywords(
-        args, kwds, "O|OOO", kwlist, &date_p, &description, &payee, &checkno);
+        args, kwds, "OOOOOO", kwlist, &date_p, &description, &payee, &checkno,
+        &account_p, &amount_p);
     if (!res) {
         return -1;
     }
@@ -2899,6 +2938,24 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
     PyTransaction_description_set(self, description);
     PyTransaction_payee_set(self, payee);
     PyTransaction_checkno_set(self, checkno);
+    self->splits = PyList_New(0);
+    if (amount_p != Py_None) {
+        Account *account = NULL;
+        if (account_p != Py_None) {
+            account = ((PyAccount *)account_p)->account;
+        }
+        Amount *amount = get_amount(amount_p);
+        Split split;
+        split_init(&split, account, amount);
+        PySplit *split_p = _PySplit_from_split(&split);
+        PyList_Append(self->splits, (PyObject *)split_p);
+        Py_DECREF(split_p);
+        split.account = NULL;
+        split.amount.val *= -1;
+        split_p = _PySplit_from_split(&split);
+        PyList_Append(self->splits, (PyObject *)split_p);
+        Py_DECREF(split_p);
+    }
     return 0;
 }
 
@@ -3386,6 +3443,7 @@ static PyGetSetDef PyTransaction_getseters[] = {
     {"notes", (getter)PyTransaction_notes, (setter)PyTransaction_notes_set, NULL, NULL},
     {"position", (getter)PyTransaction_position, (setter)PyTransaction_position_set, NULL, NULL},
     {"mtime", (getter)PyTransaction_mtime, (setter)PyTransaction_mtime_set, NULL, NULL},
+    {"splits", (getter)PyTransaction_splits, (setter)PyTransaction_splits_set, NULL, NULL},
     {0, 0, 0, 0, 0},
 };
 
