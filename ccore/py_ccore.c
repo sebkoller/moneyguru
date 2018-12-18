@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include "amount.h"
+#include "entry.h"
 #include "split.h"
 #include "transaction.h"
 #include "account.h"
@@ -92,19 +93,9 @@ static PyObject *Transaction_Type;
  */
 typedef struct {
     PyObject_HEAD
-    // The split that we wrap
+    Entry entry;
     PySplit *split;
-    // The txn it's associated to
     PyTransaction *txn;
-    // The running total of all preceding entries in the account.
-    Amount balance;
-    // The running total of all preceding *reconciled* entries in the account.
-    Amount reconciled_balance;
-    // Running balance which includes all Budget spawns.
-    Amount balance_with_budget;
-    // Index in the EntryList. Set by `EntryList.add_entry` and used as a tie
-    // breaker in case we have more than one entry from the same transaction.
-    int index;
 } PyEntry;
 
 static PyObject *Entry_Type;
@@ -1721,13 +1712,9 @@ PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
     if (!res) {
         return -1;
     }
-
     Py_INCREF(self->split);
     Py_INCREF(self->txn);
-    amount_copy(&self->balance, amount_zero());
-    amount_copy(&self->reconciled_balance, amount_zero());
-    amount_copy(&self->balance_with_budget, amount_zero());
-    self->index = -1;
+    entry_init(&self->entry, self->split->split, &self->txn->txn);
     return 0;
 }
 
@@ -1746,13 +1733,15 @@ PyEntry_amount(PyEntry *self)
 static PyObject *
 PyEntry_balance(PyEntry *self)
 {
-    return create_amount(self->balance.val, self->balance.currency);
+    return create_amount(self->entry.balance.val, self->entry.balance.currency);
 }
 
 static PyObject *
 PyEntry_balance_with_budget(PyEntry *self)
 {
-    return create_amount(self->balance_with_budget.val, self->balance_with_budget.currency);
+    return create_amount(
+        self->entry.balance_with_budget.val,
+        self->entry.balance_with_budget.currency);
 }
 
 static PyObject *
@@ -1776,7 +1765,7 @@ PyEntry_description(PyEntry *self)
 static PyObject *
 PyEntry_index(PyEntry *self)
 {
-    return PyLong_FromLong(self->index);
+    return PyLong_FromLong(self->entry.index);
 }
 
 static PyObject *
@@ -1800,7 +1789,9 @@ PyEntry_reconciled(PyEntry *self)
 static PyObject *
 PyEntry_reconciled_balance(PyEntry *self)
 {
-    return create_amount(self->reconciled_balance.val, self->reconciled_balance.currency);
+    return create_amount(
+        self->entry.reconciled_balance.val,
+        self->entry.reconciled_balance.currency);
 }
 
 static PyObject *
@@ -1836,7 +1827,7 @@ _PyEntry_reconciliation_key(PyEntry *self)
         return NULL;
     }
     PyObject *date = PyEntry_date(self);
-    PyObject *index = PyLong_FromLong(self->index);
+    PyObject *index = PyLong_FromLong(self->entry.index);
     PyObject *tuple = PyTuple_Pack(4, recdate, date, position, index);
     Py_DECREF(recdate);
     Py_DECREF(date);
@@ -1867,6 +1858,7 @@ PyEntry_split_set(PyEntry *self, PyObject *value)
     }
     Py_DECREF(self->split);
     self->split = (PySplit *)value;
+    self->entry.split = self->split->split;
     Py_INCREF(self->split);
     return 0;
 }
@@ -1903,6 +1895,7 @@ PyEntry_transaction_set(PyEntry *self, PyObject *value)
 {
     Py_DECREF(self->txn);
     self->txn = (PyTransaction *)value;
+    self->entry.txn = &self->txn->txn;
     Py_INCREF(self->txn);
     return 0;
 }
@@ -1990,7 +1983,7 @@ static PyObject*
 PyEntry_normal_balance(PyEntry *self, PyObject *args)
 {
     Amount amount;
-    amount_copy(&amount, &self->balance);
+    amount_copy(&amount, &self->entry.balance);
     Account *a = self->split->split->account;
     if (a != NULL) {
         if (account_is_credit(a)) {
@@ -2008,10 +2001,7 @@ PyEntry_copy(PyEntry *self)
     Py_INCREF(r->split);
     r->txn = self->txn;
     Py_INCREF(r->txn);
-    amount_copy(&r->balance, &self->balance);
-    amount_copy(&r->reconciled_balance, &self->reconciled_balance);
-    amount_copy(&r->balance_with_budget, &self->balance_with_budget);
-    r->index = self->index;
+    entry_copy(&r->entry, &self->entry);
     return (PyObject *)r;
 }
 
@@ -2232,7 +2222,7 @@ _PyEntryList_balance(
         if (entry == NULL) {
             return false;
         }
-        Amount *src = with_budget ? &entry->balance_with_budget : &entry->balance;
+        Amount *src = with_budget ? &entry->entry.balance_with_budget : &entry->entry.balance;
         if (date_p != Py_None) {
             time_t date = pydate2time(date_p);
             if (date == 1) {
@@ -2287,7 +2277,7 @@ _PyEntryList_balance_of_reconciled(PyEntryList *self, Amount *dst)
         dst->val = 0;
         return false;
     } else {
-        amount_copy(dst, &self->last_reconciled->reconciled_balance);
+        amount_copy(dst, &self->last_reconciled->entry.reconciled_balance);
         return true;
     }
 }
@@ -2970,7 +2960,7 @@ _py_oven_cook_splits(
     }
     _PyEntryList_balance_of_reconciled(entries, &reconciled_balance);
     Py_ssize_t len = PySequence_Length(splitpairs);
-    PyObject *res = PyList_New(len);
+    PyObject *newentries = PyList_New(len);
     // Entry tuples for reconciliation order
     PyObject *rentries = PyList_New(len);
     for (int i=0; i<len; i++) {
@@ -2980,39 +2970,30 @@ _py_oven_cook_splits(
         if (entry->txn == NULL) {
             Py_DECREF(item);
             Py_DECREF(entry);
-            Py_DECREF(res);
+            Py_DECREF(newentries);
             return false;
         }
         entry->split = (PySplit *)PyTuple_GetItem(item, 1); // borrowed
         if (entry->split == NULL) {
             Py_DECREF(item);
             Py_DECREF(entry);
-            Py_DECREF(res);
+            Py_DECREF(newentries);
             return NULL;
         }
         Py_INCREF(entry->split);
         Py_INCREF(entry->txn);
-        entry->index = i;
-        PyObject *tmp = PyEntry_date(entry);
-        if (tmp == NULL) {
-            return false;
-        }
-        time_t date = pydate2time(tmp);
-        if (date == 1) {
-            return false;
-        }
-        Py_DECREF(tmp);
+        entry->entry.index = i;
 
         Split *split = entry->split->split;
-        if (!amount_convert(&amount, &split->amount, date)) {
+        if (!amount_convert(&amount, &split->amount, entry->txn->txn.date)) {
             return false;
         }
         if (entry->txn->txn.type != TXN_TYPE_BUDGET) {
             balance.val += amount.val;
         }
-        amount_copy(&entry->balance, &balance);
+        amount_copy(&entry->entry.balance, &balance);
         balance_with_budget.val += amount.val;
-        amount_copy(&entry->balance_with_budget, &balance_with_budget);
+        amount_copy(&entry->entry.balance_with_budget, &balance_with_budget);
 
         PyObject *rdate = PySplit_reconciliation_date(entry->split);
         PyObject *tdate = PyTransaction_date(entry->txn);
@@ -3025,13 +3006,13 @@ _py_oven_cook_splits(
         Py_DECREF(rdate);
         Py_DECREF(tdate);
         Py_DECREF(tpos);
-        PyList_SetItem(res, i, (PyObject *)entry); // stolen
+        PyList_SetItem(newentries, i, (PyObject *)entry); // stolen
         PyList_SetItem(rentries, i, tuple); // stolen
     }
 
     if (PyList_Sort(rentries) == -1) {
         Py_DECREF(rentries);
-        Py_DECREF(res);
+        Py_DECREF(newentries);
         return false;
     }
     for (int i=0; i<len; i++) {
@@ -3040,14 +3021,14 @@ _py_oven_cook_splits(
         if (entry->split->split->reconciliation_date != 0) {
             reconciled_balance.val += entry->split->split->amount.val;
         }
-        amount_copy(&entry->reconciled_balance, &reconciled_balance);
+        amount_copy(&entry->entry.reconciled_balance, &reconciled_balance);
     }
     Py_DECREF(rentries);
     for (int i=0; i<len; i++) {
-        PyEntry *entry = (PyEntry *)PyList_GetItem(res, i); // borrowed
+        PyEntry *entry = (PyEntry *)PyList_GetItem(newentries, i); // borrowed
         _PyEntryList_add_entry(entries, entry);
     }
-    Py_DECREF(res);
+    Py_DECREF(newentries);
     return true;
 }
 
