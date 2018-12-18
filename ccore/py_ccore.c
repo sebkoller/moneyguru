@@ -3079,11 +3079,8 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
     Py_ssize_t len = PySequence_Length(txns);
     PyObject *a2s = PyDict_New();
     for (int i=0; i<len; i++) {
-        PyObject *txn = PyList_GetItem(txns, i); // borrowed
-        PyObject *splits = PyObject_GetAttrString(txn, "splits");
-        if (splits == NULL) {
-            return NULL;
-        }
+        PyTransaction *txn = (PyTransaction *)PyList_GetItem(txns, i); // borrowed
+        PyObject *splits = txn->splits;
         Py_ssize_t slen = PySequence_Length(splits);
         for (int j=0; j<slen; j++) {
             PySplit *split_p = (PySplit *)PyList_GetItem(splits, j); // borrowed
