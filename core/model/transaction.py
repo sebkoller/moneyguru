@@ -33,7 +33,8 @@ class Transaction(TransactionBase):
     TYPE = 1 # Used in CCore
 
     def __init__(self, date, description=None, payee=None, checkno=None, account=None, amount=None):
-        TransactionBase.__init__(self, date, description, payee, checkno, account, amount)
+        TransactionBase.__init__(
+            self, self.TYPE, date, description, payee, checkno, account, amount)
 
     def __repr__(self):
         return '<%s %r %r>' % (self.__class__.__name__, self.date, self.description)

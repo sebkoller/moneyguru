@@ -2,11 +2,14 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define TXN_TYPE_NORMAL 1
-#define TXN_TYPE_RECURRENCE 2
-#define TXN_TYPE_BUDGET 3
+typedef enum {
+    TXN_TYPE_NORMAL = 1,
+    TXN_TYPE_RECURRENCE = 2,
+    TXN_TYPE_BUDGET = 3,
+} TransactionType;
 
 typedef struct {
+    TransactionType type;
     // Date at which the transation occurs.
     time_t date;
     // Description of the transaction.
@@ -27,7 +30,7 @@ typedef struct {
 } Transaction;
 
 void
-transaction_init(Transaction *txn, time_t date);
+transaction_init(Transaction *txn, TransactionType type, time_t date);
 
 // If dst is a fresh instance, it *has* to have been zeroed out before calling
 // this.

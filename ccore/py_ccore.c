@@ -1660,13 +1660,14 @@ static int
 PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
 {
     PyObject *date_p, *description, *payee, *checkno, *account_p, *amount_p;
+    int txntype;
 
-    static char *kwlist[] = {"date", "description", "payee", "checkno",
+    static char *kwlist[] = {"type", "date", "description", "payee", "checkno",
         "account", "amount", NULL};
 
     int res = PyArg_ParseTupleAndKeywords(
-        args, kwds, "OOOOOO", kwlist, &date_p, &description, &payee, &checkno,
-        &account_p, &amount_p);
+        args, kwds, "iOOOOOO", kwlist, &txntype, &date_p, &description, &payee,
+        &checkno, &account_p, &amount_p);
     if (!res) {
         return -1;
     }
@@ -1675,7 +1676,7 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
     if (date == 1) {
         return -1;
     }
-    transaction_init(&self->txn, date);
+    transaction_init(&self->txn, txntype, date);
     PyTransaction_description_set(self, description);
     PyTransaction_payee_set(self, payee);
     PyTransaction_checkno_set(self, checkno);
@@ -2309,13 +2310,7 @@ _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
     Py_ssize_t len = PyList_Size(self->entries);
     for (int i=0; i<len; i++) {
         PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
-        PyObject *tmp = PyObject_GetAttrString((PyObject *)entry->txn, "TYPE");
-        if (tmp == NULL) {
-            return false;
-        }
-        int txn_type = PyLong_AsLong(tmp);
-        Py_DECREF(tmp);
-        if (txn_type == TXN_TYPE_BUDGET) {
+        if (entry->txn->txn.type == TXN_TYPE_BUDGET) {
             continue;
         }
         PyObject *date_p = PyEntry_date(entry);
@@ -2998,13 +2993,7 @@ _py_oven_cook_splits(
         Py_INCREF(entry->split);
         Py_INCREF(entry->txn);
         entry->index = i;
-        PyObject *tmp = PyObject_GetAttrString((PyObject *)entry->txn, "TYPE");
-        if (tmp == NULL) {
-            return false;
-        }
-        int txn_type = PyLong_AsLong(tmp);
-        Py_DECREF(tmp);
-        tmp = PyEntry_date(entry);
+        PyObject *tmp = PyEntry_date(entry);
         if (tmp == NULL) {
             return false;
         }
@@ -3018,7 +3007,7 @@ _py_oven_cook_splits(
         if (!amount_convert(&amount, &split->amount, date)) {
             return false;
         }
-        if (txn_type != TXN_TYPE_BUDGET) {
+        if (entry->txn->txn.type != TXN_TYPE_BUDGET) {
             balance.val += amount.val;
         }
         amount_copy(&entry->balance, &balance);
