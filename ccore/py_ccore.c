@@ -71,6 +71,15 @@ typedef struct {
 static PyObject *Split_Type;
 #define Split_Check(v) (Py_TYPE(v) == (PyTypeObject *)Split_Type)
 
+typedef struct {
+    PyObject_HEAD
+    Transaction txn;
+    PyObject *splits;
+} PyTransaction;
+
+static PyObject *Transaction_Type;
+#define Transaction_Check(v) (Py_TYPE(v) == (PyTypeObject *)Transaction_Type)
+
 /* Wrapper around a Split to show in an Account ledger.
  *
  * The two main roles of the entry as a wrapper is to handle user edits and
@@ -86,7 +95,7 @@ typedef struct {
     // The split that we wrap
     PySplit *split;
     // The txn it's associated to
-    PyObject *transaction;
+    PyTransaction *txn;
     // The running total of all preceding entries in the account.
     Amount balance;
     // The running total of all preceding *reconciled* entries in the account.
@@ -109,15 +118,6 @@ typedef struct {
 } PyEntryList;
 
 static PyObject *EntryList_Type;
-
-typedef struct {
-    PyObject_HEAD
-    Transaction txn;
-    PyObject *splits;
-} PyTransaction;
-
-static PyObject *Transaction_Type;
-#define Transaction_Check(v) (Py_TYPE(v) == (PyTypeObject *)Transaction_Type)
 
 /* Utils */
 static PyObject*
@@ -1520,6 +1520,192 @@ PySplit_deepcopy(PySplit *self, PyObject *args, PyObject *kwds)
     return PySplit_copy(self);
 }
 
+/* Transaction */
+static PyObject *
+PyTransaction_date(PyTransaction *self)
+{
+    return time2pydate(self->txn.date);
+}
+
+static int
+PyTransaction_date_set(PyTransaction *self, PyObject *value)
+{
+    time_t res = pydate2time(value);
+    if (res == 1) {
+        return -1;
+    } else {
+        self->txn.date = res;
+        return 0;
+    }
+}
+
+static PyObject *
+PyTransaction_description(PyTransaction *self)
+{
+    return _strget(self->txn.description);
+}
+
+static int
+PyTransaction_description_set(PyTransaction *self, PyObject *value)
+{
+    return _strsetnn(&self->txn.description, value) ? 0 : -1;
+}
+
+static PyObject *
+PyTransaction_payee(PyTransaction *self)
+{
+    return _strget(self->txn.payee);
+}
+
+static int
+PyTransaction_payee_set(PyTransaction *self, PyObject *value)
+{
+    return _strsetnn(&self->txn.payee, value) ? 0 : -1;
+}
+
+static PyObject *
+PyTransaction_checkno(PyTransaction *self)
+{
+    return _strget(self->txn.checkno);
+}
+
+static int
+PyTransaction_checkno_set(PyTransaction *self, PyObject *value)
+{
+    return _strsetnn(&self->txn.checkno, value) ? 0 : -1;
+}
+
+static PyObject *
+PyTransaction_notes(PyTransaction *self)
+{
+    return _strget(self->txn.notes);
+}
+
+static int
+PyTransaction_notes_set(PyTransaction *self, PyObject *value)
+{
+    return _strsetnn(&self->txn.notes, value) ? 0 : -1;
+}
+
+static PyObject *
+PyTransaction_position(PyTransaction *self)
+{
+    return PyLong_FromLong(self->txn.position);
+}
+
+static int
+PyTransaction_position_set(PyTransaction *self, PyObject *value)
+{
+    self->txn.position = PyLong_AsLong(value);
+    return 0;
+}
+
+static PyObject *
+PyTransaction_mtime(PyTransaction *self)
+{
+    return PyLong_FromLong(self->txn.mtime);
+}
+
+static int
+PyTransaction_mtime_set(PyTransaction *self, PyObject *value)
+{
+    if (!PyLong_Check(value)) {
+        // float from time.time()
+        PyObject *truncated = PyNumber_Long(value);
+        if (truncated == NULL) {
+            return -1;
+        }
+        self->txn.mtime = PyLong_AsLong(truncated);
+        Py_DECREF(truncated);
+    } else {
+        self->txn.mtime = PyLong_AsLong(value);
+    }
+    return 0;
+}
+
+static PyObject *
+PyTransaction_splits(PyTransaction *self)
+{
+    Py_INCREF(self->splits);
+    return self->splits;
+}
+
+static PyObject *
+PyTransaction_splits_set(PyTransaction *self, PyObject *value)
+{
+    Py_DECREF(self->splits);
+    Py_INCREF(value);
+    self->splits = value;
+    return 0;
+}
+
+static PyObject *
+PyTransaction_copy_from(PyTransaction *self, PyTransaction *other)
+{
+    if (!transaction_copy(&self->txn, &other->txn)) {
+        return NULL;
+    }
+    Py_DECREF(self->splits);
+    Py_ssize_t len = PyList_Size(other->splits);
+    self->splits = PyList_New(len);
+    for (int i=0; i<len; i++) {
+        PyObject *split = PyList_GetItem(other->splits, i); // borrowed
+        PyObject *new = PySplit_copy((PySplit *)split);
+        PyList_SetItem(self->splits, i, new); // stolen
+    }
+    Py_RETURN_NONE;
+}
+
+static int
+PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *date_p, *description, *payee, *checkno, *account_p, *amount_p;
+
+    static char *kwlist[] = {"date", "description", "payee", "checkno",
+        "account", "amount", NULL};
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args, kwds, "OOOOOO", kwlist, &date_p, &description, &payee, &checkno,
+        &account_p, &amount_p);
+    if (!res) {
+        return -1;
+    }
+
+    time_t date = pydate2time(date_p);
+    if (date == 1) {
+        return -1;
+    }
+    transaction_init(&self->txn, date);
+    PyTransaction_description_set(self, description);
+    PyTransaction_payee_set(self, payee);
+    PyTransaction_checkno_set(self, checkno);
+    self->splits = PyList_New(0);
+    if (amount_p != Py_None) {
+        Account *account = NULL;
+        if (account_p != Py_None) {
+            account = ((PyAccount *)account_p)->account;
+        }
+        Amount *amount = get_amount(amount_p);
+        Split split;
+        split_init(&split, account, amount);
+        PySplit *split_p = _PySplit_from_split(&split);
+        PyList_Append(self->splits, (PyObject *)split_p);
+        Py_DECREF(split_p);
+        split.account = NULL;
+        split.amount.val *= -1;
+        split_p = _PySplit_from_split(&split);
+        PyList_Append(self->splits, (PyObject *)split_p);
+        Py_DECREF(split_p);
+    }
+    return 0;
+}
+
+static void
+PyTransaction_dealloc(PyTransaction *self)
+{
+    Py_DECREF(self->splits);
+}
+
 /* Entry Methods */
 static int
 PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
@@ -1530,13 +1716,13 @@ PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
     static char *kwlist[] = {"split", "transaction", NULL};
 
     int res = PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO", kwlist, &self->split, &self->transaction);
+        args, kwds, "OO", kwlist, &self->split, &self->txn);
     if (!res) {
         return -1;
     }
 
     Py_INCREF(self->split);
-    Py_INCREF(self->transaction);
+    Py_INCREF(self->txn);
     amount_copy(&self->balance, amount_zero());
     amount_copy(&self->reconciled_balance, amount_zero());
     amount_copy(&self->balance_with_budget, amount_zero());
@@ -1571,19 +1757,19 @@ PyEntry_balance_with_budget(PyEntry *self)
 static PyObject *
 PyEntry_checkno(PyEntry *self)
 {
-    return PyObject_GetAttrString(self->transaction, "checkno");
+    return PyTransaction_checkno(self->txn);
 }
 
 static PyObject *
 PyEntry_date(PyEntry *self)
 {
-    return PyObject_GetAttrString(self->transaction, "date");
+    return PyTransaction_date(self->txn);
 }
 
 static PyObject *
 PyEntry_description(PyEntry *self)
 {
-    return PyObject_GetAttrString(self->transaction, "description");
+    return PyTransaction_description(self->txn);
 }
 
 static PyObject *
@@ -1595,13 +1781,13 @@ PyEntry_index(PyEntry *self)
 static PyObject *
 PyEntry_payee(PyEntry *self)
 {
-    return PyObject_GetAttrString(self->transaction, "payee");
+    return PyTransaction_payee(self->txn);
 }
 
 static PyObject *
 PyEntry_mtime(PyEntry *self)
 {
-    return PyObject_GetAttrString(self->transaction, "mtime");
+    return PyTransaction_mtime(self->txn);
 }
 
 static PyObject *
@@ -1643,7 +1829,7 @@ _PyEntry_reconciliation_key(PyEntry *self)
             return NULL;
         }
     }
-    PyObject *position = PyObject_GetAttrString(self->transaction, "position");
+    PyObject *position = PyTransaction_position(self->txn);
     if (position == NULL) {
         Py_DECREF(recdate);
         return NULL;
@@ -1687,10 +1873,7 @@ PyEntry_split_set(PyEntry *self, PyObject *value)
 static PyObject *
 PyEntry_splits(PyEntry *self)
 {
-    PyObject *tsplits = PyObject_GetAttrString(self->transaction, "splits");
-    if (tsplits == NULL) {
-        return NULL;
-    }
+    PyObject *tsplits = self->txn->splits;
     Py_ssize_t len = PyList_Size(tsplits);
     // we assume that self->split is in tsplits, and there only once.
     PyObject *r = PyList_New(len - 1);
@@ -1710,16 +1893,16 @@ PyEntry_splits(PyEntry *self)
 static PyObject *
 PyEntry_transaction(PyEntry *self)
 {
-    Py_INCREF(self->transaction);
-    return self->transaction;
+    Py_INCREF(self->txn);
+    return (PyObject *)self->txn;
 }
 
 static int
 PyEntry_transaction_set(PyEntry *self, PyObject *value)
 {
-    Py_DECREF(self->transaction);
-    self->transaction = value;
-    Py_INCREF(self->transaction);
+    Py_DECREF(self->txn);
+    self->txn = (PyTransaction *)value;
+    Py_INCREF(self->txn);
     return 0;
 }
 
@@ -1822,8 +2005,8 @@ PyEntry_copy(PyEntry *self)
     PyEntry *r = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
     r->split = self->split;
     Py_INCREF(r->split);
-    r->transaction = self->transaction;
-    Py_INCREF(r->transaction);
+    r->txn = self->txn;
+    Py_INCREF(r->txn);
     amount_copy(&r->balance, &self->balance);
     amount_copy(&r->reconciled_balance, &self->reconciled_balance);
     amount_copy(&r->balance_with_budget, &self->balance_with_budget);
@@ -1872,30 +2055,19 @@ PyEntry_repr(PyEntry *self)
 {
     PyObject *r, *fmt, *args;
 
-    PyObject *tdate = PyObject_GetAttrString(self->transaction, "date");
+    PyObject *tdate = PyTransaction_date(self->txn);
     if (tdate == NULL) {
         return NULL;
     }
-    PyObject *tdesc = PyObject_GetAttrString(self->transaction, "description");
-    if (tdesc == NULL) {
-        Py_DECREF(tdate);
-        return NULL;
-    }
-    args = Py_BuildValue("(OO)", tdate, tdesc);
-    Py_DECREF(tdate);
-    Py_DECREF(tdesc);
-    fmt = PyUnicode_FromString("Entry(%s %s))");
-    r = PyUnicode_Format(fmt, args);
-    Py_DECREF(fmt);
-    Py_DECREF(args);
-    return r;
+    return PyUnicode_FromFormat(
+        "Entry(%S %s)", tdate, self->txn->txn.description);
 }
 
 static void
 PyEntry_dealloc(PyEntry *self)
 {
     Py_DECREF(self->split);
-    Py_DECREF(self->transaction);
+    Py_DECREF(self->txn);
 }
 
 /* EntryList */
@@ -2137,7 +2309,7 @@ _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
     Py_ssize_t len = PyList_Size(self->entries);
     for (int i=0; i<len; i++) {
         PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
-        PyObject *tmp = PyObject_GetAttrString(entry->transaction, "TYPE");
+        PyObject *tmp = PyObject_GetAttrString((PyObject *)entry->txn, "TYPE");
         if (tmp == NULL) {
             return false;
         }
@@ -2779,191 +2951,6 @@ PyAccountList_dealloc(PyAccountList *self)
     accounts_deinit(&self->alist);
 }
 
-/* Transaction */
-static PyObject *
-PyTransaction_date(PyTransaction *self)
-{
-    return time2pydate(self->txn.date);
-}
-
-static int
-PyTransaction_date_set(PyTransaction *self, PyObject *value)
-{
-    time_t res = pydate2time(value);
-    if (res == 1) {
-        return -1;
-    } else {
-        self->txn.date = res;
-        return 0;
-    }
-}
-
-static PyObject *
-PyTransaction_description(PyTransaction *self)
-{
-    return _strget(self->txn.description);
-}
-
-static int
-PyTransaction_description_set(PyTransaction *self, PyObject *value)
-{
-    return _strsetnn(&self->txn.description, value) ? 0 : -1;
-}
-
-static PyObject *
-PyTransaction_payee(PyTransaction *self)
-{
-    return _strget(self->txn.payee);
-}
-
-static int
-PyTransaction_payee_set(PyTransaction *self, PyObject *value)
-{
-    return _strsetnn(&self->txn.payee, value) ? 0 : -1;
-}
-
-static PyObject *
-PyTransaction_checkno(PyTransaction *self)
-{
-    return _strget(self->txn.checkno);
-}
-
-static int
-PyTransaction_checkno_set(PyTransaction *self, PyObject *value)
-{
-    return _strsetnn(&self->txn.checkno, value) ? 0 : -1;
-}
-
-static PyObject *
-PyTransaction_notes(PyTransaction *self)
-{
-    return _strget(self->txn.notes);
-}
-
-static int
-PyTransaction_notes_set(PyTransaction *self, PyObject *value)
-{
-    return _strsetnn(&self->txn.notes, value) ? 0 : -1;
-}
-
-static PyObject *
-PyTransaction_position(PyTransaction *self)
-{
-    return PyLong_FromLong(self->txn.position);
-}
-
-static int
-PyTransaction_position_set(PyTransaction *self, PyObject *value)
-{
-    self->txn.position = PyLong_AsLong(value);
-    return 0;
-}
-
-static PyObject *
-PyTransaction_mtime(PyTransaction *self)
-{
-    return PyLong_FromLong(self->txn.mtime);
-}
-
-static int
-PyTransaction_mtime_set(PyTransaction *self, PyObject *value)
-{
-    if (!PyLong_Check(value)) {
-        // float from time.time()
-        PyObject *truncated = PyNumber_Long(value);
-        if (truncated == NULL) {
-            return -1;
-        }
-        self->txn.mtime = PyLong_AsLong(truncated);
-        Py_DECREF(truncated);
-    } else {
-        self->txn.mtime = PyLong_AsLong(value);
-    }
-    return 0;
-}
-
-static PyObject *
-PyTransaction_splits(PyTransaction *self)
-{
-    Py_INCREF(self->splits);
-    return self->splits;
-}
-
-static PyObject *
-PyTransaction_splits_set(PyTransaction *self, PyObject *value)
-{
-    Py_DECREF(self->splits);
-    Py_INCREF(value);
-    self->splits = value;
-    return 0;
-}
-
-static PyObject *
-PyTransaction_copy_from(PyTransaction *self, PyTransaction *other)
-{
-    if (!transaction_copy(&self->txn, &other->txn)) {
-        return NULL;
-    }
-    Py_DECREF(self->splits);
-    Py_ssize_t len = PyList_Size(other->splits);
-    self->splits = PyList_New(len);
-    for (int i=0; i<len; i++) {
-        PyObject *split = PyList_GetItem(other->splits, i); // borrowed
-        PyObject *new = PySplit_copy((PySplit *)split);
-        PyList_SetItem(self->splits, i, new); // stolen
-    }
-    Py_RETURN_NONE;
-}
-
-static int
-PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
-{
-    PyObject *date_p, *description, *payee, *checkno, *account_p, *amount_p;
-
-    static char *kwlist[] = {"date", "description", "payee", "checkno",
-        "account", "amount", NULL};
-
-    int res = PyArg_ParseTupleAndKeywords(
-        args, kwds, "OOOOOO", kwlist, &date_p, &description, &payee, &checkno,
-        &account_p, &amount_p);
-    if (!res) {
-        return -1;
-    }
-
-    time_t date = pydate2time(date_p);
-    if (date == 1) {
-        return -1;
-    }
-    transaction_init(&self->txn, date);
-    PyTransaction_description_set(self, description);
-    PyTransaction_payee_set(self, payee);
-    PyTransaction_checkno_set(self, checkno);
-    self->splits = PyList_New(0);
-    if (amount_p != Py_None) {
-        Account *account = NULL;
-        if (account_p != Py_None) {
-            account = ((PyAccount *)account_p)->account;
-        }
-        Amount *amount = get_amount(amount_p);
-        Split split;
-        split_init(&split, account, amount);
-        PySplit *split_p = _PySplit_from_split(&split);
-        PyList_Append(self->splits, (PyObject *)split_p);
-        Py_DECREF(split_p);
-        split.account = NULL;
-        split.amount.val *= -1;
-        split_p = _PySplit_from_split(&split);
-        PyList_Append(self->splits, (PyObject *)split_p);
-        Py_DECREF(split_p);
-    }
-    return 0;
-}
-
-static void
-PyTransaction_dealloc(PyTransaction *self)
-{
-}
-
 /* Oven functions */
 
 static bool
@@ -2994,8 +2981,8 @@ _py_oven_cook_splits(
     for (int i=0; i<len; i++) {
         PyObject *item = PySequence_GetItem(splitpairs, i);
         PyEntry *entry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
-        entry->transaction = PyTuple_GetItem(item, 0); // borrowed
-        if (entry->transaction == NULL) {
+        entry->txn = (PyTransaction *)PyTuple_GetItem(item, 0); // borrowed
+        if (entry->txn == NULL) {
             Py_DECREF(item);
             Py_DECREF(entry);
             Py_DECREF(res);
@@ -3009,9 +2996,9 @@ _py_oven_cook_splits(
             return NULL;
         }
         Py_INCREF(entry->split);
-        Py_INCREF(entry->transaction);
+        Py_INCREF(entry->txn);
         entry->index = i;
-        PyObject *tmp = PyObject_GetAttrString(entry->transaction, "TYPE");
+        PyObject *tmp = PyObject_GetAttrString((PyObject *)entry->txn, "TYPE");
         if (tmp == NULL) {
             return false;
         }
@@ -3039,12 +3026,12 @@ _py_oven_cook_splits(
         amount_copy(&entry->balance_with_budget, &balance_with_budget);
 
         PyObject *rdate = PySplit_reconciliation_date(entry->split);
-        PyObject *tdate = PyObject_GetAttrString(entry->transaction, "date");
+        PyObject *tdate = PyTransaction_date(entry->txn);
         if (rdate == Py_None) {
             rdate = tdate;
             Py_INCREF(rdate);
         }
-        PyObject *tpos = PyObject_GetAttrString(entry->transaction, "position");
+        PyObject *tpos = PyTransaction_position(entry->txn);
         PyObject *tuple = PyTuple_Pack(4, rdate, tdate, tpos, entry);
         Py_DECREF(rdate);
         Py_DECREF(tdate);
