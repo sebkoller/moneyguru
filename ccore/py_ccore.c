@@ -2901,28 +2901,11 @@ static bool
 _py_oven_cook_splits(
     PyObject *splitpairs, PyEntryList *entries)
 {
-    Amount amount;
-    Amount balance;
-    Amount balance_with_budget;
-    Amount reconciled_balance;
-
-    balance.currency = entries->account->currency;
-    balance_with_budget.currency = balance.currency;
-    reconciled_balance.currency = balance.currency;
-    amount.currency = balance.currency;
-
-    EntryList *el = _PyEntryList_entries(entries);
-    if (!entries_balance(el, &balance, 0, false)) {
-        return false;
-    }
-    if (!entries_balance(el, &balance_with_budget, 0, true)) {
-        return false;
-    }
-    entries_balance_of_reconciled(el, &reconciled_balance);
     Py_ssize_t len = PySequence_Length(splitpairs);
     PyObject *newentries = PyList_New(len);
-    // Entry tuples for reconciliation order
-    PyObject *rentries = PyList_New(len);
+    EntryList tocook;
+    tocook.count = len;
+    tocook.entries = malloc(sizeof(Entry *) * len);
     for (int i=0; i<len; i++) {
         PyObject *item = PySequence_GetItem(splitpairs, i);
         PyEntry *entry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
@@ -2943,48 +2926,12 @@ _py_oven_cook_splits(
         Py_INCREF(entry->split);
         Py_INCREF(entry->txn);
         entry_init(&entry->entry, entry->split->split, &entry->txn->txn);
-        entry->entry.index = i;
-
-        Split *split = entry->split->split;
-        if (!amount_convert(&amount, &split->amount, entry->txn->txn.date)) {
-            return false;
-        }
-        if (entry->txn->txn.type != TXN_TYPE_BUDGET) {
-            balance.val += amount.val;
-        }
-        amount_copy(&entry->entry.balance, &balance);
-        balance_with_budget.val += amount.val;
-        amount_copy(&entry->entry.balance_with_budget, &balance_with_budget);
-
-        PyObject *rdate = PySplit_reconciliation_date(entry->split);
-        PyObject *tdate = PyTransaction_date(entry->txn);
-        if (rdate == Py_None) {
-            rdate = tdate;
-            Py_INCREF(rdate);
-        }
-        PyObject *tpos = PyTransaction_position(entry->txn);
-        PyObject *tuple = PyTuple_Pack(4, rdate, tdate, tpos, entry);
-        Py_DECREF(rdate);
-        Py_DECREF(tdate);
-        Py_DECREF(tpos);
+        tocook.entries[i] = &entry->entry;
         PyList_SetItem(newentries, i, (PyObject *)entry); // stolen
-        PyList_SetItem(rentries, i, tuple); // stolen
     }
-
-    if (PyList_Sort(rentries) == -1) {
-        Py_DECREF(rentries);
-        Py_DECREF(newentries);
-        return false;
-    }
-    for (int i=0; i<len; i++) {
-        PyObject *tuple = PyList_GetItem(rentries, i); // borrowed
-        PyEntry *entry = (PyEntry *)PyTuple_GetItem(tuple, 3); // borrowed
-        if (entry->split->split->reconciliation_date != 0) {
-            reconciled_balance.val += entry->split->split->amount.val;
-        }
-        amount_copy(&entry->entry.reconciled_balance, &reconciled_balance);
-    }
-    Py_DECREF(rentries);
+    EntryList *ref = _PyEntryList_entries(entries);
+    entries_cook(ref, &tocook, entries->account->currency);
+    free(tocook.entries);
     for (int i=0; i<len; i++) {
         PyEntry *entry = (PyEntry *)PyList_GetItem(newentries, i); // borrowed
         _PyEntryList_add_entry(entries, entry);

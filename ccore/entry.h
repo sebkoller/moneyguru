@@ -34,10 +34,20 @@ void
 entry_copy(Entry *dst, const Entry *src);
 
 int
-entries_find_date(EntryList *entries, time_t date, bool equal);
+entries_find_date(const EntryList *entries, time_t date, bool equal);
 
 bool
-entries_balance(EntryList *entries, Amount *dst, time_t date, bool with_budget);
+entries_balance(const EntryList *entries, Amount *dst, time_t date, bool with_budget);
 
 bool
-entries_balance_of_reconciled(EntryList *entries, Amount *dst);
+entries_balance_of_reconciled(const EntryList *entries, Amount *dst);
+
+/* Cook entries in `tocook` in preparation to adding then in `ref`
+ *
+ * `ref` is a list of entries that are already cooked and `tocook` are freshly
+ * created entries that will be appended to it.
+ *
+ * Tis function only cooks (compute running balances), it doesn't touch ref.
+ */
+bool
+entries_cook(const EntryList *ref, EntryList *tocook, Currency *currency);

@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "entry.h"
 
 void
@@ -23,7 +24,7 @@ entry_copy(Entry *dst, const Entry *src)
 }
 
 int
-entries_find_date(EntryList *entries, time_t date, bool equal)
+entries_find_date(const EntryList *entries, time_t date, bool equal)
 {
     // equal=true: find index with closest smaller-or-equal date to "date"
     // equal=false: find smaller only
@@ -59,7 +60,7 @@ entries_find_date(EntryList *entries, time_t date, bool equal)
 }
 
 bool
-entries_balance(EntryList *entries, Amount *dst, time_t date, bool with_budget)
+entries_balance(const EntryList *entries, Amount *dst, time_t date, bool with_budget)
 {
     if (entries->count == 0) {
         dst->val = 0;
@@ -97,7 +98,7 @@ entries_balance(EntryList *entries, Amount *dst, time_t date, bool with_budget)
 }
 
 bool
-entries_balance_of_reconciled(EntryList *entries, Amount *dst)
+entries_balance_of_reconciled(const EntryList *entries, Amount *dst)
 {
     if (entries->last_reconciled == NULL) {
         dst->val = 0;
@@ -106,4 +107,85 @@ entries_balance_of_reconciled(EntryList *entries, Amount *dst)
         amount_copy(dst, &entries->last_reconciled->reconciled_balance);
         return true;
     }
+}
+
+static int
+_entry_qsort_cmp(const void *a, const void *b)
+{
+    Entry *e1 = *((Entry **)a);
+    Entry *e2 = *((Entry **)b);
+
+    time_t date1 = e1->split->reconciliation_date;
+    time_t date2 = e2->split->reconciliation_date;
+    if (!date1) {
+        date1 = e1->txn->date;
+    }
+    if (!date2) {
+        date2 = e2->txn->date;
+    }
+    if (date1 != date2) {
+        return date1 < date2 ? -1 : 1;
+    }
+    if (e1->txn->position != e2->txn->position) {
+        return e1->txn->position < e2->txn->position ? -1 : 1;
+    }
+    if (e1->index != e2->index) {
+        return e1->index < e2->index ? -1 : 1;
+    }
+    return 0;
+}
+
+bool
+entries_cook(const EntryList *ref, EntryList *tocook, Currency *currency)
+{
+    Amount amount;
+    Amount balance;
+    Amount balance_with_budget;
+    Amount reconciled_balance;
+
+    balance.currency = currency;
+    balance_with_budget.currency = balance.currency;
+    reconciled_balance.currency = balance.currency;
+    amount.currency = balance.currency;
+
+    if (!entries_balance(ref, &balance, 0, false)) {
+        return false;
+    }
+    if (!entries_balance(ref, &balance_with_budget, 0, true)) {
+        return false;
+    }
+    entries_balance_of_reconciled(ref, &reconciled_balance);
+    // Entries in reconciliation order
+    EntryList rel;
+    rel.count = tocook->count;
+    rel.entries = malloc(sizeof(Entry *) * rel.count);
+    for (int i=0; i<tocook->count; i++) {
+        Entry *entry = tocook->entries[i];
+        entry->index = i;
+
+        Split *split = entry->split;
+        if (!amount_convert(&amount, &split->amount, entry->txn->date)) {
+            return false;
+        }
+        if (entry->txn->type != TXN_TYPE_BUDGET) {
+            balance.val += amount.val;
+        }
+        amount_copy(&entry->balance, &balance);
+        balance_with_budget.val += amount.val;
+        amount_copy(&entry->balance_with_budget, &balance_with_budget);
+
+        rel.entries[i] = entry;
+    }
+
+    qsort(rel.entries, rel.count, sizeof(Entry *), _entry_qsort_cmp);
+
+    for (int i=0; i<rel.count; i++) {
+        Entry *entry = rel.entries[i];
+        if (entry->split->reconciliation_date != 0) {
+            reconciled_balance.val += entry->split->amount.val;
+        }
+        amount_copy(&entry->reconciled_balance, &reconciled_balance);
+    }
+    free(rel.entries);
+    return true;
 }
