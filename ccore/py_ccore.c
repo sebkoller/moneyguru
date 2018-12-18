@@ -106,6 +106,9 @@ typedef struct {
     Account *account;
     PyObject *entries;
     PyEntry *last_reconciled;
+    // This is a temporary buffer created on the fly by _PyEntryList_entries
+    // and only to be used to short-term stuff.
+    EntryList tmplist;
 } PyEntryList;
 
 static PyObject *EntryList_Type;
@@ -2070,7 +2073,25 @@ _PyEntryList_new(Account *account)
     res->account = account;
     res->entries = PyList_New(0);
     res->last_reconciled = NULL;
+    res->tmplist.count = 0;
+    res->tmplist.entries = NULL;
     return res;
+}
+
+static EntryList*
+_PyEntryList_entries(PyEntryList *self)
+{
+    if (self->tmplist.entries != NULL) {
+        free(self->tmplist.entries);
+    }
+    Py_ssize_t len = PyList_Size(self->entries);
+    self->tmplist.count = len;
+    self->tmplist.entries = malloc(sizeof(Entry *) * len);
+    for (int i=0; i<len; i++) {
+        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
+        self->tmplist.entries[i] = &entry->entry;
+    }
+    return &self->tmplist;
 }
 
 static void
@@ -2100,43 +2121,6 @@ _PyEntryList_add_entry(PyEntryList *self, PyEntry *entry)
     _PyEntryList_maybe_set_last_reconciled(self, entry);
 }
 
-static int
-_PyEntryList_find_date(PyEntryList *self, time_t date, bool equal)
-{
-    // equal=true: find index with closest smaller-or-equal date to "date"
-    // equal=false: find smaller only
-    // Returns the index *following* the nearest result. Returned index goes
-    // over the threshold.
-    Py_ssize_t len = PyList_Size(self->entries);
-    if (len == 0) {
-        return 0;
-    }
-    Py_ssize_t low = 0;
-    Py_ssize_t high = len - 1;
-    bool matched_once = false;
-    while ((high > low) || ((high == low) && !matched_once)) {
-        Py_ssize_t mid = ((high - low) / 2) + low;
-        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, mid); // borrowed
-        time_t tdate = entry->entry.txn->date;
-        // operator *look* like they're inverted, but they're not.
-        bool match = equal ? tdate > date : tdate >= date;
-        if (match) {
-            matched_once = true;
-            high = mid;
-        } else {
-            low = mid + 1;
-        }
-    }
-    if (matched_once) {
-        // we have at least one entry with a higher date than "date"
-        return (int)high;
-    } else {
-        // All entries have a smaller date than "date". Return len.
-        return len;
-    }
-
-}
-
 static PyObject*
 PyEntryList_last_entry(PyEntryList *self, PyObject *args)
 {
@@ -2157,7 +2141,8 @@ PyEntryList_last_entry(PyEntryList *self, PyObject *args)
         if (date == 1) {
             return NULL;
         }
-        index = _PyEntryList_find_date(self, date, true);
+        EntryList *el = _PyEntryList_entries(self);
+        index = entries_find_date(el, date, true);
     }
     // We want the entry *before* the threshold
     index--;
@@ -2191,7 +2176,8 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
         if (date == 1) {
             return NULL;
         }
-        index = _PyEntryList_find_date(self, date, false);
+        EntryList *el = _PyEntryList_entries(self);
+        index = entries_find_date(el, date, false);
         if (index >= len) {
             // Everything is smaller, don't clear anything.
             Py_RETURN_NONE;
@@ -2221,7 +2207,8 @@ _PyEntryList_balance(
     if (date == 0) {
         index = len;
     } else {
-        index = _PyEntryList_find_date(self, date, true);
+        EntryList *el = _PyEntryList_entries(self);
+        index = entries_find_date(el, date, true);
     }
     // We want the entry *before* the threshold
     index--;
@@ -2437,6 +2424,9 @@ static void
 PyEntryList_dealloc(PyEntryList *self)
 {
     Py_DECREF(self->entries);
+    if (self->tmplist.entries != NULL) {
+        free(self->tmplist.entries);
+    }
 }
 
 /* PyAccountList */

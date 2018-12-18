@@ -21,8 +21,16 @@ typedef struct {
     int index;
 } Entry;
 
+typedef struct {
+    int count;
+    Entry **entries;
+} EntryList;
+
 void
 entry_init(Entry *entry, Split *split, Transaction *txn);
 
 void
 entry_copy(Entry *dst, const Entry *src);
+
+int
+entries_find_date(EntryList *entries, time_t date, bool equal);
