@@ -105,7 +105,7 @@ typedef struct {
     PyObject_HEAD
     Account *account;
     PyObject *entries;
-    PyEntry *last_reconciled;
+    Entry *last_reconciled;
     // This is a temporary buffer created on the fly by _PyEntryList_entries
     // and only to be used to short-term stuff.
     EntryList tmplist;
@@ -1805,42 +1805,6 @@ PyEntry_reconciliation_date(PyEntry *self)
 }
 
 static PyObject *
-_PyEntry_reconciliation_key(PyEntry *self)
-{
-    PyObject *recdate = PySplit_reconciliation_date(self->split);
-    if (recdate == Py_None) {
-        Py_DECREF(recdate);
-        PyObject *mod = PyImport_ImportModule("datetime");
-        if (mod == NULL) {
-            return NULL;
-        }
-        PyObject *tmp = PyObject_GetAttrString(mod, "date");
-        Py_DECREF(mod);
-        if (tmp == NULL) {
-            return NULL;
-        }
-        recdate = PyObject_GetAttrString(tmp, "min");
-        Py_DECREF(tmp);
-        if (recdate == NULL) {
-            return NULL;
-        }
-    }
-    PyObject *position = PyTransaction_position(self->txn);
-    if (position == NULL) {
-        Py_DECREF(recdate);
-        return NULL;
-    }
-    PyObject *date = PyEntry_date(self);
-    PyObject *index = PyLong_FromLong(self->entry.index);
-    PyObject *tuple = PyTuple_Pack(4, recdate, date, position, index);
-    Py_DECREF(recdate);
-    Py_DECREF(date);
-    Py_DECREF(position);
-    Py_DECREF(index);
-    return tuple;
-}
-
-static PyObject *
 PyEntry_reference(PyEntry *self)
 {
     return PySplit_reference(self->split);
@@ -2091,30 +2055,37 @@ _PyEntryList_entries(PyEntryList *self)
         PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
         self->tmplist.entries[i] = &entry->entry;
     }
-    if (self->last_reconciled != NULL) {
-        self->tmplist.last_reconciled = &self->last_reconciled->entry;
-    } else {
-        self->tmplist.last_reconciled = NULL;
-    }
+    self->tmplist.last_reconciled = self->last_reconciled;
     return &self->tmplist;
 }
 
 static void
-_PyEntryList_maybe_set_last_reconciled(PyEntryList *self, PyEntry *entry)
+_PyEntryList_maybe_set_last_reconciled(PyEntryList *self, Entry *entry)
 {
-    // we don't bother increfing last_reconciled: implicit in entries'
-    // membership
-    if (entry->split->split->reconciliation_date != 0) {
+    if (entry->split->reconciliation_date != 0) {
         if (self->last_reconciled == NULL) {
             self->last_reconciled = entry;
         } else {
-            PyObject *key1 = _PyEntry_reconciliation_key(self->last_reconciled);
-            PyObject *key2 = _PyEntry_reconciliation_key(entry);
-            if (PyObject_RichCompareBool(key2, key1, Py_GE) > 0) {
-                self->last_reconciled = entry;
+            bool replace = false;
+            Entry *old = self->last_reconciled;
+            if (entry->split->reconciliation_date != old->split->reconciliation_date) {
+                if (entry->split->reconciliation_date > old->split->reconciliation_date) {
+                    replace = true;
+                }
+            } else if (entry->txn->date != old->txn->date) {
+                if (entry->txn->date > old->txn->date) {
+                    replace = true;
+                }
+            } else if (entry->txn->position != old->txn->position) {
+                if (entry->txn->position > old->txn->position) {
+                    replace = true;
+                }
+            } else if (entry->index > old->index) {
+                replace = true;
             }
-            Py_DECREF(key1);
-            Py_DECREF(key2);
+            if (replace) {
+                self ->last_reconciled = entry;
+            }
         }
     }
 }
@@ -2123,7 +2094,7 @@ static void
 _PyEntryList_add_entry(PyEntryList *self, PyEntry *entry)
 {
     PyList_Append(self->entries, (PyObject *)entry);
-    _PyEntryList_maybe_set_last_reconciled(self, entry);
+    _PyEntryList_maybe_set_last_reconciled(self, &entry->entry);
 }
 
 static PyObject*
@@ -2194,7 +2165,7 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
     self->last_reconciled = NULL;
     for (int i=0; i<index; i++) {
         _PyEntryList_maybe_set_last_reconciled(
-            self, (PyEntry *)PyList_GetItem(self->entries, i));
+            self, &((PyEntry *)PyList_GetItem(self->entries, i))->entry);
     }
     Py_RETURN_NONE;
 }
