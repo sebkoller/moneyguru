@@ -2091,6 +2091,11 @@ _PyEntryList_entries(PyEntryList *self)
         PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
         self->tmplist.entries[i] = &entry->entry;
     }
+    if (self->last_reconciled != NULL) {
+        self->tmplist.last_reconciled = &self->last_reconciled->entry;
+    } else {
+        self->tmplist.last_reconciled = NULL;
+    }
     return &self->tmplist;
 }
 
@@ -2226,23 +2231,12 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
     }
 }
 
-static bool
-_PyEntryList_balance_of_reconciled(PyEntryList *self, Amount *dst)
-{
-    if (self->last_reconciled == NULL) {
-        dst->val = 0;
-        return false;
-    } else {
-        amount_copy(dst, &self->last_reconciled->entry.reconciled_balance);
-        return true;
-    }
-}
-
 static PyObject*
 PyEntryList_balance_of_reconciled(PyEntryList *self, PyObject *args)
 {
     Amount amount;
-    if (_PyEntryList_balance_of_reconciled(self, &amount)) {
+    EntryList *el = _PyEntryList_entries(self);
+    if (entries_balance_of_reconciled(el, &amount)) {
         return create_amount(amount.val, amount.currency);
     } else {
         return PyLong_FromLong(0);
@@ -2336,7 +2330,8 @@ static PyObject*
 PyEntryList_normal_balance_of_reconciled(PyEntryList *self, PyObject *args)
 {
     Amount res;
-    if (!_PyEntryList_balance_of_reconciled(self, &res)) {
+    EntryList *el = _PyEntryList_entries(self);
+    if (!entries_balance_of_reconciled(el, &res)) {
         return NULL;
     } else {
         account_normalize_amount(self->account, &res);
@@ -2923,7 +2918,7 @@ _py_oven_cook_splits(
     if (!entries_balance(el, &balance_with_budget, 0, true)) {
         return false;
     }
-    _PyEntryList_balance_of_reconciled(entries, &reconciled_balance);
+    entries_balance_of_reconciled(el, &reconciled_balance);
     Py_ssize_t len = PySequence_Length(splitpairs);
     PyObject *newentries = PyList_New(len);
     // Entry tuples for reconciliation order

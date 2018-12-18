@@ -24,6 +24,7 @@ typedef struct {
 typedef struct {
     int count;
     Entry **entries;
+    Entry *last_reconciled;
 } EntryList;
 
 void
@@ -37,3 +38,6 @@ entries_find_date(EntryList *entries, time_t date, bool equal);
 
 bool
 entries_balance(EntryList *entries, Amount *dst, time_t date, bool with_budget);
+
+bool
+entries_balance_of_reconciled(EntryList *entries, Amount *dst);

@@ -95,3 +95,15 @@ entries_balance(EntryList *entries, Amount *dst, time_t date, bool with_budget)
         return true;
     }
 }
+
+bool
+entries_balance_of_reconciled(EntryList *entries, Amount *dst)
+{
+    if (entries->last_reconciled == NULL) {
+        dst->val = 0;
+        return false;
+    } else {
+        amount_copy(dst, &entries->last_reconciled->reconciled_balance);
+        return true;
+    }
+}
