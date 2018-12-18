@@ -64,6 +64,8 @@ account_is_debit(Account *account);
 bool
 account_is_income_statement(Account *account);
 
+// If dst is a fresh instance, it *has* to have been zeroed out before calling
+// this.
 bool
 account_copy(Account *dst, const Account *src);
 

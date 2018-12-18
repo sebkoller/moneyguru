@@ -51,24 +51,19 @@ account_copy(Account *dst, const Account *src)
     }
     dst->type = src->type;
     dst->currency = src->currency;
-    dst->name = NULL;
     if (!strclone(&dst->name, src->name)) {
         return false;
     }
     dst->inactive = src->inactive;
-    dst->reference = NULL;
     if (!strclone(&dst->reference, src->reference)) {
         return false;
     }
-    dst->account_number = NULL;
     if (!strclone(&dst->account_number, src->account_number)) {
         return false;
     }
-    dst->notes = NULL;
     if (!strclone(&dst->notes, src->notes)) {
         return false;
     }
-    dst->groupname = NULL;
     if (!strclone(&dst->groupname, src->groupname)) {
         return false;
     }

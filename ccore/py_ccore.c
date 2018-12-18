@@ -1245,6 +1245,7 @@ PyAccount_copy(PyAccount *self)
     PyAccount *r = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
     r->owned = true;
     r->account = malloc(sizeof(Account));
+    memset(r->account, 0, sizeof(Account));
     account_copy(r->account, self->account);
     r->account->id = self->account->id;
     return (PyObject *)r;
