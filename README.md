@@ -11,6 +11,53 @@ right one), your important financial data (net worth, profit) is constantly
 up-to-date and "in your face". This allows you to constantly make informed
 decision rather than doing so periodically.
 
+# The great C rewrite
+
+If you look at recent commits in this project, you'll notice that there a
+**lot** of activity to rewrite Python code in C. Yup, that's what I'm doing.
+The long term goal would be to rewrite the entirety of `core` in C, keeping
+only the Python test suite. That would be a huge effort though. `core.gui`,
+`core.document` are too big and dynamic. I don't think I'll actually get there.
+`core.model`, `core.loader` and `core.saver` are more realistic goals.
+
+Why am I doing this? Mostly because I'm aching to become more intimate with C.
+Sure, I already know C a little bit, did toy projects, participated to other
+established ones, but I don't feel like I'm proficient in C. I don't know what
+it takes to build a "real C app" with everything it entails (proper build
+system, using glibc, really have to deal with memory management problems, using
+well known libraries (sqlite and soon icu), internalizing pointer logic (I know
+how pointers work, but it's not natural for my brain to think about pointer
+logic))
+
+In almost any case, if you're telling me "I'm planning on rewriting this 50K
+SLOC python app", I'm going to tell you "you're crazy, it's a guaranteed
+failure".
+
+However, 10 years ago when I insisted on strict TDD with all tests being at the
+integration testing level, that costed me a lot of efforts that ended up being
+a bit useless, considering the limited success of the application.
+
+It occurred to me recently that the result of that effort was a great untapped
+asset because it *does* allow the kind of rewrite that in any other situation
+would be a guaranteed failure: test coverage on moneyGuru is very good and is
+written at a level that allows everything underneath to take pretty much any
+form.
+
+Those tests are like a teacher telling me "you're doing it (wrong|right)". If
+tests pass without segfaults, it has pretty good chances of being sound code
+because many many cases are covered. That allows me to try a lot of thing. The
+only uncaught problem is memory leaks. I'll have to learn using tools to detect
+them soon.
+
+If moneyGuru had other developers around it, I wouldn't do it because it would
+be rather rude to them, but since I'm pretty much alone with this project, I'm
+paying myself a learning lesson. 
+
+Users shouldn't suffer much from the rewrite: test coverage is very good and I
+still use this app for my own personal needs, so it's not going to end up with
+glaring post-rewrite problems. Users *will*, on the other hand, benefit from
+decreased resource usage and increased speed.
+
 # Current status: People wanted
 
 moneyGuru has currently only one maintainer, me. This is a dangerous situation
