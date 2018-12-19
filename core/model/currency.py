@@ -218,6 +218,9 @@ class RatesDB:
                 else:
                     logging.debug("Fetching failed!")
 
+        if not self._rate_providers:
+            logging.debug("No rate provider, can't ensure_rates")
+            return
         if start_date >= date.today():
             return # we never return rates in the future
         currencies_and_range = []
