@@ -2,8 +2,6 @@ PYTHON ?= python
 
 SRCS = currency.c amount.c account.c split.c transaction.c entry.c util.c
 OBJS = $(SRCS:%.c=%.o)
-PY_CCORE = py_ccore.c
-PY_CCORE_OBJ = py_ccore.o
 TEST_SRCS = $(addprefix tests/, transaction.c main.c)
 TEST_OBJS = $(TEST_SRCS:%.c=%.o)
 
@@ -14,6 +12,8 @@ CFLAGS_PY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_v
 CFLAGSFORSHARED = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CFLAGSFORSHARED'))")
 INCLUDEPY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))")
 SOABI = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('SOABI'))")
+PY_CCORE = py_ccore.c
+PY_CCORE_OBJ = py_ccore.$(SOABI).o
 TARGET = _ccore.$(SOABI).so
 
 DEFAULT_CFLAGS = -std=c99 -Wall $(CFLAGSFORSHARED)
