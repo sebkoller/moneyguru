@@ -119,6 +119,12 @@ time2pydate(time_t date)
         Py_RETURN_NONE;
     }
     struct tm *d = gmtime(&date);
+    if (d == NULL) {
+        return PyErr_Format(
+            PyExc_ValueError,
+            "Couldn't convert time_t %ld\n",
+            date);
+    }
     return PyDate_FromDate(d->tm_year + 1900, d->tm_mon + 1, d->tm_mday);
 }
 
