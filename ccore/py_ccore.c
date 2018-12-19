@@ -942,7 +942,6 @@ py_amount_convert(PyObject *self, PyObject *args)
     PyObject *pydate;
     Amount *amount;
     Amount dest;
-    double rate;
 
     if (!PyArg_ParseTuple(args, "OsO", &pyamount, &code, &pydate)) {
         return NULL;
@@ -1015,7 +1014,7 @@ PyAccount_currency_set(PyAccount *self, PyObject *value)
 static PyObject *
 PyAccount_type(PyAccount *self)
 {
-    char *s;
+    char *s = "";
     switch (self->account->type) {
         case ACCOUNT_ASSET: s = "asset"; break;
         case ACCOUNT_LIABILITY: s = "liability"; break;
@@ -1354,7 +1353,7 @@ PySplit_account_name(PySplit *self)
     if (self->split->account == NULL) {
         return PyUnicode_InternFromString("");
     } else {
-        _strget(self->split->account->name);
+        return _strget(self->split->account->name);
     }
 }
 
@@ -1771,9 +1770,6 @@ PyTransaction_dealloc(PyTransaction *self)
 static int
 PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *amount_p, *balance, *reconciled_balance, *balance_with_budget;
-    Amount *amount;
-
     static char *kwlist[] = {"split", "transaction", NULL};
 
     int res = PyArg_ParseTupleAndKeywords(
@@ -1829,12 +1825,6 @@ static PyObject *
 PyEntry_description(PyEntry *self)
 {
     return PyTransaction_description(self->txn);
-}
-
-static PyObject *
-PyEntry_index(PyEntry *self)
-{
-    return PyLong_FromLong(self->entry.index);
 }
 
 static PyObject *
@@ -2073,8 +2063,6 @@ PyEntry_hash(PyEntry *self)
 static PyObject *
 PyEntry_repr(PyEntry *self)
 {
-    PyObject *r, *fmt, *args;
-
     PyObject *tdate = PyTransaction_date(self->txn);
     if (tdate == NULL) {
         return NULL;

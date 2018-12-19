@@ -14,7 +14,7 @@ BLDLIBRARY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_
 CFLAGS_PY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CFLAGS'))")
 CFLAGSFORSHARED = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CFLAGSFORSHARED'))")
 INCLUDEPY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))")
-DEFAULT_CFLAGS = -std=c99 $(CFLAGSFORSHARED)
+DEFAULT_CFLAGS = -std=c99 -Wall $(CFLAGSFORSHARED)
 CFLAGS ?= $(DEFAULT_CFLAGS)
 LDFLAGS = `pkg-config --libs sqlite3` $(BLDLIBRARY)
 LDFLAGS_TEST = `pkg-config --libs cunit sqlite3` -lm

@@ -4,7 +4,7 @@
 #include "util.h"
 
 /* Private */
-bool
+static bool
 _txn_check_ownership(Transaction *txn, Split *split)
 {
     if (split->index >= txn->splitcount) {
@@ -18,7 +18,7 @@ _txn_check_ownership(Transaction *txn, Split *split)
     return true;
 }
 
-bool
+static void
 _txn_reindex(Transaction *txn)
 {
     for (unsigned int i=0; i<txn->splitcount; i++) {
