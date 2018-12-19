@@ -20,7 +20,7 @@ from hscommon.gui.base import GUIObject
 from .const import NOEDIT, DATE_FORMAT_FOR_PREFERENCES
 from .exception import FileFormatError, OperationAborted
 from .loader import native
-from .model._ccore import AccountList
+from .model._ccore import AccountList, Entry
 from .model.account import Group, GroupList, AccountType
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
@@ -940,11 +940,8 @@ class Document(BaseDocument, Repeater, GUIObject):
         action = self._get_action_from_changed_transactions([entry.transaction], global_scope)
         self._undoer.record(action)
         if reconciliation_date is not NOEDIT and isinstance(entry.transaction, Spawn):
-            # At this point we have to hijack the entry so we modify the materialized transaction
-            # It's a little hackish, but well... it takes what it takes
             newtxn, newsplit = self._reconcile_spawn_split(entry, reconciliation_date)
-            entry.transaction = newtxn
-            entry.split = newsplit
+            entry = Entry(newsplit, newtxn)
             action.added_transactions.add(newtxn)
         BaseDocument.change_entry(
             self, entry, date=date, reconciliation_date=reconciliation_date,

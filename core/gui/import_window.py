@@ -19,7 +19,7 @@ from .base import MainWindowGUIObject, LinkedSelectableList
 from .import_table import ImportTable
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 from core.document import ImportDocument
-from core.model._ccore import AccountList
+from core.model._ccore import AccountList, Entry
 
 
 DAY = 'day'
@@ -582,9 +582,7 @@ class ImportWindow(MainWindowGUIObject):
                     split.account = copy_account(split.account)
 
                 split = transaction.splits[e.split.index]
-                new_entry = copy.copy(e)
-                new_entry.split = split
-                new_entry.transaction = transaction
+                new_entry = Entry(split, transaction)
                 new_matches.append((new_entry, ref))
 
 

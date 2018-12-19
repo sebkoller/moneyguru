@@ -1783,6 +1783,14 @@ PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
     if (!res) {
         return -1;
     }
+    if (!Split_Check(self->split)) {
+        PyErr_SetString(PyExc_TypeError, "not a split");
+        return -1;
+    }
+    if (!PyObject_IsInstance((PyObject *)self->txn, Transaction_Type)) {
+        PyErr_SetString(PyExc_TypeError, "not a txn");
+        return -1;
+    }
     Py_INCREF(self->split);
     Py_INCREF(self->txn);
     entry_init(&self->entry, self->split->split, &self->txn->txn);
@@ -1878,20 +1886,6 @@ PyEntry_split(PyEntry *self)
     return (PyObject *)self->split;
 }
 
-static int
-PyEntry_split_set(PyEntry *self, PyObject *value)
-{
-    if (!Split_Check(value)) {
-        PyErr_SetString(PyExc_ValueError, "not a split");
-        return -1;
-    }
-    Py_DECREF(self->split);
-    self->split = (PySplit *)value;
-    self->entry.split = self->split->split;
-    Py_INCREF(self->split);
-    return 0;
-}
-
 static PyObject *
 PyEntry_splits(PyEntry *self)
 {
@@ -1913,16 +1907,6 @@ PyEntry_transaction(PyEntry *self)
 {
     Py_INCREF(self->txn);
     return (PyObject *)self->txn;
-}
-
-static int
-PyEntry_transaction_set(PyEntry *self, PyObject *value)
-{
-    Py_DECREF(self->txn);
-    self->txn = (PyTransaction *)value;
-    self->entry.txn = &self->txn->txn;
-    Py_INCREF(self->txn);
-    return 0;
 }
 
 static PyObject *
@@ -3155,9 +3139,9 @@ static PyGetSetDef PyEntry_getseters[] = {
     {"reconciled_balance", (getter)PyEntry_reconciled_balance, NULL, NULL, NULL},
     {"reconciliation_date", (getter)PyEntry_reconciliation_date, NULL, NULL, NULL},
     {"reference", (getter)PyEntry_reference, NULL, NULL, NULL},
-    {"split", (getter)PyEntry_split, (setter)PyEntry_split_set, NULL, NULL},
+    {"split", (getter)PyEntry_split, NULL, NULL, NULL},
     {"splits", (getter)PyEntry_splits, NULL, NULL, NULL},
-    {"transaction", (getter)PyEntry_transaction, (setter)PyEntry_transaction_set, NULL, NULL},
+    {"transaction", (getter)PyEntry_transaction, NULL, NULL, NULL},
     {"transfer", (getter)PyEntry_transfer, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
 };
