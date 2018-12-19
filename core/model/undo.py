@@ -12,7 +12,6 @@ from ..model.recurrence import Spawn
 
 ACCOUNT_SWAP_ATTRS = ['currency', 'type', 'groupname', 'account_number', 'notes']
 GROUP_SWAP_ATTRS = ['name', 'type']
-TRANSACTION_SWAP_ATTRS = ['date', 'description', 'payee', 'checkno', 'notes', 'position', 'splits']
 SPLIT_SWAP_ATTRS = ['account', 'amount', 'reconciliation_date']
 SCHEDULE_SWAP_ATTRS = ['repeat_type', 'repeat_every', 'stop_date', 'date2exception',
                        'date2globalchange', 'date2instances']
@@ -46,37 +45,42 @@ class Action:
     def __init__(self, description):
         self.description = description
         self.added_accounts = set()
-        self.changed_accounts = set()
+        self.changed_accounts = {}
         self.deleted_accounts = set()
         self.added_groups = set()
-        self.changed_groups = set()
+        self.changed_groups = {}
         self.deleted_groups = set()
         self.added_transactions = set()
-        self.changed_transactions = set()
+        self.changed_transactions = {}
         self.deleted_transactions = set()
-        self.changed_splits = set()
         self.added_schedules = set()
-        self.changed_schedules = set()
+        self.changed_schedules = {}
         self.deleted_schedules = set()
         self.added_budgets = set()
-        self.changed_budgets = set()
+        self.changed_budgets = {}
         self.deleted_budgets = set()
 
     def change_accounts(self, accounts):
         """Record imminent changes to ``accounts``."""
-        self.changed_accounts |= set((a, copy.copy(a)) for a in accounts)
+        for a in accounts:
+            if a not in self.changed_accounts:
+                self.changed_accounts[a] = copy.copy(a)
 
     def change_groups(self, groups):
         """Record imminent changes to ``groups``."""
-        self.changed_groups |= set((g, copy.copy(g)) for g in groups)
+        for g in groups:
+            if g not in self.changed_groups:
+                self.changed_groups[g] = copy.copy(g)
 
     def change_schedule(self, schedule):
         """Record imminent changes to ``schedule``."""
-        self.changed_schedules.add((schedule, schedule.replicate()))
+        if schedule not in self.changed_schedules:
+            self.changed_schedules[schedule] = schedule.replicate()
 
     def change_budget(self, budget):
         """Record imminent changes to ``budget``."""
-        self.changed_budgets.add((budget, budget.replicate()))
+        if budget not in self.changed_budgets:
+            self.changed_budgets[budget] = budget.replicate()
 
     def change_transactions(self, transactions):
         """Record imminent changes to ``transactions``.
@@ -85,13 +89,15 @@ class Action:
         schedule.
         """
         spawns, normal = extract(lambda t: isinstance(t, Spawn), transactions)
-        self.changed_transactions |= set((t, t.replicate()) for t in normal)
+        for t in normal:
+            if t not in self.changed_transactions:
+                self.changed_transactions[t] = t.replicate()
         for schedule in set(spawn.recurrence for spawn in spawns):
             self.change_schedule(schedule)
 
-    def change_splits(self, splits):
-        """Record imminent changes to ``splits``."""
-        self.changed_splits |= set((s, copy.copy(s)) for s in splits)
+    def change_entries(self, entries):
+        """Record imminent changes to ``entries``."""
+        self.change_transactions({e.transaction for e in entries})
 
 
 class Undoer:
@@ -139,27 +145,27 @@ class Undoer:
             self._budgets.append(budget)
 
     def _do_changes(self, action):
-        new_changed_accounts = set()
-        for account, old in action.changed_accounts:
+        for account, old in list(action.changed_accounts.items()):
             newold = copy.copy(account)
             if account.name != old.name:
                 self._accounts.rename_account(account, old.name)
             for attrname in ACCOUNT_SWAP_ATTRS:
                 setattr(account, attrname, getattr(old, attrname))
-            new_changed_accounts.add((account, newold))
-        action.changed_accounts = new_changed_accounts
-        for group, old in action.changed_groups:
+            action.changed_accounts[account] = newold
+        for group, old in action.changed_groups.items():
             swapvalues(group, old, GROUP_SWAP_ATTRS)
-        for txn, old in action.changed_transactions:
+        for txn, old in action.changed_transactions.items():
             self._remove_auto_created_account(txn)
-            swapvalues(txn, old, TRANSACTION_SWAP_ATTRS)
+            newold = txn.replicate()
+            txn.copy_from(old)
+            old.copy_from(newold)
             self._add_auto_created_accounts(txn)
-        for split, old in action.changed_splits:
-            swapvalues(split, old, SPLIT_SWAP_ATTRS)
-        for schedule, old in action.changed_schedules:
+        for schedule, old in action.changed_schedules.items():
             swapvalues(schedule, old, SCHEDULE_SWAP_ATTRS)
-            swapvalues(schedule.ref, old.ref, TRANSACTION_SWAP_ATTRS)
-        for budget, old in action.changed_budgets:
+            newold = schedule.ref.replicate()
+            schedule.ref.copy_from(old.ref)
+            old.ref.copy_from(newold)
+        for budget, old in action.changed_budgets.items():
             swapvalues(budget, old, BUDGET_SWAP_ATTRS)
 
     def _do_deletes(self, accounts, groups, transactions, schedules, budgets):

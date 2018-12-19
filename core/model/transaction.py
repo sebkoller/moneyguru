@@ -6,7 +6,6 @@
 
 import time
 from collections import defaultdict
-from copy import copy
 import datetime
 
 from hscommon.util import allsame, first, stripfalse
@@ -43,23 +42,6 @@ class Transaction(TransactionBase):
         res = Transaction(self.date)
         res.copy_from(self)
         return res
-
-    @classmethod
-    def from_transaction(cls, transaction):
-        """Create a copy of ``transaction`` and returns it.
-
-        The goal here is to have a deepcopy of ``transaction``, but *without copying the accounts*.
-        We want the splits to link to the same :class:`.Account` instances.
-        """
-        txn = transaction
-        result = cls(txn.date, txn.description, txn.payee, txn.checkno)
-        result.notes = txn.notes
-        result.position = txn.position
-        result.mtime = txn.mtime
-        for split in txn.splits:
-            newsplit = copy(split)
-            result.splits.append(newsplit)
-        return result
 
     def amount_for_account(self, account, currency):
         """Returns the total sum attributed to ``account``.
@@ -104,7 +86,7 @@ class Transaction(TransactionBase):
         amount = sum(split.amount for split in unassigned)
         target_split.amount += amount
         for split in unassigned:
-            self.splits.remove(split)
+            self.remove_split(split)
 
     def balance(self, strong_split=None, keep_two_splits=False):
         """Balance out :attr:`splits` if needed.
@@ -136,7 +118,7 @@ class Transaction(TransactionBase):
                                      that way, adjusting the "weak" split amount as needed.
         """
         if len(self.splits) == 2 and strong_split is not None:
-            weak_split = self.splits[0] if self.splits[0] is not strong_split else self.splits[1]
+            weak_split = self.splits[0] if self.splits[0] != strong_split else self.splits[1]
             if keep_two_splits:
                 weak_split.amount = -strong_split.amount
             elif (weak_split.amount > 0) == (strong_split.amount > 0): # on the same side
@@ -148,17 +130,17 @@ class Transaction(TransactionBase):
         imbalance = sum(s.amount for s in self.splits)
         if not imbalance:
             return
-        is_unassigned = lambda s: s.account is None and s is not strong_split
+        is_unassigned = lambda s: s.account is None and s != strong_split
         imbalance = sum(s.amount for s in self.splits)
         if imbalance:
             unassigned = first(s for s in self.splits if is_unassigned(s))
             if unassigned is not None:
                 unassigned.amount -= imbalance
             else:
-                self.splits.append(Split(None, -imbalance))
+                self.add_split(Split(None, -imbalance))
         for split in self.splits[:]:
             if is_unassigned(split) and split.amount == 0:
-                self.splits.remove(split)
+                self.remove_split(split)
 
     def balance_currencies(self, strong_split=None):
         """Balances a :ref:`multi-currency transaction <multi-currency-txn>`.
@@ -188,16 +170,16 @@ class Transaction(TransactionBase):
         imbalanced = stripfalse(currency2balance.values()) # filters out zeros (balances currencies)
         # For a logical imbalance to be possible, all imbalanced amounts must be on the same side
         if imbalanced and allsame(amount > 0 for amount in imbalanced):
-            unassigned = [s for s in self.splits if s.account is None and s is not strong_split]
+            unassigned = [s for s in self.splits if s.account is None and s != strong_split]
             for amount in imbalanced:
                 split = first(s for s in unassigned if s.amount == 0 or s.amount.currency_code == amount.currency_code)
                 if split is not None:
                     if split.amount == amount: # we end up with a null split, remove it
-                        self.splits.remove(split)
+                        self.remove_split(split)
                     else:
                         split.amount -= amount # adjust
                 else:
-                    self.splits.append(Split(None, -amount))
+                    self.add_split(Split(None, -amount))
 
     def change(
             self, date=NOEDIT, description=NOEDIT, payee=NOEDIT, checkno=NOEDIT, from_=NOEDIT,
@@ -344,11 +326,7 @@ class Transaction(TransactionBase):
             if target is not None:
                 target.amount -= converted_total
             else:
-                self.splits.append(Split(None, -converted_total))
-
-    def move_split(self, split, index):
-        self.splits.remove(split)
-        self.splits.insert(index, split)
+                self.add_split(Split(None, -converted_total))
 
     def reassign_account(self, account, reassign_to=None):
         """Reassign all splits from ``account`` to ``reassign_to``.
@@ -364,34 +342,16 @@ class Transaction(TransactionBase):
                 split.account = reassign_to
 
     def remove_split(self, split):
-        self.splits.remove(split)
+        TransactionBase.remove_split(self, split)
         self.balance()
 
     def replicate(self):
-        """Returns a copy of self using :meth:`from_transaction`."""
-        return Transaction.from_transaction(self)
+        res = Transaction(self.date)
+        res.copy_from(self)
+        return res
 
-    def set_splits(self, splits, preserve_instances=False):
-        """Sets :attr:`splits` to copies of splits in ``splits``.
-
-        :param bool preserve_instances: Try to "recycle" split instances as much as possible. This
-            is because in certain places, notable in the import window, there's an entry binding
-            mechanism and entry identity is based on split instances, so it breaks if we don't keep
-            instances there. However, we don't want to preserve instances in all cases. For example,
-            when spawning transactions from recurrences, we want fresh instances.
-        """
-        if preserve_instances:
-            if len(splits) < len(self.splits):
-                del self.splits[len(splits):]
-            for split, newsplit in zip(self.splits, splits):
-                split.copy_from(newsplit)
-            for split in splits[len(self.splits):]:
-                self.splits.append(split)
-        else:
-            self.splits = []
-            for split in splits:
-                newsplit = copy(split)
-                self.splits.append(newsplit)
+    def set_splits(self, splits):
+        self.splits = splits
 
     def splitted_splits(self):
         """Returns :attr:`splits` separated in two groups ("froms" and "tos").

@@ -2,13 +2,15 @@
 #include "util.h"
 
 void
-split_init(Split *split, Account *account, const Amount *amount)
+split_init(
+    Split *split, Account *account, const Amount *amount, unsigned int index)
 {
     split->account = account;
     amount_copy(&split->amount, amount);
     split->reconciliation_date = 0;
     split->memo = "";
     split->reference = NULL;
+    split->index = index;
 }
 
 void

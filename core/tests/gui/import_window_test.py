@@ -54,7 +54,7 @@ class ChangeStructure(ImportActionPlugin):
                 first_split_new_amount = Amount(amount_value+1, amount_currency)
                 new_split_amount = Amount(-1.0, amount_currency)
                 txn_copy.splits[0].amount = first_split_new_amount
-                txn_copy.splits.append(Split(imbalance_account, new_split_amount))
+                txn_copy.add_split(Split(imbalance_account, new_split_amount))
                 import_document.change_transaction(transaction, txn_copy)
 
 class ChangeTransfer(ImportActionPlugin):
@@ -711,8 +711,10 @@ def app_import_checkbook_qif_with_existing_txns_and_change_import_plugin():
     app.set_plugins([ChangeStructure])
     return app
 
+# TODO: no, this is too much, I'm removing this import plugin thing. This code
+#       is *waaaaay* to complicated for its own good.
 @with_app(app_import_checkbook_qif_with_existing_txns_and_change_import_plugin)
-def test_match_then_run_plugin_that_calls_change_transaction(app):
+def xtest_match_then_run_plugin_that_calls_change_transaction(app):
     # We do the exact same thing as in test_match_then_import, but we run a plugin that calls
     # change_transaction() first to verify that we don't break the bindings.
     eq_(app.itable.row_count, 6) # we start with 6 lines

@@ -75,11 +75,9 @@ static PyObject *Split_Type;
 typedef struct {
     PyObject_HEAD
     Transaction txn;
-    PyObject *splits;
 } PyTransaction;
 
 static PyObject *Transaction_Type;
-#define Transaction_Check(v) (Py_TYPE(v) == (PyTypeObject *)Transaction_Type)
 
 /* Wrapper around a Split to show in an Account ledger.
  *
@@ -1392,16 +1390,29 @@ PySplit_reconciled(PySplit *self)
     }
 }
 
+static PyObject *
+PySplit_is_new(PySplit *self)
+{
+    if (self->owned) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject *
+PySplit_index(PySplit *self)
+{
+    return PyLong_FromLong(self->split->index);
+}
+
 /* Split Methods */
-// supplied split is copied and owned by the new instance
 static PySplit*
-_PySplit_from_split(const Split *split)
+_PySplit_proxy(Split *split)
 {
     PySplit *r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
-    r->owned = true;
-    r->split = malloc(sizeof(Split));
-    memset(r->split, 0, sizeof(Split));
-    split_copy(r->split, split);
+    r->owned = false;
+    r->split = split;
     return r;
 }
 
@@ -1422,7 +1433,7 @@ PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
     self->split = malloc(sizeof(Split));
     self->owned = true;
     amount = get_amount(amount_p);
-    split_init(self->split, NULL, amount);
+    split_init(self->split, NULL, amount, 0);
     if (PySplit_account_set(self, account) != 0) {
         return -1;
     }
@@ -1459,13 +1470,8 @@ PySplit_dealloc(PySplit *self)
 }
 
 static PyObject *
-PySplit_copy_from(PySplit *self, PyObject *args)
+PySplit_copy_from(PySplit *self, PyObject *other)
 {
-    PyObject *other;
-
-    if (!PyArg_ParseTuple(args, "O", &other)) {
-        return NULL;
-    }
     if (!Split_Check(other)) {
         PyErr_SetString(PyExc_TypeError, "not a split");
         return NULL;
@@ -1502,10 +1508,8 @@ PySplit_copy(PySplit *self)
     PySplit *r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
     r->split = malloc(sizeof(Split));
     r->owned = true;
-    split_init(r->split, NULL, amount_zero());
-    PyObject *args = PyTuple_Pack(1, self);
-    PySplit_copy_from(r, args);
-    Py_DECREF(args);
+    split_init(r->split, NULL, amount_zero(), 0);
+    PySplit_copy_from(r, (PyObject *)self);
     return (PyObject *)r;
 }
 
@@ -1514,6 +1518,34 @@ PySplit_deepcopy(PySplit *self, PyObject *args, PyObject *kwds)
 {
     return PySplit_copy(self);
 }
+
+static Py_hash_t
+PySplit_hash(PySplit *self)
+{
+    return (Py_hash_t)self->split;
+}
+
+static PyObject *
+PySplit_richcompare(PySplit *a, PyObject *b, int op)
+{
+    if (!Split_Check(b)) {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+    if ((op == Py_EQ) || (op == Py_NE)) {
+        bool match = a->split == ((PySplit *)b)->split;
+        if (op == Py_NE) {
+            match = !match;
+        }
+        if (match) {
+            Py_RETURN_TRUE;
+        } else {
+            Py_RETURN_FALSE;
+        }
+    } else {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+}
+
 
 /* Transaction */
 static PyObject *
@@ -1621,32 +1653,71 @@ PyTransaction_mtime_set(PyTransaction *self, PyObject *value)
 static PyObject *
 PyTransaction_splits(PyTransaction *self)
 {
-    Py_INCREF(self->splits);
-    return self->splits;
+    PyObject *res = PyList_New(self->txn.splitcount);
+    for (unsigned int i=0; i<self->txn.splitcount; i++) {
+        PySplit *split = _PySplit_proxy(&self->txn.splits[i]);
+        PyList_SetItem(res, i, (PyObject *)split); // stolen
+    }
+    return res;
 }
 
 static PyObject *
 PyTransaction_splits_set(PyTransaction *self, PyObject *value)
 {
-    Py_DECREF(self->splits);
-    Py_INCREF(value);
-    self->splits = value;
+    Py_ssize_t len = PyList_Size(value);
+    transaction_resize_splits(&self->txn, len);
+    for (int i=0; i<len; i++) {
+        PySplit *split = (PySplit *)PyList_GetItem(value, i); // borrowed
+        split_copy(&self->txn.splits[i], split->split);
+        self->txn.splits[i].index = i;
+    }
     return 0;
+}
+
+static PyObject *
+PyTransaction_add_split(PyTransaction *self, PySplit *split)
+{
+    transaction_resize_splits(&self->txn, self->txn.splitcount+1);
+    Split *newsplit = &self->txn.splits[self->txn.splitcount-1];
+    split_copy(newsplit, split->split);
+    newsplit->index = self->txn.splitcount-1;
+    return (PyObject *)_PySplit_proxy(newsplit);
 }
 
 static PyObject *
 PyTransaction_copy_from(PyTransaction *self, PyTransaction *other)
 {
-    if (!transaction_copy(&self->txn, &other->txn)) {
+    if (!PyObject_IsInstance((PyObject *)other, Transaction_Type)) {
+        PyErr_SetString(PyExc_TypeError, "not a txn");
         return NULL;
     }
-    Py_DECREF(self->splits);
-    Py_ssize_t len = PyList_Size(other->splits);
-    self->splits = PyList_New(len);
-    for (int i=0; i<len; i++) {
-        PyObject *split = PyList_GetItem(other->splits, i); // borrowed
-        PyObject *new = PySplit_copy((PySplit *)split);
-        PyList_SetItem(self->splits, i, new); // stolen
+    if (!transaction_copy(&self->txn, &other->txn)) {
+        PyErr_SetString(PyExc_RuntimeError, "low level copy failed");
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+PyTransaction_move_split(PyTransaction *self, PyObject *args)
+{
+    PySplit *split;
+    int index;
+
+    if (!PyArg_ParseTuple(args, "Oi", &split, &index)) {
+        return NULL;
+    }
+    if (!transaction_move_split(&self->txn, split->split, index)) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+PyTransaction_remove_split(PyTransaction *self, PySplit *split)
+{
+    if (!transaction_remove_split(&self->txn, split->split)) {
+        return NULL;
     }
     Py_RETURN_NONE;
 }
@@ -1675,23 +1746,17 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
     PyTransaction_description_set(self, description);
     PyTransaction_payee_set(self, payee);
     PyTransaction_checkno_set(self, checkno);
-    self->splits = PyList_New(0);
     if (amount_p != Py_None) {
-        Account *account = NULL;
+        transaction_resize_splits(&self->txn, 2);
+        Split *s1 = &self->txn.splits[0];
+        Split *s2 = &self->txn.splits[1];
         if (account_p != Py_None) {
-            account = ((PyAccount *)account_p)->account;
+            s1->account = ((PyAccount *)account_p)->account;
         }
         Amount *amount = get_amount(amount_p);
-        Split split;
-        split_init(&split, account, amount);
-        PySplit *split_p = _PySplit_from_split(&split);
-        PyList_Append(self->splits, (PyObject *)split_p);
-        Py_DECREF(split_p);
-        split.account = NULL;
-        split.amount.val *= -1;
-        split_p = _PySplit_from_split(&split);
-        PyList_Append(self->splits, (PyObject *)split_p);
-        Py_DECREF(split_p);
+        amount_copy(&s1->amount, amount);
+        amount_copy(&s2->amount, amount);
+        s2->amount.val *= -1;
     }
     return 0;
 }
@@ -1699,7 +1764,7 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
 static void
 PyTransaction_dealloc(PyTransaction *self)
 {
-    Py_DECREF(self->splits);
+    transaction_deinit(&self->txn);
 }
 
 /* Entry Methods */
@@ -1834,21 +1899,17 @@ PyEntry_split_set(PyEntry *self, PyObject *value)
 static PyObject *
 PyEntry_splits(PyEntry *self)
 {
-    PyObject *tsplits = self->txn->splits;
-    Py_ssize_t len = PyList_Size(tsplits);
-    // we assume that self->split is in tsplits, and there only once.
-    PyObject *r = PyList_New(len - 1);
+    PyObject *res = PyList_New(self->entry.txn->splitcount - 1);
     int j = 0;
-    for (int i=0; i<len; i++) {
-        PyObject *tmp = PyList_GetItem(tsplits, i);
-        if (tmp == (PyObject *)self->split) {
+    for (unsigned int i=0; i<self->entry.txn->splitcount; i++) {
+        if (i == self->entry.split->index) {
             continue;
         }
-        Py_INCREF(tmp);
-        PyList_SetItem(r, j, tmp);
+        PySplit *split = _PySplit_proxy(&self->entry.txn->splits[i]);
+        PyList_SetItem(res, j, (PyObject *)split); // stolen
         j++;
     }
-    return r;
+    return res;
 }
 
 static PyObject *
@@ -2929,11 +2990,9 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
     PyObject *a2s = PyDict_New();
     for (int i=0; i<len; i++) {
         PyTransaction *txn = (PyTransaction *)PyList_GetItem(txns, i); // borrowed
-        PyObject *splits = txn->splits;
-        Py_ssize_t slen = PySequence_Length(splits);
+        int slen = txn->txn.splitcount;
         for (int j=0; j<slen; j++) {
-            PySplit *split_p = (PySplit *)PyList_GetItem(splits, j); // borrowed
-            Split *split = split_p->split;
+            Split *split = &txn->txn.splits[j];
             if (split->account == NULL) {
                 continue;
             }
@@ -2944,7 +3003,9 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
                 PyDict_SetItemString(a2s, split->account->name, splitpairs);
                 Py_DECREF(splitpairs);
             }
+            PySplit *split_p = _PySplit_proxy(split);
             PyObject *pair = PyTuple_Pack(2, txn, split_p);
+            Py_DECREF(split_p);
             PyList_Append(splitpairs, pair);
             Py_DECREF(pair);
         }
@@ -3017,7 +3078,7 @@ PyType_Spec Amount_Type_Spec = {
 static PyMethodDef PySplit_methods[] = {
     {"__copy__", (PyCFunction)PySplit_copy, METH_NOARGS, ""},
     {"__deepcopy__", (PyCFunction)PySplit_deepcopy, METH_VARARGS, ""},
-    {"copy_from", (PyCFunction)PySplit_copy_from, METH_VARARGS, ""},
+    {"copy_from", (PyCFunction)PySplit_copy_from, METH_O, ""},
     {"is_on_same_side", (PyCFunction)PySplit_is_on_same_side, METH_VARARGS, ""},
     {0, 0, 0, 0},
 };
@@ -3051,6 +3112,11 @@ static PyGetSetDef PySplit_getseters[] = {
 
     // bool. Whether `reconciliation_date` is set to something.
     {"reconciled", (getter)PySplit_reconciled, NULL, "reconciled", NULL},
+
+    // Whether out split is part of a txn or a new split being created.
+    {"is_new", (getter)PySplit_is_new, NULL, NULL, NULL},
+    // index within its parent txn
+    {"index", (getter)PySplit_index, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
 };
 
@@ -3059,6 +3125,8 @@ static PyType_Slot Split_Slots[] = {
     {Py_tp_methods, PySplit_methods},
     {Py_tp_getset, PySplit_getseters},
     {Py_tp_repr, PySplit_repr},
+    {Py_tp_richcompare, PySplit_richcompare},
+    {Py_tp_hash, PySplit_hash},
     {Py_tp_dealloc, PySplit_dealloc},
     {0, 0},
 };
@@ -3264,7 +3332,10 @@ PyType_Spec AccountList_Type_Spec = {
 };
 
 static PyMethodDef PyTransaction_methods[] = {
+    {"add_split", (PyCFunction)PyTransaction_add_split, METH_O, ""},
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
+    {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
+    {"remove_split", (PyCFunction)PyTransaction_remove_split, METH_O, ""},
     {0, 0, 0, 0},
 };
 

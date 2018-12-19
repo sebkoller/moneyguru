@@ -266,9 +266,9 @@ class Loader:
                 elif split_info.reconciled: # legacy
                     split.reconciliation_date = transaction.date
                 split.reference = split_info.reference
-                transaction.splits.append(split)
+                transaction.add_split(split)
             while len(transaction.splits) < 2:
-                transaction.splits.append(Split(None, 0))
+                transaction.add_split(Split(None, 0))
             transaction.balance()
             transaction.mtime = info.mtime
             if info.reference is not None:

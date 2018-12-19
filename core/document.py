@@ -187,7 +187,7 @@ class BaseDocument:
         for split in new.splits:
             if split.account is not None:
                 split.account = self.accounts.find(split.account.name, split.account.type)
-        original.set_splits(new.splits, preserve_instances=True)
+        original.set_splits(new.splits)
         min_date = min(original.date, new.date)
         self._change_transaction(
             original, date=new.date, description=new.description,
@@ -642,7 +642,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             transactions = {e.transaction for e in all_entries if not isinstance(e.transaction, Spawn)}
             transactions = {t for t in transactions if not t.affected_accounts() - accounts}
             action.deleted_transactions |= transactions
-        action.change_splits(e.split for e in all_entries)
+        action.change_entries(all_entries)
         affected_schedules = [s for s in self.schedules if accounts & s.affected_accounts()]
         for schedule in affected_schedules:
             action.change_schedule(schedule)
@@ -966,7 +966,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         all_reconciled = not entries or all(entry.reconciled for entry in entries)
         newvalue = not all_reconciled
         action = Action(tr('Change reconciliation'))
-        action.change_splits([e.split for e in entries])
+        action.change_entries(entries)
         min_date = min(entry.date for entry in entries)
         spawns, entries = extract(lambda e: isinstance(e.transaction, Spawn), entries)
         for spawn in spawns:
@@ -1273,8 +1273,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             target_account = internalize(target_account)
         for entry, ref in matches:
             if ref is not None:
-                for split in ref.transaction.splits:
-                    to_unreconcile.add(split)
+                to_unreconcile.add(ref.transaction)
             else:
                 if entry.transaction not in self.transactions:
                     added_transactions.add(entry.transaction)
@@ -1288,11 +1287,12 @@ class Document(BaseDocument, Repeater, GUIObject):
         action = Action(tr('Import'))
         action.added_accounts |= added_accounts
         action.added_transactions |= added_transactions
-        action.change_splits(to_unreconcile)
+        action.change_transactions(to_unreconcile)
         self._undoer.record(action)
 
-        for split in to_unreconcile:
-            split.reconciliation_date = None
+        for txn in to_unreconcile:
+            for split in txn.splits:
+                split.reconciliation_date = None
         if target_account != ref_account and ref_account.reference is not None:
             target_account.reference = ref_account.reference
         for entry, ref in matches:

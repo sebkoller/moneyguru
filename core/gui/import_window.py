@@ -568,7 +568,7 @@ class ImportWindow(MainWindowGUIObject):
                 cached_txn[txn] = new_txn
                 return new_txn
             else:
-                return pane.import_document.cached_transactions[txn]
+                return cached_txn[txn]
 
 
         try:
@@ -577,15 +577,11 @@ class ImportWindow(MainWindowGUIObject):
             new_matches = []
 
             for (e, ref) in matches:
-                for indx, s in enumerate(e.transaction.splits):
-                    if e.split is s:
-                        split_indx = indx
-                        break
                 transaction = copy_transaction(e.transaction)
                 for split in transaction.splits:
                     split.account = copy_account(split.account)
 
-                split = transaction.splits[split_indx]
+                split = transaction.splits[e.split.index]
                 new_entry = copy.copy(e)
                 new_entry.split = split
                 new_entry.transaction = transaction

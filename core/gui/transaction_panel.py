@@ -41,8 +41,8 @@ class PanelWithTransaction(MainWindowPanel):
             split.account = None
         split.amount = amount
         split.memo = memo
-        if split not in self.transaction.splits:
-            self.transaction.splits.append(split)
+        if split.is_new:
+            split = self.transaction.add_split(split)
         self.transaction.balance(split)
         self.split_table.refresh_splits()
         self.view.refresh_for_multi_currency()
