@@ -1,11 +1,10 @@
-# Created By: Virgil Dupras
-# Created On: 2010-01-09
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
+from hscommon.notify import Listener
 from hscommon.trans import tr
 from ..const import PaneType
 from .base import BaseView, MESSAGES_DOCUMENT_CHANGED
@@ -71,6 +70,14 @@ class AccountView(BaseView, ViewWithTransactionsMixin):
         self.view.refresh_reconciliation_button()
         self.filter_bar.refresh()
         self.view.update_visibility()
+
+    def dispatch(self, msg):
+        # in AccountView, it's very important that children receive their msgs
+        # *before* we dispatch to self because notifications call
+        # _refresh_totals() which depends on having a refreshed etable.
+        self._repeat_message(msg)
+        if self._process_message(msg):
+            Listener.dispatch(self, msg)
 
     def restore_subviews_size(self):
         if self.balgraph.view_size[1]:
