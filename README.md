@@ -151,9 +151,9 @@ moneyGuru is built with "make":
 
 The complete test suite is ran with Tox. `cd` into the project folder and run
 `tox`.
-You can also run automated tests without Tox. Extra requirements for running
-tests are in `requirements-tests.txt`. So, you can do `pip install -r
-requirements-tests.txt` inside your virtualenv and then `pytest core hscommon`
+
+You can also run automated tests without Tox but you'll need to install
+[pytest][pytest] 3.10+. You can then run `pytest core hscommon`
 
 There are some C-only tests that run with Cunit. Tox already runs them, but if
 you want to run them as well, you can `cd` into `ccore` and run `make tests`.
@@ -168,7 +168,7 @@ online][documentation].
 [moneyguru]: http://www.hardcoded.net/moneyguru/
 [documentation]: http://www.hardcoded.net/moneyguru/help/en/
 [contrib-issue]: https://github.com/hsoft/moneyguru/issues/425
-[pyqt]: http://www.riverbankcomputing.com
-[sphinx]: http://sphinx.pocoo.org/
 [tox]: https://tox.readthedocs.org/en/latest/
+[cunit]: http://cunit.sourceforge.net/
+[pytest]: https://pytest.org
 
