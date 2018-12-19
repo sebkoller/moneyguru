@@ -95,16 +95,21 @@ moneyGuru is built with "make":
 
 # Running tests
 
-The complete test suite is ran with [Tox 1.7+][tox]. If you have it installed
-system-wide, you don't even need to set up a virtualenv. Just `cd` into the
-root project folder and run `tox`.
+## Prerequisites
 
-If you don't have Tox system-wide, install it in your virtualenv with `pip
-install tox` and then run `tox`.
+* [CUnit][cunit]
+* [Tox][tox]
 
+## Running
+
+The complete test suite is ran with Tox. `cd` into the project folder and run
+`tox`.
 You can also run automated tests without Tox. Extra requirements for running
 tests are in `requirements-tests.txt`. So, you can do `pip install -r
-requirements-tests.txt` inside your virtualenv and then `py.test core hscommon`
+requirements-tests.txt` inside your virtualenv and then `pytest core hscommon`
+
+There are some C-only tests that run with Cunit. Tox already runs them, but if
+you want to run them as well, you can `cd` into `ccore` and run `make tests`.
 
 # Further documentation
 

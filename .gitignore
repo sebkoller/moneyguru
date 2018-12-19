@@ -8,13 +8,10 @@ _build
 .tox
 /conf.json
 /run.py
+/ccore/runtests
 
 /qt/*_rc.py
 /qt/ui/*_ui.py
-build
-dist
-install
-installer_tmp-cache
 deps
 /help/*/conf.py
 /help/*/changelog.rst

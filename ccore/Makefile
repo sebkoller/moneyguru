@@ -1,26 +1,41 @@
 PYTHON ?= python
 TARGET = _ccore.so
 
-SRCS = currency.c amount.c account.c split.c transaction.c entry.c util.c py_ccore.c
+SRCS = currency.c amount.c account.c split.c transaction.c entry.c util.c
 OBJS = $(SRCS:%.c=%.o)
+PY_CCORE = py_ccore.c
+PY_CCORE_OBJ = py_ccore.o
+TEST_SRCS = $(addprefix tests/, transaction.c main.c)
+TEST_OBJS = $(TEST_SRCS:%.c=%.o)
 
-CC = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CC'))")
+PY_CC = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CC'))")
 BLDSHARED = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('BLDSHARED'))")
 BLDLIBRARY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('BLDLIBRARY'))")
 CFLAGS_PY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CFLAGS'))")
 CFLAGSFORSHARED = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CFLAGSFORSHARED'))")
 INCLUDEPY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))")
-DEFAULT_CFLAGS = -std=c99 $(CFLAGS_PY) $(CFLAGSFORSHARED) -I$(INCLUDEPY)
+DEFAULT_CFLAGS = -std=c99 $(CFLAGSFORSHARED)
 CFLAGS ?= $(DEFAULT_CFLAGS)
 LDFLAGS = `pkg-config --libs sqlite3` $(BLDLIBRARY)
+LDFLAGS_TEST = `pkg-config --libs cunit sqlite3` -lm
 
 .PHONY: all
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
+$(TARGET): $(OBJS) $(PY_CCORE_OBJ)
 	$(BLDSHARED) $^ $(LDFLAGS) -o $@
+
+$(PY_CCORE_OBJ): $(PY_CCORE)
+	$(PY_CC) -c $(CFLAGS) $(CFLAGS_PY) -I$(INCLUDEPY) -o $@ $^
+
+runtests: $(TEST_OBJS) $(OBJS)
+	$(CC) $^ $(LDFLAGS_TEST) -o $@
+
+.PHONY: tests
+tests: runtests
+	./runtests
 
 .PHONY: clean
 clean:
-	-rm -rf $(OBJS) $(TARGET) $(EXECUTABLE)
+	-rm -f $(OBJS) $(PY_CCORE_OBJ) $(TARGET) $(TEST_OBJS) runtests
 

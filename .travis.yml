@@ -6,6 +6,12 @@ python:
   - "3.5"
   - "3.6"
   - "3.7"
+addons:
+  apt:
+    packages:
+      - libcunit1-dev
 install: pip install tox-travis
-script: tox
+script:
+  - make -C ccore tests
+  - tox
 
