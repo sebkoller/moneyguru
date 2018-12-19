@@ -5,7 +5,11 @@ PREFIX ?= /usr/local
 DESTLIB ?= $(PREFIX)/lib/moneyguru
 DESTSHARE ?= $(PREFIX)/share/moneyguru
 DESTDOC ?= $(PREFIX)/share/doc/moneyguru
-CCORE = core/model/_ccore.so
+
+SOABI = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('SOABI'))")
+CCORE_NAME = _ccore.$(SOABI).so
+CCORE_SRC = ccore/$(CCORE_NAME)
+CCORE_DEST = core/model/$(CCORE_NAME)
 
 # If you're installing into a path that is not going to be the final path prefix (such as a
 # sandbox), set DESTDIR to that path.
@@ -17,7 +21,7 @@ mofiles = $(patsubst %.po,%.mo,$(pofiles))
 vpath %.po $(localedirs)
 vpath %.mo $(localedirs)
 
-all: qt/mg_rc.py run.py $(CCORE) | i18n reqs
+all: qt/mg_rc.py run.py $(CCORE_DEST) | i18n reqs
 	@echo "Build complete! You can run moneyGuru with 'make run'"
 
 run:
@@ -59,17 +63,13 @@ i18n: $(mofiles)
 %.mo : %.po
 	msgfmt -o $@ $<	
 
-$(CCORE):
+$(CCORE_SRC):
 	$(MAKE) -C ccore
-	cp ccore/_ccore.so core/model
 
-ccore: 
-	$(MAKE) -C ccore
-	cp ccore/_ccore.so core/model
-	# don't leave .o that might be incompatible with the version of python it's
-	# going to be built for next (for example, with tox runs).
-	# TODO: don't require clean to avoid python ABI mismatch.
-	$(MAKE) -C ccore clean
+$(CCORE_DEST): $(CCORE_SRC)
+	cp $^ $@
+
+ccore: $(CCORE_DEST)
 
 mergepot:
 	./support/mergepot.sh

@@ -1,5 +1,4 @@
 PYTHON ?= python
-TARGET = _ccore.so
 
 SRCS = currency.c amount.c account.c split.c transaction.c entry.c util.c
 OBJS = $(SRCS:%.c=%.o)
@@ -14,6 +13,9 @@ BLDLIBRARY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_
 CFLAGS_PY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CFLAGS'))")
 CFLAGSFORSHARED = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CFLAGSFORSHARED'))")
 INCLUDEPY = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('INCLUDEPY'))")
+SOABI = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('SOABI'))")
+TARGET = _ccore.$(SOABI).so
+
 DEFAULT_CFLAGS = -std=c99 -Wall $(CFLAGSFORSHARED)
 CFLAGS ?= $(DEFAULT_CFLAGS)
 LDFLAGS = `pkg-config --libs sqlite3` $(BLDLIBRARY)
