@@ -3002,7 +3002,7 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
     Py_ssize_t pos = 0;
     PyObject *k, *v;
     while (PyDict_Next(a2s, &pos, &k, &v)) {
-        char *aname = PyUnicode_AsUTF8(k);
+        const char *aname = PyUnicode_AsUTF8(k);
         Account *account = accounts_find_by_name(&accounts->alist, aname);
         if (account == NULL) {
             PyErr_SetString(PyExc_ValueError, "integrity error in split accounts");
