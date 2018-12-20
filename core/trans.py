@@ -60,7 +60,7 @@ def get_locale_name(lang):
     result = LANG2LOCALENAME[lang] + '.UTF-8'
     return result
 
-#--- Qt
+# --- Qt
 def install_qt_trans(lang=None):
     from PyQt5.QtCore import QCoreApplication, QTranslator, QLocale
     if not lang:
@@ -79,13 +79,16 @@ def install_qt_trans(lang=None):
     qtr2 = QTranslator(QCoreApplication.instance())
     qtr2.load(':/%s' % lang)
     QCoreApplication.installTranslator(qtr2)
+
     def qt_tr(s, context='core'):
         return str(QCoreApplication.translate(context, s, None))
+
     set_tr(qt_tr)
 
-#--- gettext
+# --- gettext
 def install_gettext_trans(base_folder, lang):
     import gettext
+
     def gettext_trget(domain):
         if not lang:
             return lambda s: s
@@ -95,12 +98,14 @@ def install_gettext_trans(base_folder, lang):
             return lambda s: s
 
     default_gettext = gettext_trget('core')
+
     def gettext_tr(s, context=None):
         if not context:
             return default_gettext(s)
         else:
             trfunc = gettext_trget(context)
             return trfunc(s)
+
     set_tr(gettext_tr, gettext_trget)
     global installed_lang
     installed_lang = lang

@@ -38,7 +38,7 @@ class TextField(GUIObject):
         self._text = ''
         self._value = None
 
-    #--- Virtual
+    # --- Virtual
     def _parse(self, text):
         """(Virtual) Parses ``text`` to put into :attr:`value`.
 
@@ -60,11 +60,11 @@ class TextField(GUIObject):
         method is called. By default, it does nothing but you can override it if you want.
         """
 
-    #--- Override
+    # --- Override
     def _view_updated(self):
         self.view.refresh()
 
-    #--- Public
+    # --- Public
     def refresh(self):
         """Triggers a view :meth:`~TextFieldView.refresh`.
         """

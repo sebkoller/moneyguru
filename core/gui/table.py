@@ -106,7 +106,7 @@ class Table(MutableSequence, Selectable):
         if self._footer is not None:
             self._rows.append(self._footer)
 
-    #--- Properties
+    # --- Properties
     @property
     def footer(self):
         """If set, a row that always stay at the bottom of the table.
@@ -266,7 +266,7 @@ class GUITableBase(Table, GUIObject):
         self.edited = None
         self._sort_descriptor = None
 
-    #--- Virtual
+    # --- Virtual
     def _do_add(self):
         """(Virtual) Creates a new row, adds it in the table.
 
@@ -314,7 +314,7 @@ class GUITableBase(Table, GUIObject):
             else:
                 self.select([len(self) - 1])
 
-    #--- Public
+    # --- Public
     def add(self):
         """Add a new row in edit mode.
 
@@ -459,7 +459,7 @@ class RowBase:
         assert self.table.edited is None
         self.table.edited = self
 
-    #--- Virtual
+    # --- Virtual
     def can_edit(self):
         """(Virtual) Whether the whole row can be edited.
 
@@ -498,7 +498,7 @@ class RowBase:
         except AttributeError:
             return getattr(self, column_name)
 
-    #--- Public
+    # --- Public
     def can_edit_cell(self, column_name):
         """Returns whether cell for column ``column_name`` can be edited.
 
@@ -536,7 +536,7 @@ class RowBase:
         alternative value storage mechanisms.
         """
         if attrname == 'from':
-           attrname = 'from_'
+            attrname = 'from_'
         return getattr(self, attrname)
 
     def set_cell_value(self, attrname, value):

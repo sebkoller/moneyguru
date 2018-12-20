@@ -17,7 +17,7 @@ class Selectable(Sequence):
     def __init__(self):
         self._selected_indexes = []
 
-    #--- Private
+    # --- Private
     def _check_selection_range(self):
         if not self:
             self._selected_indexes = []
@@ -27,7 +27,7 @@ class Selectable(Sequence):
         if not self._selected_indexes:
             self._selected_indexes = [len(self) - 1]
 
-    #--- Virtual
+    # --- Virtual
     def _update_selection(self):
         """(Virtual) Updates the model's selection appropriately.
 
@@ -45,7 +45,7 @@ class Selectable(Sequence):
         # A redesign of how this whole thing works is probably in order, but not now, there's too
         # much breakage at once involved.
 
-    #--- Public
+    # --- Public
     def select(self, indexes):
         """Update selection to ``indexes``.
 
@@ -58,7 +58,7 @@ class Selectable(Sequence):
         self.selected_indexes = indexes
         self._update_selection()
 
-    #--- Properties
+    # --- Properties
     @property
     def selected_index(self):
         """Points to the first selected index.
@@ -119,7 +119,7 @@ class SelectableList(MutableSequence, Selectable):
         self._items.__setitem__(key, value)
         self._on_change()
 
-    #--- Override
+    # --- Override
     def append(self, item):
         self._items.append(item)
         self._on_change()
@@ -133,14 +133,14 @@ class SelectableList(MutableSequence, Selectable):
         self._check_selection_range()
         self._on_change()
 
-    #--- Virtual
+    # --- Virtual
     def _on_change(self):
         """(Virtual) Called whenever the contents of the list changes.
 
         By default, does nothing.
         """
 
-    #--- Public
+    # --- Public
     def search_by_prefix(self, prefix):
         # XXX Why the heck is this method here?
         prefix = prefix.lower()
