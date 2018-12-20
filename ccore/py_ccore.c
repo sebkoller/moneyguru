@@ -222,7 +222,7 @@ getcur(const char *code)
     return res;
 }
 
-static Amount*
+static const Amount*
 get_amount(PyObject *amount)
 {
     /* Returns amount's ival if it's an amount, or 0 if it's an int with a value of 0.
@@ -306,7 +306,7 @@ strisexpr(const char *s)
 }
 
 static bool
-same_currency(Amount *a, Amount *b)
+same_currency(const Amount *a, const Amount *b)
 {
     // Weird rules, but well...
     if (a->currency == NULL || b->currency == NULL) {
@@ -775,7 +775,6 @@ static PyObject*
 py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
 {
     int rc;
-    Amount *amount;
     PyObject *pyamount;
     const char *default_currency = "";
     const char *zero_currency = "";
@@ -809,16 +808,17 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
         grouping_sep = " ";
     }
 
-    amount = get_amount(pyamount);
-    if (!amount->val) {
+    Amount amount;
+    amount_copy(&amount, get_amount(pyamount));
+    if (!amount.val) {
         if (strlen(zero_currency)) {
             c = getcur(zero_currency);
             if (c == NULL) {
                 return NULL;
             }
-            amount->currency = c;
+            amount.currency = c;
         } else {
-            amount->currency = NULL;
+            amount.currency = NULL;
         }
     }
     if (strlen(default_currency)) {
@@ -826,12 +826,12 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
         if (c == NULL) {
             return NULL;
         }
-        show_currency = c != amount->currency;
+        show_currency = c != amount.currency;
     } else {
-        show_currency = amount->currency != NULL;
+        show_currency = amount.currency != NULL;
     }
     rc = amount_format(
-        result, amount, show_currency, blank_zero, decimal_sep[0],
+        result, &amount, show_currency, blank_zero, decimal_sep[0],
         grouping_sep[0]);
     if (!rc) {
         PyErr_SetString(PyExc_ValueError, "something went wrong");
@@ -946,14 +946,13 @@ py_amount_convert(PyObject *self, PyObject *args)
     PyObject *pyamount;
     char *code;
     PyObject *pydate;
-    Amount *amount;
     Amount dest;
 
     if (!PyArg_ParseTuple(args, "OsO", &pyamount, &code, &pydate)) {
         return NULL;
     }
 
-    amount = get_amount(pyamount);
+    const Amount *amount = get_amount(pyamount);
     if (!amount->val) {
         Py_INCREF(pyamount);
         return pyamount;
@@ -1346,9 +1345,7 @@ PySplit_amount(PySplit *self)
 static int
 PySplit_amount_set(PySplit *self, PyObject *value)
 {
-    Amount *amount;
-
-    amount = get_amount(value);
+    const Amount *amount = get_amount(value);
     split_amount_set(self->split, amount);
     return 0;
 }
@@ -1425,7 +1422,6 @@ static int
 PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
 {
     PyObject *account, *amount_p;
-    Amount *amount;
 
     static char *kwlist[] = {"account", "amount", NULL};
 
@@ -1437,7 +1433,7 @@ PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
 
     self->split = malloc(sizeof(Split));
     self->owned = true;
-    amount = get_amount(amount_p);
+    const Amount *amount = get_amount(amount_p);
     split_init(self->split, NULL, amount, 0);
     if (PySplit_account_set(self, account) != 0) {
         return -1;
@@ -1690,12 +1686,13 @@ PyTransaction_add_split(PyTransaction *self, PySplit *split)
 }
 
 static PyObject *
-PyTransaction_balance_currencies(PyTransaction *self, PyObject *args)
+PyTransaction_balance(PyTransaction *self, PyObject *args)
 {
     PyObject *strong_split_p = NULL;
     Split *strong_split;
+    int keep_two_splits = false;
 
-    if (!PyArg_ParseTuple(args, "|O", &strong_split_p)) {
+    if (!PyArg_ParseTuple(args, "|Op", &strong_split_p, &keep_two_splits)) {
         return NULL;
     }
     if (strong_split_p == NULL || strong_split_p == Py_None) {
@@ -1706,7 +1703,7 @@ PyTransaction_balance_currencies(PyTransaction *self, PyObject *args)
     } else {
         strong_split = ((PySplit *)strong_split_p)->split;
     }
-    transaction_balance_currencies(&self->txn, strong_split);
+    transaction_balance(&self->txn, strong_split, keep_two_splits);
     Py_RETURN_NONE;
 }
 
@@ -1779,7 +1776,7 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
         if (account_p != Py_None) {
             s1->account = ((PyAccount *)account_p)->account;
         }
-        Amount *amount = get_amount(amount_p);
+        const Amount *amount = get_amount(amount_p);
         amount_copy(&s1->amount, amount);
         amount_copy(&s2->amount, amount);
         s2->amount.val *= -1;
@@ -1972,7 +1969,7 @@ PyEntry_change_amount(PyEntry *self, PyObject *args)
     }
     PySplit *other = (PySplit *)PyList_GetItem(splits, 0); // borrowed
     Py_DECREF(splits);
-    Amount *amount = get_amount(amount_p);
+    const Amount *amount = get_amount(amount_p);
     split_amount_set(self->split->split, amount);
     Amount *other_amount = &other->split->amount;
     bool is_mct = false;
@@ -3332,7 +3329,7 @@ PyType_Spec AccountList_Type_Spec = {
 
 static PyMethodDef PyTransaction_methods[] = {
     {"add_split", (PyCFunction)PyTransaction_add_split, METH_O, ""},
-    {"balance_currencies", (PyCFunction)PyTransaction_balance_currencies, METH_VARARGS, ""},
+    {"balance", (PyCFunction)PyTransaction_balance, METH_VARARGS, ""},
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
     {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
     {"remove_split", (PyCFunction)PyTransaction_remove_split, METH_O, ""},

@@ -6,7 +6,7 @@
 
 #include "amount.h"
 
-static Amount *g_zero = NULL;
+static Amount g_zero = {0, NULL};
 
 /* Private */
 
@@ -41,32 +41,17 @@ group_intfmt(char *dest, uint64_t val, char grouping_sep) {
 }
 
 /* Public */
-Amount*
-amount_init(int64_t val, Currency *currency)
-{
-    Amount *res;
-
-    res = malloc(sizeof(Amount));
-    if (res == NULL) {
-        return NULL;
-    }
-    res->val = val;
-    res->currency = currency;
-    return res;
-}
-
-void
-amount_free(Amount *amount)
-{
-    if (amount != NULL) {
-        free(amount);
-    }
-}
-
 void
 amount_copy(Amount *dest, const Amount *src)
 {
     dest->val = src->val;
+    dest->currency = src->currency;
+}
+
+void
+amount_neg(Amount *dest, const Amount *src)
+{
+    dest->val = -src->val;
     dest->currency = src->currency;
 }
 
@@ -77,17 +62,14 @@ amount_set(Amount *dest, int64_t val, Currency *currency)
     dest->currency = currency;
 }
 
-Amount*
+const Amount*
 amount_zero(void)
 {
-    if (g_zero == NULL) {
-        g_zero = amount_init(0, NULL);
-    }
-    return g_zero;
+    return &g_zero;
 }
 
 bool
-amount_check(Amount *first, Amount *second)
+amount_check(const Amount *first, const Amount *second)
 {
     if (!(first && second)) {
         // A NULL amount? not cool.
@@ -100,6 +82,18 @@ amount_check(Amount *first, Amount *second)
         return true;
     }
 }
+
+bool
+amount_same_side(const Amount *a, const Amount *b)
+{
+    if ((a->val == 0) || (b->val == 0)) {
+        // zero values are never on anybody's side, because nobody's on their
+        // side.
+        return false;
+    }
+    return (a->val > 0) == (b->val > 0);
+}
+
 
 int64_t
 amount_slide(int64_t val, uint8_t fromexp, uint8_t toexp)
@@ -572,7 +566,7 @@ amount_parse_expr(
 }
 
 bool
-amount_convert(Amount *dest, Amount *src, time_t date)
+amount_convert(Amount *dest, const Amount *src, time_t date)
 {
     double rate;
 

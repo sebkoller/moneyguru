@@ -87,60 +87,6 @@ class Transaction(TransactionBase):
         for split in unassigned:
             self.remove_split(split)
 
-    def balance(self, strong_split=None, keep_two_splits=False):
-        """Balance out :attr:`splits` if needed.
-
-        A balanced transaction has all its splits making a zero sum. Balancing a transaction is
-        rather easy: We sum all our splits and create an unassigned split of the opposite of that
-        amount. To avoid polluting our splits, we look if we already have an unassigned split and,
-        if we do, we adjust its amount instead of creating a new split.
-
-        There's a special case to that rule, and that is when we have two splits. When those two
-        splits are on the same "side" (both positive or both negative), we assume that the user has
-        just reversed ``strong_split``'s side and that the logical next step is to also reverse the
-        other split (the "weak" split), which we'll do.
-
-        If ``keep_two_splits`` is true, we'll go one step further and adjust the weak split's amount
-        to fit what was just entered in the strong split. If it's false, we'll create an unassigned
-        split if needed.
-
-        Easy, right? Things get a bit more complicated when a have a
-        :ref:`multi-currency transaction <multi-currency-txn>`. When that happens, we do a more
-        complicated balancing, which happens in :meth:`balance_currencies`.
-
-        :param strong_split: The split that was last edited. The reason why we're balancing the
-                             transaction now. If set, it will not be adjusted by the balancing
-                             because we don't want to pull the rug from under our user's feet and
-                             undo an edit he's just made.
-        :type strong_split: :class:`Split`
-        :param bool keep_two_splits: If set and if we have a two-split transaction, we'll keep it
-                                     that way, adjusting the "weak" split amount as needed.
-        """
-        if len(self.splits) == 2 and strong_split is not None:
-            weak_split = self.splits[0] if self.splits[0] != strong_split else self.splits[1]
-            if keep_two_splits:
-                weak_split.amount = -strong_split.amount
-            elif (weak_split.amount > 0) == (strong_split.amount > 0): # on the same side
-                weak_split.amount *= -1
-        splits_with_amount = [s for s in self.splits if s.amount]
-        if splits_with_amount and not allsame(s.amount.currency_code for s in splits_with_amount):
-            self.balance_currencies(strong_split)
-            return
-        imbalance = sum(s.amount for s in self.splits)
-        if not imbalance:
-            return
-        is_unassigned = lambda s: s.account is None and s != strong_split
-        imbalance = sum(s.amount for s in self.splits)
-        if imbalance:
-            unassigned = first(s for s in self.splits if is_unassigned(s))
-            if unassigned is not None:
-                unassigned.amount -= imbalance
-            else:
-                self.add_split(Split(None, -imbalance))
-        for split in self.splits[:]:
-            if is_unassigned(split) and split.amount == 0:
-                self.remove_split(split)
-
     def change(
             self, date=NOEDIT, description=NOEDIT, payee=NOEDIT, checkno=NOEDIT, from_=NOEDIT,
             to=NOEDIT, amount=NOEDIT, currency=NOEDIT, notes=NOEDIT):

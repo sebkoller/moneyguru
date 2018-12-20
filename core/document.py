@@ -1298,7 +1298,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             if ref is not None:
                 ref.transaction.date = entry.date
                 ref.split.amount = entry.split.amount
-                ref.transaction.balance(strong_split=ref.split, keep_two_splits=True)
+                ref.transaction.balance(ref.split, True)
                 ref.split.reference = entry.split.reference
             else:
                 if entry.transaction not in self.transactions:

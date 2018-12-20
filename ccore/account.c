@@ -106,6 +106,7 @@ accounts_init(AccountList *accounts, int initial_count, Currency *default_curren
     accounts->id_counter = 1;
 }
 
+// TODO: test realloc conditions
 Account*
 accounts_create(AccountList *accounts)
 {

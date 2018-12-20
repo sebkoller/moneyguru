@@ -9,26 +9,27 @@ typedef struct {
     Currency *currency;
 } Amount;
 
-Amount*
-amount_init(int64_t val, Currency *currency);
-
-void
-amount_free(Amount *amount);
-
 void
 amount_copy(Amount *dest, const Amount *src);
+
+// copy src int dest but negate the value.
+void
+amount_neg(Amount *dest, const Amount *src);
 
 void
 amount_set(Amount *dest, int64_t val, Currency *currency);
 
-Amount*
+const Amount*
 amount_zero(void);
 
 int64_t
 amount_slide(int64_t val, uint8_t fromexp, uint8_t toexp);
 
 bool
-amount_check(Amount *first, Amount *second);
+amount_check(const Amount *first, const Amount *second);
+
+bool
+amount_same_side(const Amount *a, const Amount *b);
 
 /* Returns a formatted string from `amount`.
 
@@ -145,4 +146,4 @@ amount_parse_expr(
  * We expect dest to already have a currency set.
  */
 bool
-amount_convert(Amount *dest, Amount *src, time_t date);
+amount_convert(Amount *dest, const Amount *src, time_t date);

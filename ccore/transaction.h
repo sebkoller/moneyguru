@@ -37,6 +37,12 @@ typedef struct {
 void
 transaction_init(Transaction *txn, TransactionType type, time_t date);
 
+void
+transaction_deinit(Transaction *txn);
+
+Split*
+transaction_add_split(Transaction *txn);
+
 /* Balances a multi-currency transaction.
  * 
  * Balancing out multi-currencies transasctions can be real easy because we
@@ -60,16 +66,53 @@ transaction_init(Transaction *txn, TransactionType type, time_t date);
 void
 transaction_balance_currencies(Transaction *txn, const Split *strong_split);
 
+/* Balance out `splits` if needed.
+ * 
+ * A balanced transaction has all its splits making a zero sum. Balancing a
+ * transaction is rather easy: We sum all our splits and create an unassigned
+ * split of the opposite of that amount. To avoid polluting our splits, we look
+ * if we already have an unassigned split and, if we do, we adjust its amount
+ * instead of creating a new split.
+ * 
+ * There's a special case to that rule, and that is when we have two splits.
+ * When those two splits are on the same "side" (both positive or both
+ * negative), we assume that the user has just reversed `strong_split`'s side
+ * and that the logical next step is to also reverse the other split (the
+ * "weak" split), which we'll do.
+ * 
+ * If `keep_two_splits` is true, we'll go one step further and adjust the weak
+ * split's amount to fit what was just entered in the strong split. If it's
+ * false, we'll create an unassigned split if needed.
+ * 
+ * Easy, right? Things get a bit more complicated when a have a multi-currency
+ * transaction. When that happens, we do a more complicated balancing, which
+ * happens in `transaction_balance_currencies()`.
+ * 
+ * `strong_split` is the split that was last edited. The reason why we're
+ * balancing the transaction now. If set, it will not be adjusted by the
+ * balancing because we don't want to pull the rug from under our user's feet
+ * and undo an edit she's just made.
+ */
+void
+transaction_balance(
+    Transaction *txn,
+    Split *strong_split,
+    bool keep_two_splits);
+
+int
+transaction_cmp(const Transaction *a, const Transaction *b);
+
 // If dst is a fresh instance, it *has* to have been zeroed out before calling
 // this.
 bool
 transaction_copy(Transaction *dst, Transaction *src);
 
-Split*
-transaction_add_split(Transaction *txn);
-
 bool
 transaction_move_split(Transaction *txn, Split *split, unsigned int newindex);
+
+// For debugging
+void
+transaction_print(const Transaction *txn);
 
 bool
 transaction_remove_split(Transaction *txn, Split *split);
@@ -78,9 +121,3 @@ transaction_remove_split(Transaction *txn, Split *split);
 // splits are initialized to NULL account and zero amount.
 void
 transaction_resize_splits(Transaction *txn, unsigned int newsize);
-
-int
-transaction_cmp(const Transaction *a, const Transaction *b);
-
-void
-transaction_deinit(Transaction *txn);
