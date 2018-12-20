@@ -28,7 +28,7 @@ run:
 	./run.py
 
 pyc:
-	${PYTHON} -m compileall hscommon core qt
+	${PYTHON} -m compileall core qt
 
 reqs:
 	@ret=`${PYTHON} -c "import sys; print(int(sys.version_info[:2] >= (3, ${REQ_MINOR_VERSION})))"`; \

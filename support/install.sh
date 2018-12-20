@@ -13,7 +13,7 @@ PIXMAP="${PREFIX}/share/pixmaps/moneyguru.png"
 install -D run.py "${D}${DESTLIB}/run.py"
 mkdir -p "${D}${PREFIX}/bin"
 ln -sf "${DESTLIB}/run.py" "${D}${PREFIX}/bin/moneyguru"
-cp -rf hscommon core qt "${D}${DESTLIB}"
+cp -rf core qt "${D}${DESTLIB}"
 mkdir -p "${D}${PREFIX}/share/applications"
 install -D -m644 support/moneyguru.desktop \
     "${D}${PREFIX}/share/applications/moneyguru.desktop"

@@ -110,7 +110,6 @@ This package contains the source for moneyGuru. Its documentation is
 There are also other sub-folder that comes from external repositories and are
 part of this repo as git submodules:
 
-* hscommon: A collection of helpers used across HS applications.
 * qtlib: A collection of helpers used across Qt UI codebases of HS applications.
 
 # How to build moneyGuru from source
@@ -153,7 +152,7 @@ The complete test suite is ran with Tox. `cd` into the project folder and run
 `tox`.
 
 You can also run automated tests without Tox but you'll need to install
-[pytest][pytest] 3.10+. You can then run `pytest core hscommon`
+[pytest][pytest] 3.10+. You can then run `pytest core`
 
 There are some C-only tests that run with Cunit. Tox already runs them, but if
 you want to run them as well, you can `cd` into `ccore` and run `make tests`.
