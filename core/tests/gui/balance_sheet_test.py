@@ -8,7 +8,7 @@ from datetime import date
 import csv
 from io import StringIO
 
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ..base import DocumentGUI, ApplicationGUI, TestApp, with_app, testdata
 from ...app import Application

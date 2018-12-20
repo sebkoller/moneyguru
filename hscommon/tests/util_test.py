@@ -6,7 +6,7 @@
 
 from pytest import raises
 
-from ..testutil import eq_
+from core.tests.testutil import eq_
 from ..util import *
 
 def test_nonone():

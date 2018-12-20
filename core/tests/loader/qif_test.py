@@ -6,7 +6,7 @@
 
 from datetime import date
 
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ..base import TestApp, testdata, Amount
 from ...loader.qif import Loader

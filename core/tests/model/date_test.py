@@ -9,7 +9,7 @@
 from datetime import date
 
 from pytest import raises
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ...model.date import (parse_date, format_date, clean_format, DateRange, MonthRange,
     QuarterRange, YearRange, RunningYearRange, YearToDateRange, DateFormat)

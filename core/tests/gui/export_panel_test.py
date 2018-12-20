@@ -8,7 +8,7 @@
 
 import csv
 
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ...gui.export_panel import ExportFormat
 from ...model.account import AccountType

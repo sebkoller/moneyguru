@@ -8,7 +8,7 @@ import copy
 from datetime import date
 
 import pytest
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ...model._ccore import AccountList
 from ...model.account import Group, AccountType, ACCOUNT_SORT_KEY

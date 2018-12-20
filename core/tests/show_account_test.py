@@ -12,7 +12,7 @@ on the active view. See :meth:`MainWindow.show_account` for details.
 This unit regroups tests for all active view scenarios.
 """
 
-from hscommon.testutil import eq_
+from .testutil import eq_
 
 from ..const import PaneType
 from ..model.account import AccountType

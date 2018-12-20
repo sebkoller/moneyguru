@@ -7,7 +7,7 @@
 from datetime import date
 from itertools import starmap
 
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ..base import Amount
 from ...model._ccore import Entry

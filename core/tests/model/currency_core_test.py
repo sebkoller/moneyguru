@@ -10,7 +10,7 @@
 
 from datetime import date
 
-from hscommon.testutil import eq_, assert_almost_equal
+from ..testutil import eq_, assert_almost_equal
 from ...model.currency import Currencies, RatesDB
 
 def setup_module(module):

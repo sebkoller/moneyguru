@@ -8,7 +8,7 @@
 
 from datetime import date
 
-from hscommon.testutil import eq_
+from .testutil import eq_
 
 from ..const import PaneType
 from ..model.account import AccountType

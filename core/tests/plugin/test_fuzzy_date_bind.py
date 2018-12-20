@@ -16,7 +16,7 @@ from random import randint
 
 from pytest import mark, raises
 
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ..base import Amount
 from ...model._ccore import Entry

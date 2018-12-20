@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -7,7 +7,7 @@
 from datetime import date
 
 import pytest
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ...plugin.boc_currency_provider import BOCProviderPlugin
 

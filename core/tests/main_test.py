@@ -11,7 +11,7 @@ import os
 from datetime import date
 
 from pytest import raises
-from hscommon.testutil import eq_
+from .testutil import eq_
 
 from .base import ApplicationGUI, TestApp, with_app, testdata
 from ..app import Application

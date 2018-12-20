@@ -8,7 +8,7 @@ from datetime import date
 import threading
 import os.path as op
 
-from hscommon.testutil import eq_, log_calls
+from .testutil import eq_, log_calls
 
 import pytest
 

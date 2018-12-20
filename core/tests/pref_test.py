@@ -8,7 +8,7 @@
 
 # Tests that make sure preferences are correctly saved/restored
 
-from hscommon.testutil import eq_
+from .testutil import eq_
 
 from ..const import PaneType, PaneArea
 from ..gui.main_window import Preference

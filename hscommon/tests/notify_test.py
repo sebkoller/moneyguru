@@ -1,10 +1,10 @@
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from ..testutil import eq_
+from core.tests.testutil import eq_
 from ..notify import Broadcaster, Listener, Repeater
 
 class HelloListener(Listener):
@@ -29,7 +29,7 @@ def create_pair():
     return b, l
 
 def test_disconnect_during_notification():
-    # When a listener disconnects another listener the other listener will not receive a 
+    # When a listener disconnects another listener the other listener will not receive a
     # notification.
     # This whole complication scheme below is because the order of the notification is not
     # guaranteed. We could disconnect everything from self.broadcaster.listeners, but this
@@ -38,11 +38,11 @@ def test_disconnect_during_notification():
         def __init__(self, broadcaster):
             Listener.__init__(self, broadcaster)
             self.hello_count = 0
-        
+
         def hello(self):
             self.hello_count += 1
             self.other.disconnect()
-        
+
     broadcaster = Broadcaster()
     first = Disconnecter(broadcaster)
     second = Disconnecter(broadcaster)
@@ -108,7 +108,7 @@ def test_repeater_with_repeated_notifications():
             self.foo_count = 0
         def foo(self):
             self.foo_count += 1
-    
+
     b = Broadcaster()
     r = MyRepeater(b)
     l = HelloListener(r)

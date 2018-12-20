@@ -7,7 +7,7 @@
 from datetime import date
 
 from pytest import raises
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ..base import testdata, Amount
 from ...exception import FileFormatError

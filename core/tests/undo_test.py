@@ -10,7 +10,7 @@ from datetime import date
 
 import pytest
 
-from hscommon.testutil import eq_
+from .testutil import eq_
 
 from ..const import PaneType
 from ..document import ScheduleScope

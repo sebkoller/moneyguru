@@ -10,7 +10,7 @@ from io import StringIO
 
 import pytest
 
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ..base import TestApp, with_app, testdata
 from ...const import PaneType

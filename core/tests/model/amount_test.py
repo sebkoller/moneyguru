@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from pytest import raises
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ...model.amount import format_amount
 from ..base import Amount

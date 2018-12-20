@@ -8,7 +8,7 @@
 
 from datetime import date
 
-from hscommon.testutil import eq_
+from ..testutil import eq_
 
 from ..base import TestApp, with_app
 from ...const import PaneType, PaneArea

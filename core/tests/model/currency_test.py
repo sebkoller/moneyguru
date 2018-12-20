@@ -8,7 +8,7 @@ from datetime import date, timedelta
 import time
 
 from pytest import raises
-from hscommon.testutil import jointhreads, eq_
+from ..testutil import jointhreads, eq_
 
 from ...model.amount import convert_amount
 from ...model.currency import (

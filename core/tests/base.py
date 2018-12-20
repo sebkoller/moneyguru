@@ -8,8 +8,6 @@ import os.path as op
 from datetime import date
 from operator import attrgetter
 
-from hscommon.testutil import eq_, CallLogger, TestApp as TestAppBase, TestData
-from hscommon.testutil import with_app # noqa
 from hscommon.gui.base import GUIObject
 
 from ..app import Application, PreferenceNames
@@ -23,6 +21,8 @@ from ..loader import base
 from ..model.account import AccountType, ACCOUNT_SORT_KEY
 from ..model.amount import parse_amount
 from ..model.date import DateFormat
+from .testutil import eq_, CallLogger, TestApp as TestAppBase, TestData
+from .testutil import with_app # noqa
 
 testdata = TestData(op.join(op.dirname(__file__), 'testdata'))
 
