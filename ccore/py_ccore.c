@@ -319,6 +319,9 @@ lower_and_strip(PyObject *s)
 static PyObject *
 create_amount(int64_t ival, Currency *currency)
 {
+    if (currency == NULL) {
+        return PyLong_FromLong(0);
+    }
     /* Create a new amount in a way that is faster than the normal init */
     PyAmount *r;
 
@@ -2195,11 +2198,7 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
     if (!entries_balance(el, &dst, date, with_budget)) {
         return NULL;
     } else {
-        if (dst.currency != NULL) {
-            return pyamount(&dst);
-        } else {
-            return PyLong_FromLong(0);
-        }
+        return pyamount(&dst);
     }
 }
 
