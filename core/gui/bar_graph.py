@@ -8,7 +8,7 @@
 
 from datetime import date, timedelta
 
-from hscommon.geometry import Rect, Point
+from .geometry import Rect, Point
 
 from ..model.date import DateRange, MonthRange, YearToDateRange
 from .graph import Graph, PenID as PenIDBase

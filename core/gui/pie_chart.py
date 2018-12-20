@@ -10,7 +10,7 @@ from math import radians, sin
 from itertools import combinations
 
 from core.trans import tr
-from hscommon.geometry import Rect, Point
+from .geometry import Rect, Point
 from core.util import extract
 from .chart import Chart
 
@@ -52,7 +52,7 @@ def rect_from_center(center, size):
     return Rect(x, y, w, h)
 
 def pull_rect_in(rect, container):
-    # The top and bottom denomination are reversed (in hscommon.geometry, rect.top is rect.y and
+    # The top and bottom denomination are reversed (in .geometry, rect.top is rect.y and
     # in here, it's rect.y + rect.h) but it doesn't matter because the < and > comparison stay the
     # same. It's a bit of a mind bender, but it works.
     if container.contains_rect(rect):
@@ -266,7 +266,7 @@ class PieChart(Chart):
             circle_bounds.h = (circle_bounds.h - self.PADDING) / 2
             # We want the first circle to be on top
             circle_bounds.y += circle_bounds.h + self.PADDING
-            # hscommon.geometry has a top-left origin, we use "top" when we mean "bottom".
+            # .geometry has a top-left origin, we use "top" when we mean "bottom".
             circle_bounds2 = Rect(
                 circle_bounds.x, circle_bounds.top - circle_bounds.h - self.PADDING,
                 circle_bounds.w, circle_bounds.h

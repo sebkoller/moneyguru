@@ -21,15 +21,15 @@ class ChartView:
     def draw_line(self, p1, p2, pen_id):
         """Draw a line from ``p1`` to ``p2`` using pen ``pen_id``.
 
-        :param hscommon.geometry.Point p1: Start point
-        :param hscommon.geometry.Point p2: End point
+        :param .geometry.Point p1: Start point
+        :param .geometry.Point p2: End point
         :param int pen_id: Pen to use
         """
 
     def draw_rect(self, rect, pen_id, brush_id):
         """Draw a rectangle ``rect`` using ``pen_id`` and ``brush_id``.
 
-        :param hscommon.geometry.Rect rect: Rectangle coordinates
+        :param .geometry.Rect rect: Rectangle coordinates
         :param int pen_id: Pen to use
         :param int brush_id: Brush to use
         """
@@ -41,7 +41,7 @@ class ChartView:
         ``start_angle`` and a ``span_angle``.
 
         
-        :param hscommon.geometry.Point center: Center of the circle
+        :param .geometry.Point center: Center of the circle
         :param int radius: Radius of the circle
         :param float start_angle: Angle (degrees) at which we start our pie. ``0`` is the rightmost
                                   part of the circle.
@@ -53,7 +53,7 @@ class ChartView:
     def draw_polygon(self, points, pen_id, brush_id):
         """Draw a polygon of an arbitrary shape.
 
-        :param points: List of :class:`hscommon.geometry.Point` in the polygon. The first and last
+        :param points: List of :class:`.geometry.Point` in the polygon. The first and last
                        points are automatically joined by a direct line to close the shape.
         :param int pen_id: Pen to use
         :param int brush_id: Brush to use
@@ -66,7 +66,7 @@ class ChartView:
         depends on the UI layer, which can have different behaviors for different ``font_id``.
 
         :param str text: Text to draw
-        :param hscommon.geometry.Rect rect: Rectangle coordinates
+        :param .geometry.Rect rect: Rectangle coordinates
         :param int font_id: Font (and related draw attributes) to use
         """
 

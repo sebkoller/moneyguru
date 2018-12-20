@@ -8,7 +8,7 @@
 
 from datetime import date
 
-from hscommon.geometry import Point
+from .geometry import Point
 
 from ..model.date import ONE_DAY
 from .graph import Graph, PenID as PenIDBase

@@ -7,7 +7,7 @@
 from datetime import date
 from math import ceil, floor, log10
 
-from hscommon.geometry import Point, Rect
+from .geometry import Point, Rect
 
 from ..model.date import inc_month, inc_year
 from .chart import Chart
