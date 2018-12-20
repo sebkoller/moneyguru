@@ -139,7 +139,36 @@ amount_parse_single(
  */
 bool
 amount_parse_expr(
-    int64_t *dest, const char *s, uint8_t exponent);
+    int64_t *dest,
+    const char *s,
+    uint8_t exponent);
+
+/* Returns an Amount from `s` and writes it in `dest`.
+ *
+ * We can parse strings like "42.54 cad" or "CAD 42.54".
+ *
+ * If `default_currency` is set, we can parse amounts that don't contain a
+ * currency code and will give the amount that currency.
+ *
+ * If `with_expression` is true, we can parse stuff like "42*4 cad" or "usd
+ * (1+2)/3". If you know your string doesn't contain any expression, turn this
+ * flag off to greatly speed up parsing.
+ *
+ * `auto_decimal_place` allows for quick decimal-less typing. We assume that
+ * the number has been typed to the last precision digit and automatically
+ * place our decimal separator if there isn't one. For example, "1234" would be
+ * parsed as "12.34" in a CAD context (in BHD, a currency with 3 digits, it
+ * would be parsed as "1.234"). This doesn't work with expressions.
+ */
+
+bool
+amount_parse(
+    Amount *dest,
+    const char *s,
+    const char *default_currency,
+    bool with_expression,
+    bool auto_decimal_place,
+    bool strict_currency);
 
 /* Convert src's value into dest using rate at specified date.
  *

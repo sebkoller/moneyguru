@@ -279,31 +279,6 @@ check_amounts(PyObject *a, PyObject *b, bool seterr)
     return true;
 }
 
-static bool
-strisblank(const char *s)
-{
-    while (*s != '\0') {
-        if (!isblank(*s)) {
-            return false;
-        }
-        s++;
-    }
-    return true;
-}
-
-static bool
-strisexpr(const char *s)
-{
-    static const char exprchars[] = "+-/*()";
-    while (*s != '\0') {
-        if (strchr(exprchars, *s) != NULL) {
-            return true;
-        }
-        s++;
-    }
-    return false;
-}
-
 static PyObject*
 lower_and_strip(PyObject *s)
 {
@@ -836,28 +811,6 @@ py_amount_format(PyObject *self, PyObject *args, PyObject *kwds)
     return PyUnicode_DecodeUTF8(result, rc, NULL);
 }
 
-/* Returns an `Amount` from `string`.
- *
- * We can parse strings like "42.54 cad" or "CAD 42.54".
- *
- * If `default_currency` is set, we can parse amounts that don't contain a
- * currency code and will give the amount that currency.
- *
- * If `with_expression` is true, we can parse stuff like "42*4 cad" or "usd
- * (1+2)/3". If you know your string doesn't contain any expression, turn this
- * flag off to greatly speed up parsing.
- *
- * `auto_decimal_place` allows for quick decimal-less typing. We assume that
- * the number has been typed to the last precision digit and automatically
- * place our decimal separator if there isn't one. For example, "1234" would be
- * parsed as "12.34" in a CAD context (in BHD, a currency with 3 digits, it
- * would be parsed as "1.234"). This doesn't work with expressions.
- *
- * With `strict_currency` enabled, `UnsupportedCurrencyError` is raised if an
- * unsupported currency is specified. We still parse sucessfully if no currency
- * is specified and `default_currency` is not `None`.
- */
-
 static PyObject*
 py_amount_parse(PyObject *self, PyObject *args, PyObject *kwds)
 {
@@ -867,10 +820,6 @@ py_amount_parse(PyObject *self, PyObject *args, PyObject *kwds)
     int with_expression = true;
     int auto_decimal_place = false;
     int strict_currency = false;
-    Currency *c;
-    uint8_t exponent;
-    char grouping_sep;
-    int64_t val;
     static char *kwlist[] = {
         "string", "default_currency", "with_expression", "auto_decimal_place",
         "strict_currency", NULL};
@@ -886,52 +835,26 @@ py_amount_parse(PyObject *self, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
-    if (strisblank(s)) {
+    Amount amount;
+    bool res = amount_parse(
+        &amount, s, default_currency, with_expression, auto_decimal_place,
+        strict_currency);
+    if (res) {
         PyMem_Free(s);
-        return PyLong_FromLong(0);
-    }
-
-    c = amount_parse_currency(s, default_currency, strict_currency);
-    if ((c == NULL) && strict_currency) {
+        return pyamount(&amount);
+    } else {
+        if (strict_currency) {
+            Currency *c = amount_parse_currency(
+                s, default_currency, strict_currency);
+            if (c == NULL) {
+                PyMem_Free(s);
+                PyErr_SetString(UnsupportedCurrencyError, "no specified currency");
+                return NULL;
+            }
+        }
         PyMem_Free(s);
-        PyErr_SetString(UnsupportedCurrencyError, "no specified currency");
+        PyErr_SetString(PyExc_ValueError, "couldn't parse expression");
         return NULL;
-    }
-
-    if (c != NULL) {
-        exponent = c->exponent;
-    } else {
-        // our only way not to error-out is to parse a zero
-        exponent = 2;
-    }
-
-    if (with_expression && !strisexpr(s)) {
-        with_expression = false;
-    }
-    if (with_expression) {
-        if (!amount_parse_expr(&val, s, exponent)) {
-            PyMem_Free(s);
-            PyErr_SetString(PyExc_ValueError, "couldn't parse expression");
-            return NULL;
-        }
-    } else {
-        grouping_sep = amount_parse_grouping_sep(s);
-        if (!amount_parse_single(&val, s, exponent, auto_decimal_place, grouping_sep)) {
-            PyMem_Free(s);
-            PyErr_SetString(PyExc_ValueError, "couldn't parse amount");
-            return NULL;
-        }
-    }
-    PyMem_Free(s);
-    if ((c == NULL) && (val != 0)) {
-        PyErr_SetString(PyExc_ValueError, "No currency given");
-        return NULL;
-    }
-
-    if (val) {
-        return create_amount(val, c);
-    } else {
-        return PyLong_FromLong(0);
     }
 }
 

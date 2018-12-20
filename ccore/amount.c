@@ -40,6 +40,31 @@ group_intfmt(char *dest, uint64_t val, char grouping_sep) {
     }
 }
 
+static bool
+strisblank(const char *s)
+{
+    while (*s != '\0') {
+        if (!isblank(*s)) {
+            return false;
+        }
+        s++;
+    }
+    return true;
+}
+
+static bool
+strisexpr(const char *s)
+{
+    static const char exprchars[] = "+-/*()";
+    while (*s != '\0') {
+        if (strchr(exprchars, *s) != NULL) {
+            return true;
+        }
+        s++;
+    }
+    return false;
+}
+
 /* Public */
 void
 amount_copy(Amount *dest, const Amount *src)
@@ -563,6 +588,54 @@ amount_parse_expr(
     } else {
         return false;
     }
+}
+
+bool
+amount_parse(
+    Amount *dest,
+    const char *s,
+    const char *default_currency,
+    bool with_expression,
+    bool auto_decimal_place,
+    bool strict_currency)
+{
+    if (strisblank(s)) {
+        amount_copy(dest, amount_zero());
+        return true;
+    }
+
+    dest->currency = amount_parse_currency(s, default_currency, strict_currency);
+    if ((dest->currency == NULL) && strict_currency) {
+        return false;
+    }
+
+    uint8_t exponent;
+    if (dest->currency != NULL) {
+        exponent = dest->currency->exponent;
+    } else {
+        // our only way not to error-out is to parse a zero
+        exponent = 2;
+    }
+
+    if (with_expression && !strisexpr(s)) {
+        with_expression = false;
+    }
+    if (with_expression) {
+        if (!amount_parse_expr(&dest->val, s, exponent)) {
+            return false;
+        }
+    } else {
+        char grouping_sep = amount_parse_grouping_sep(s);
+        bool res = amount_parse_single(
+            &dest->val, s, exponent, auto_decimal_place, grouping_sep);
+        if (!res) {
+            return false;
+        }
+    }
+    if ((dest->currency == NULL) && (dest->val != 0)) {
+        return false;
+    }
+    return true;
 }
 
 bool
