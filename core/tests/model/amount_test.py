@@ -4,22 +4,14 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import pytest
 from pytest import raises
 from hscommon.testutil import eq_
 
 from ...model.amount import format_amount
-# This is the only place in python code where we import the Amount initializer.
-# Tests in this units will soon be rewritten in pure C code and we can then
-# remove the Amount initializer.
-from ...model._ccore import Amount
+from ..base import Amount
 
 
 # --- Amount
-def test_auto_quantize():
-    # Amounts are automatically set to 2 digits after the dot.
-    eq_(Amount(1.11, 'CAD'), Amount(1.111, 'CAD'))
-
 def test_add():
     # Amounts can be added together, given that their currencies are the same.
     eq_(Amount(1, 'CAD') + Amount(2, 'CAD'), Amount(3, 'CAD'))
@@ -166,48 +158,14 @@ def test_hash():
     assert hash(Amount(2, 'CAD')) != hash(Amount(2, 'USD'))
 
 # --- Format amount
-def test_format_blank_zero():
-    # When blank_zero is True, 0 is rendered as an empty string.
-    eq_(format_amount(0, blank_zero=True), '')
-    eq_(format_amount(Amount(0.00, 'CAD'), blank_zero=True), '')
-    eq_(format_amount(Amount(12, 'CAD'), blank_zero=True), 'CAD 12.00')
-
-def test_format_decimal_sep():
-    # It's possible to specify an alternate decimal separator
-    eq_(format_amount(Amount(12.34, 'CAD'), 'CAD', decimal_sep=','), '12,34')
-
 def test_format_default_currency():
     # If the amount currency matches default_currency, the currency is not shown.
     eq_(format_amount(Amount(12.34, 'CAD'), default_currency='CAD'), '12.34')
     eq_(format_amount(Amount(12.34, 'CAD'), default_currency='USD'), 'CAD 12.34')
 
-def test_format_dot_grouping_sep_and_comma_decimal_sep():
-    # Previously, there was a bug causing comma to be placed everywhere
-    eq_(format_amount(Amount(1234.99, 'CAD'), 'CAD', grouping_sep='.', decimal_sep=','), '1.234,99')
-
-@pytest.mark.parametrize(
-    'value, expected', [
-        (12.99, '12.99'),
-        (1234.99, '1 234.99'),
-        (1234567.99, '1 234 567.99'),
-        (1234567890.99, '1 234 567 890.99'),
-        (23060.44, '23 060.44'),
-    ])
-def test_format_grouping_sep(value, expected):
-    # It's possible to specify an alternate grouping separator
-    eq_(format_amount(Amount(value, 'CAD'), 'CAD', grouping_sep=' '), expected)
-
-def test_format_negative_with_grouping():
-    # Grouping separation ignore the negative sign
-    eq_(format_amount(Amount(-123.45, 'CAD'), 'CAD', grouping_sep=','), '-123.45') # was -,123.45
-
 def test_format_none():
     # When None is given, return ''.
     eq_(format_amount(None), '')
-
-def test_format_standard():
-    # The normal behavior is to show the amount and the currency.
-    eq_(format_amount(Amount(33, 'USD')), 'USD 33.00')
 
 def test_format_zero():
     # Zero is always shown without a currency, except if zero_currency is not None.

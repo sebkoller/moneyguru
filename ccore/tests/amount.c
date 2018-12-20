@@ -167,11 +167,79 @@ static void test_parse()
     CU_ASSERT_FALSE(amount_parse(&a, "ZZZ 42", "USD", true, false, true));
 }
 
+static void test_format()
+{
+    char buf[128] = {0};
+    Currency *USD = currency_get("USD");
+    Currency *CAD = currency_get("CAD");
+    Amount a;
+
+    // The normal behavior is to show the amount and the currency.
+    amount_set(&a, 3300, USD);
+    amount_format(buf, &a, true, false, '.', ',');
+    CU_ASSERT_STRING_EQUAL(buf, "USD 33.00");
+
+    // When blank_zero is True, 0 is rendered as an empty string.
+    amount_set(&a, 0, NULL);
+    amount_format(buf, &a, true, true, '.', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "");
+    a.currency = CAD;
+    amount_format(buf, &a, true, true, '.', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "");
+    a.val = 1200;
+    amount_format(buf, &a, true, true, '.', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "CAD 12.00");
+
+    // It's possible to specify an alternate decimal separator
+    a.val = 1234;
+    amount_format(buf, &a, false, false, ',', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "12,34");
+
+    // Previously, there was a bug causing comma to be placed everywhere
+    a.val = 123499;
+    amount_format(buf, &a, false, false, ',', '.');
+    CU_ASSERT_STRING_EQUAL(buf, "1.234,99");
+
+    // Grouping sep
+    a.val = 1299;
+    amount_format(buf, &a, false, false, '.', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "12.99");
+    a.val = 123499;
+    amount_format(buf, &a, false, false, '.', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "1 234.99");
+    a.val = 123456799;
+    amount_format(buf, &a, false, false, '.', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "1 234 567.99");
+    a.val = 123456789099;
+    amount_format(buf, &a, false, false, '.', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "1 234 567 890.99");
+    a.val = 2306044;
+    amount_format(buf, &a, false, false, '.', ' ');
+    CU_ASSERT_STRING_EQUAL(buf, "23 060.44");
+
+    // Grouping separation ignore the negative sign
+    a.val = -12345;
+    amount_format(buf, &a, false, false, '.', ',');
+    CU_ASSERT_STRING_EQUAL(buf, "-123.45");
+
+    // We can show zero with a currency
+    a.val = 0;
+    amount_format(buf, &a, true, false, '.', ',');
+    CU_ASSERT_STRING_EQUAL(buf, "CAD 0.00");
+
+    // Currency exponents are properly considered
+    Currency *JPY = currency_register("JPY", 3, 0, 0, 0, 0);
+    amount_set(&a, 12345, JPY);
+    amount_format(buf, &a, true, false, '.', ',');
+    CU_ASSERT_STRING_EQUAL(buf, "JPY 12.345");
+}
+
 void test_amount_init()
 {
     CU_pSuite s;
 
     s = CU_add_suite("Amount", NULL, NULL);
     CU_ADD_TEST(s, test_parse);
+    CU_ADD_TEST(s, test_format);
 }
 

@@ -453,34 +453,6 @@ py_currency_daterange(PyObject *self, PyObject *args)
 }
 
 /* Amount Methods */
-
-static int
-PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
-{
-    PyObject *amount;
-    const char *code;
-    double dtmp;
-    Currency *c;
-
-    static char *kwlist[] = {"amount", "currency", NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "Os", kwlist, &amount, &code)) {
-        return -1;
-    }
-
-    c = getcur(code);
-    if (c == NULL) {
-        return -1;
-    }
-    self->amount.currency = c;
-    dtmp = PyFloat_AsDouble(amount);
-    if (PyErr_Occurred()) {
-        return -1;
-    }
-    self->amount.val = round(dtmp * pow(10, self->amount.currency->exponent));
-    return 0;
-}
-
 static PyObject *
 PyAmount_copy(PyObject *self)
 {
@@ -2886,7 +2858,6 @@ static PyGetSetDef PyAmount_getseters[] = {
 };
 
 static PyType_Slot Amount_Slots[] = {
-    {Py_tp_init, PyAmount_init},
     {Py_tp_repr, PyAmount_repr},
     {Py_tp_hash, PyAmount_hash},
     {Py_tp_richcompare, PyAmount_richcompare},
