@@ -12,7 +12,7 @@ from collections import defaultdict
 from core.util import flatten, dedupe, first as getfirst
 from core.trans import tr
 
-from hscommon.notify import Listener
+from core.notify import Listener
 from ..exception import OperationAborted
 from ..model.date import DateFormat
 from .base import MainWindowGUIObject

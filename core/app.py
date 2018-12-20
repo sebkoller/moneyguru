@@ -14,7 +14,7 @@ from collections import namedtuple
 import re
 import importlib
 
-from hscommon.notify import Broadcaster
+from core.notify import Broadcaster
 from core.util import nonone
 
 from .gui.date_widget import DateWidget

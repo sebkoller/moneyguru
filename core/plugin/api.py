@@ -23,7 +23,7 @@ from datetime import date
 
 from collections import namedtuple
 
-from hscommon.notify import Broadcaster
+from core.notify import Broadcaster
 from ..model.currency import Currencies, CurrencyNotSupportedException
 from ..gui.base import BaseView
 from ..gui.table import GUITable, Row

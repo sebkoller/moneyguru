@@ -7,7 +7,7 @@
 import logging
 import weakref
 
-from hscommon.notify import Repeater
+from core.notify import Repeater
 from core.util import first, minmax
 from core.trans import tr
 

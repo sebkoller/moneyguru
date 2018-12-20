@@ -12,7 +12,7 @@ import os
 import os.path as op
 from functools import wraps
 
-from hscommon.notify import Repeater
+from core.notify import Repeater
 from core.util import nonone, allsame, dedupe, extract, first, flatten
 from core.trans import tr
 
@@ -397,7 +397,7 @@ class Document(BaseDocument, Repeater, GUIObject):
     dates are ``datetime.date`` instances, amounts are :class:`Amount` instances, indexes are
     ``int``.
 
-    Subclasses :class:`BaseDocument`, :class:`hscommon.notify.Repeater` and
+    Subclasses :class:`BaseDocument`, :class:`core.notify.Repeater` and
     :class:`hscommon.gui.base.GUIObject`.
     """
     REPEATED_NOTIFICATIONS = {'saved_custom_ranges_changed'}
