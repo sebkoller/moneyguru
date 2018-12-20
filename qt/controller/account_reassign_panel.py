@@ -10,7 +10,6 @@ from PyQt5.QtWidgets import (
 )
 
 from hscommon.trans import trget
-from hscommon.plat import ISWINDOWS
 
 from .panel import Panel
 from .selectable_list import ComboboxModel
@@ -30,10 +29,7 @@ class AccountReassignPanel(Panel):
         self.cancelButton.clicked.connect(self.reject)
 
     def _setupUi(self):
-        if ISWINDOWS:
-            self.resize(250, 140)
-        else:
-            self.resize(340, 165)
+        self.resize(340, 165)
         self.setWindowTitle(tr("Re-assign Account"))
         self.verticalLayout = QVBoxLayout(self)
         self.label = QLabel(self)
