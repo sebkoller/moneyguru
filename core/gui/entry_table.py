@@ -8,7 +8,7 @@
 
 from hscommon.trans import tr, trget
 from hscommon.util import dedupe
-from hscommon.gui.column import Column, Columns
+from .column import Column, Columns
 from .entry_table_base import EntryTableBase, PreviousBalanceRow, TotalRow
 
 trcol = trget('columns')

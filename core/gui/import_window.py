@@ -15,8 +15,9 @@ from hscommon.trans import tr
 from hscommon.notify import Listener
 from ..exception import OperationAborted
 from ..model.date import DateFormat
-from .base import MainWindowGUIObject, LinkedSelectableList
+from .base import MainWindowGUIObject
 from .import_table import ImportTable
+from .selectable_list import LinkedSelectableList
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 from core.document import ImportDocument
 from core.model._ccore import AccountList, Entry

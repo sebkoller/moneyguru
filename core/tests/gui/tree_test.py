@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from core.tests.testutil import eq_
-from ..gui.tree import Tree, Node
+from core.gui.tree import Tree, Node
 
 def tree_with_some_nodes():
     t = Tree()

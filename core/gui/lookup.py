@@ -1,18 +1,16 @@
-# Created By: Virgil Dupras
-# Created On: 2010-03-04
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2018 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from collections import defaultdict
 from itertools import combinations
 
-from hscommon.gui.base import NoopGUI
 from hscommon.util import extract
 
 from ..model.sort import sort_string
+from .base import NoopGUI
 
 def has_letters(s, query):
     s_letters = defaultdict(int)
@@ -45,7 +43,7 @@ class Lookup:
     The list's filter is very inclusive and will include object that very remotely can match user's
     input, but the order is based on what matches the most.
 
-    For example, if the user types "ab", the lookup list would contain both "barber", "absolute", 
+    For example, if the user types "ab", the lookup list would contain both "barber", "absolute",
     and "albinos" (all those names contain both "a" and "b"), but would be ordered so that
     "absolute" comes first because it's the closest match.
 
@@ -67,7 +65,7 @@ class Lookup:
         #: *int*. Currently selected index in the filtered/ordered list.
         self.selected_index = 0
         self.view = NoopGUI()
-    
+
     def _apply_query(self):
         # On top, we want exact matches (the name starts with the query). Then, we want matches
         # that contain all the letters, sorted in order of names that have query letters as close
@@ -80,18 +78,18 @@ class Lookup:
         self._filtered_names = matches1 + matches2 + matches3
         self.selected_index = max(self.selected_index, 0)
         self.selected_index = min(self.selected_index, len(self._filtered_names)-1)
-    
+
     def _generate_lookup_names(self):
         """*Virtual*. Return a list of names in which we'll search."""
         return []
-    
+
     def _go(self, name):
         """*Virtual*. Select an item named ``name``.
 
         The nature of this action depends on what kind of object we perform the lookup on. Were
         those accounts? Then open up the account named ``name``.
         """
-    
+
     def _refresh(self):
         self._search_query = ''
         self.selected_index = 0
@@ -102,7 +100,7 @@ class Lookup:
             self._normalized2original[normalized] = original
         self._original_names = normalized_names
         self._filtered_names = normalized_names
-    
+
     def go(self):
         """Activate the :attr:`selected item <selected_index>` and close the lookup.
 
@@ -114,24 +112,24 @@ class Lookup:
         except IndexError:
             pass # No result, do nothing
         self.view.hide()
-    
+
     def show(self):
         """Refreshes the name list and show the lookup."""
         self._refresh()
         self.view.refresh()
         self.view.show()
-    
+
     # --- Properties
     @property
     def names(self):
         """List of filtered/ordered names based on :attr:`search_query`."""
         return [self._normalized2original[n] for n in self._filtered_names]
-    
+
     @property
     def search_query(self):
         """*get/set*. *str*. Search query typed by the user."""
         return self._search_query
-    
+
     @search_query.setter
     def search_query(self, value):
         if value == self._search_query:
@@ -139,4 +137,4 @@ class Lookup:
         self._search_query = value
         self._apply_query()
         self.view.refresh()
-    
+

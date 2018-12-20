@@ -8,7 +8,8 @@ from hscommon.trans import tr
 
 from ..const import PaneType
 from ..model.currency import Currencies
-from .base import BaseView, LinkedSelectableList
+from .base import BaseView
+from .selectable_list import LinkedSelectableList
 
 class DocPropsView(BaseView):
     VIEW_TYPE = PaneType.DocProps

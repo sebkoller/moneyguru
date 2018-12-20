@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 # Column is not used in this unit, but is imported to allow plugins to easily be able to import it.
-from hscommon.gui.column import Column # noqa
+from ..gui.column import Column # noqa
 
 from .api import ( # noqa
     Plugin, ViewPlugin, ReadOnlyTableRow, ReadOnlyTable, ReadOnlyTableView, ReadOnlyTablePlugin,

@@ -15,10 +15,10 @@ from functools import wraps
 from hscommon.notify import Repeater
 from hscommon.util import nonone, allsame, dedupe, extract, first, flatten
 from hscommon.trans import tr
-from hscommon.gui.base import GUIObject
 
 from .const import NOEDIT, DATE_FORMAT_FOR_PREFERENCES
 from .exception import FileFormatError, OperationAborted
+from .gui.base import GUIObject
 from .loader import native
 from .model._ccore import AccountList, Entry
 from .model.account import Group, GroupList, AccountType

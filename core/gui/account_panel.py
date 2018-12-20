@@ -6,12 +6,12 @@
 
 import weakref
 
-from hscommon.gui.selectable_list import GUISelectableList
 from hscommon.trans import tr
 
 from ..model.account import AccountType
 from ..model.currency import Currencies
-from .base import MainWindowPanel, LinkedSelectableList
+from .base import MainWindowPanel
+from .selectable_list import GUISelectableList, LinkedSelectableList
 
 ACCOUNT_TYPE_DESC = {
     AccountType.Asset: tr("Asset"),

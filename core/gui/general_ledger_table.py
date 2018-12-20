@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from hscommon.trans import trget
-from hscommon.gui.column import Column
+from .column import Column
 from ..model.account import ACCOUNT_SORT_KEY
 from .table import Row
 from .entry_table_base import EntryTableBase, EntryTableRow, TotalRow, PreviousBalanceRow

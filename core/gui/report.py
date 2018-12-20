@@ -7,12 +7,12 @@
 import csv
 from io import StringIO
 
-from hscommon.gui import tree
 from hscommon.trans import tr
-from hscommon.gui.column import Columns
 
 from ..model.account import ACCOUNT_SORT_KEY
+from .column import Columns
 from .base import ViewChild, SheetViewNotificationsMixin, MESSAGES_DOCUMENT_CHANGED
+from . import tree
 
 # used in both bsheet and istatement
 def get_delta_perc(delta_amount, start_amount):

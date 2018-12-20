@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from core.tests.testutil import CallLogger, eq_
-from ..gui.table import Table, GUITable, Row
+from core.gui.table import Table, GUITableBase as GUITable, RowBase as Row
 
 class TestRow(Row):
     __test__ = False

@@ -8,11 +8,12 @@ import weakref
 from datetime import date
 
 from hscommon.util import allsame, flatten
-from hscommon.gui.text_field import TextField
 
 from ..model.currency import Currencies
-from .base import MainWindowPanel, LinkedSelectableList
+from .base import MainWindowPanel
 from .completable_edit import CompletableEdit
+from .selectable_list import LinkedSelectableList
+from .text_field import TextField
 
 class MassEditTextField(TextField):
     def __init__(self, panel, fieldname):

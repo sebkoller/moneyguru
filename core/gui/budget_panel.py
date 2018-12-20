@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-08-23
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +8,6 @@ from datetime import date
 import weakref
 
 from hscommon.util import first
-from hscommon.gui.selectable_list import GUISelectableList
 from hscommon.trans import tr
 
 from ..exception import OperationAborted
@@ -18,6 +15,7 @@ from ..model.account import sort_accounts
 from ..model.budget import Budget
 from .base import MainWindowPanel
 from .schedule_panel import PanelWithScheduleMixIn, REPEAT_OPTIONS_ORDER
+from .selectable_list import GUISelectableList
 
 class AccountList(GUISelectableList):
     def __init__(self, panel):

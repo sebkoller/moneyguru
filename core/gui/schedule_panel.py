@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-08-16
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,12 +8,12 @@ from datetime import date
 import weakref
 
 from hscommon.util import first
-from hscommon.gui.selectable_list import GUISelectableList
 from hscommon.trans import tr
 
 from ..exception import OperationAborted
 from ..model.recurrence import Recurrence, RepeatType
 from ..model.transaction import Transaction
+from .selectable_list import GUISelectableList
 from .transaction_panel import PanelWithTransaction
 
 REPEAT_OPTIONS_ORDER = [

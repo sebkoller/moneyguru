@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from hscommon.trans import trget, tr
-from hscommon.gui.column import Column
+from .column import Column
 from ..model.account import AccountType
 from .report import Report, get_delta_perc
 

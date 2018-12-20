@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from hscommon.trans import trget
-from hscommon.gui.column import Column
+from .column import Column
 from .table import GUITable, Row, RowWithDebitAndCreditMixIn
 
 trcol = trget('columns')

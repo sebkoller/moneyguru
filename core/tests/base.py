@@ -8,12 +8,11 @@ import os.path as op
 from datetime import date
 from operator import attrgetter
 
-from hscommon.gui.base import GUIObject
-
 from ..app import Application, PreferenceNames
 from ..document import Document, ScheduleScope
 from ..exception import FileFormatError
 from ..const import PaneType
+from ..gui.base import GUIObject
 from ..gui.completable_edit import CompletableEdit
 from ..gui.main_window import MainWindow
 from ..gui.account_panel import AccountPanel

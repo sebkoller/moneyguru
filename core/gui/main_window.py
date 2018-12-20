@@ -10,7 +10,6 @@ import weakref
 from hscommon.notify import Repeater
 from hscommon.util import first, minmax
 from hscommon.trans import tr
-from hscommon.gui.base import GUIObject
 
 from ..const import PaneType
 from ..document import FilterType
@@ -18,7 +17,7 @@ from ..exception import OperationAborted, FileFormatError
 from ..model.date import inc_month, DateFormat
 from ..model.recurrence import Recurrence, RepeatType
 from ..loader import csv, qif, ofx, native
-from .base import MESSAGES_DOCUMENT_CHANGED
+from .base import GUIObject, MESSAGES_DOCUMENT_CHANGED
 from .search_field import SearchField
 from .date_range_selector import DateRangeSelector
 from .account_lookup import AccountLookup

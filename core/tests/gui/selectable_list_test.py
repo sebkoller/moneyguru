@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from core.tests.testutil import eq_, callcounter, CallLogger
-from ..gui.selectable_list import SelectableList, GUISelectableList
+from core.gui.selectable_list import SelectableList, GUISelectableList
 
 def test_in():
     # When a SelectableList is in a list, doing "in list" with another instance returns false, even
