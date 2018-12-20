@@ -1690,6 +1690,27 @@ PyTransaction_add_split(PyTransaction *self, PySplit *split)
 }
 
 static PyObject *
+PyTransaction_balance_currencies(PyTransaction *self, PyObject *args)
+{
+    PyObject *strong_split_p = NULL;
+    Split *strong_split;
+
+    if (!PyArg_ParseTuple(args, "|O", &strong_split_p)) {
+        return NULL;
+    }
+    if (strong_split_p == NULL || strong_split_p == Py_None) {
+        strong_split = NULL;
+    } else if (!Split_Check(strong_split_p)) {
+        PyErr_SetString(PyExc_TypeError, "not a split");
+        return NULL;
+    } else {
+        strong_split = ((PySplit *)strong_split_p)->split;
+    }
+    transaction_balance_currencies(&self->txn, strong_split);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
 PyTransaction_copy_from(PyTransaction *self, PyTransaction *other)
 {
     if (!PyObject_IsInstance((PyObject *)other, Transaction_Type)) {
@@ -3311,6 +3332,7 @@ PyType_Spec AccountList_Type_Spec = {
 
 static PyMethodDef PyTransaction_methods[] = {
     {"add_split", (PyCFunction)PyTransaction_add_split, METH_O, ""},
+    {"balance_currencies", (PyCFunction)PyTransaction_balance_currencies, METH_VARARGS, ""},
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
     {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
     {"remove_split", (PyCFunction)PyTransaction_remove_split, METH_O, ""},

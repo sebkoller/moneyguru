@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "transaction.h"
 #include "util.h"
 
@@ -26,6 +27,61 @@ _txn_reindex(Transaction *txn)
     }
 }
 
+// Currencies involved in this txn. Null terminated.
+// Caller is responsible for freeing list
+Currency**
+_txn_currencies(const Transaction *txn)
+{
+    Currency **res = calloc((txn->splitcount + 1), sizeof(Currency *));
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        Currency *c = txn->splits[i].amount.currency;
+        if (c == NULL) {
+            continue;
+        }
+        Currency **iter = res;
+        while (1) {
+            if (*iter == c) {
+                break;
+            } else if (*iter == NULL) {
+                *iter = c;
+                break;
+            } else {
+                iter++;
+            }
+        }
+    }
+    return res;
+}
+
+// Set result's currency to specify target currency
+static void
+_txn_balance_for_currency(const Transaction *txn, Amount *result)
+{
+    if (result->currency == NULL) {
+        return;
+    }
+    result->val = 0;
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        const Split *s = &txn->splits[i];
+        if (s->amount.currency == result->currency) {
+            result->val += s->amount.val;
+        }
+    }
+
+}
+
+static Split*
+_txn_find_unassigned(Transaction *txn, Currency *c, const Split *except)
+{
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        Split *s = &txn->splits[i];
+        if (s != except && s->account == NULL && s->amount.currency == c) {
+            return s;
+        }
+    }
+    return NULL;
+}
+
 /* Public */
 void
 transaction_init(Transaction *txn, TransactionType type, time_t date)
@@ -40,6 +96,69 @@ transaction_init(Transaction *txn, TransactionType type, time_t date)
     txn->mtime = 0;
     txn->splits = malloc(0);
     txn->splitcount = 0;
+}
+
+Split*
+transaction_add_split(Transaction *txn)
+{
+    transaction_resize_splits(txn, txn->splitcount+1);
+    return &txn->splits[txn->splitcount-1];
+}
+
+void
+transaction_balance_currencies(Transaction *txn, const Split *strong_split)
+{
+    // What we're doings here is that we solve a logical imbalance. First, we
+    // need to confirm the logical imbalance by verifying that all imbalanced
+    // currencies are on the same "side".
+
+    Currency **currencies = _txn_currencies(txn);
+    Currency **iter = currencies;
+    Amount prev;
+    Amount bal;
+    amount_set(&prev, 0, NULL);
+    while (*iter != NULL) {
+        bal.currency = *iter;
+        _txn_balance_for_currency(txn, &bal);
+        if (bal.val != 0) {
+            if (prev.val != 0 && (prev.val > 0) != (bal.val > 0)) {
+                // We have imbalances, but on different sides. We don't
+                // have anything to do.
+                free(currencies);
+                return;
+            }
+            amount_copy(&prev, &bal);
+        }
+        iter++;
+    }
+    if (prev.val == 0) {
+        // We have no imbalance
+        free(currencies);
+        return;
+    }
+    // At this point, we know that we have imbalances and that those imbalances
+    // are all on the same "side". Let's rebalance them.
+    iter = currencies;
+    amount_set(&prev, 0, NULL);
+    while (*iter != NULL) {
+        bal.currency = *iter;
+        _txn_balance_for_currency(txn, &bal);
+        if (bal.val != 0) {
+            Split *target = _txn_find_unassigned(txn, *iter, strong_split);
+            if (target == NULL) {
+                // no existing target, let's create one
+                target = transaction_add_split(txn);
+                target->amount.currency = *iter;
+            }
+            target->amount.val -= bal.val;
+            if (target->amount.val == 0) {
+                // We end up with an empty split, remove it
+                transaction_remove_split(txn, target);
+            }
+        }
+        iter++;
+    }
+    free(currencies);
 }
 
 bool

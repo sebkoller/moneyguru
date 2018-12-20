@@ -70,6 +70,13 @@ amount_copy(Amount *dest, const Amount *src)
     dest->currency = src->currency;
 }
 
+void
+amount_set(Amount *dest, int64_t val, Currency *currency)
+{
+    dest->val = val;
+    dest->currency = currency;
+}
+
 Amount*
 amount_zero(void)
 {

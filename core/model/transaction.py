@@ -5,10 +5,9 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 import time
-from collections import defaultdict
 import datetime
 
-from hscommon.util import allsame, first, stripfalse
+from hscommon.util import allsame, first
 
 from ..const import NOEDIT
 from .amount import Amount, convert_amount, of_currency
@@ -141,45 +140,6 @@ class Transaction(TransactionBase):
         for split in self.splits[:]:
             if is_unassigned(split) and split.amount == 0:
                 self.remove_split(split)
-
-    def balance_currencies(self, strong_split=None):
-        """Balances a :ref:`multi-currency transaction <multi-currency-txn>`.
-
-        Balancing out multi-currencies transasctions can be real easy because we consider that
-        currencies can never mix (and we would never make the gross mistake of using market exchange
-        rates to do our balancing), so, if we have at least one split on each side of different
-        currencies, we consider ourselves balanced and do nothing.
-
-        However, we might be in a situation of "logical imbalance", which means that the transaction
-        doesn't logically makes sense. For example, if all our splits are on the same side, we can't
-        possibly balance out. If we have EUR and CAD splits, that CAD splits themselves balance out
-        but that EUR splits are all on the same side, we have a logical imbalance.
-
-        This method finds those imbalance and fix them by creating unsassigned splits balancing out
-        every currency being in that situation.
-
-        :param strong_split: The split that was last edited. See :meth:`balance`.
-        :type strong_split: :class:`Split`
-        """
-        splits_with_amount = [s for s in self.splits if s.amount != 0]
-        if not splits_with_amount:
-            return
-        currency2balance = defaultdict(int)
-        for split in splits_with_amount:
-            currency2balance[split.amount.currency_code] += split.amount
-        imbalanced = stripfalse(currency2balance.values()) # filters out zeros (balances currencies)
-        # For a logical imbalance to be possible, all imbalanced amounts must be on the same side
-        if imbalanced and allsame(amount > 0 for amount in imbalanced):
-            unassigned = [s for s in self.splits if s.account is None and s != strong_split]
-            for amount in imbalanced:
-                split = first(s for s in unassigned if s.amount == 0 or s.amount.currency_code == amount.currency_code)
-                if split is not None:
-                    if split.amount == amount: # we end up with a null split, remove it
-                        self.remove_split(split)
-                    else:
-                        split.amount -= amount # adjust
-                else:
-                    self.add_split(Split(None, -amount))
 
     def change(
             self, date=NOEDIT, description=NOEDIT, payee=NOEDIT, checkno=NOEDIT, from_=NOEDIT,

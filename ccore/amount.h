@@ -18,6 +18,9 @@ amount_free(Amount *amount);
 void
 amount_copy(Amount *dest, const Amount *src);
 
+void
+amount_set(Amount *dest, int64_t val, Currency *currency);
+
 Amount*
 amount_zero(void);
 
