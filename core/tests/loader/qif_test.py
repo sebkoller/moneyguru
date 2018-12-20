@@ -8,10 +8,9 @@ from datetime import date
 
 from hscommon.testutil import eq_
 
-from ..base import TestApp, testdata
+from ..base import TestApp, testdata, Amount
 from ...loader.qif import Loader
 from ...model.account import AccountType
-from ...model.amount import Amount
 
 def test_checkbook_values():
     loader = Loader('USD')

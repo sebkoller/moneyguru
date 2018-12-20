@@ -21,6 +21,7 @@ from ..gui.main_window import MainWindow
 from ..gui.account_panel import AccountPanel
 from ..loader import base
 from ..model.account import AccountType, ACCOUNT_SORT_KEY
+from ..model.amount import parse_amount
 from ..model.date import DateFormat
 
 testdata = TestData(op.join(op.dirname(__file__), 'testdata'))
@@ -752,3 +753,10 @@ def print_table(table, extra_attrs=[]):
         print('|'.join(getval(row, attrname) for attrname in attrs))
     print("--- Row Count: {} ---".format(len(table)))
 
+# Amount used to to be a Python class and was used at a lot of places. With the
+# conversion to C, amount creation ended up being pretty much exclusive to the
+# C core, which makes us want to remove the Python initializer for the Amount
+# class. Amount initializer was still widely used in tests, however and for
+# that purpose, this adapter was created.
+def Amount(val, currency):
+    return parse_amount('{} {}'.format(val, currency))

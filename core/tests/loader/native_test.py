@@ -11,11 +11,10 @@ import pytest
 from pytest import raises
 from hscommon.testutil import eq_
 
-from ..base import testdata
+from ..base import testdata, Amount
 from ...exception import FileFormatError
 from ...loader import native
 from ...model.account import AccountType
-from ...model.amount import Amount
 from ...model.currency import Currencies
 
 

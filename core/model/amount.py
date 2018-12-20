@@ -5,10 +5,15 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from ._ccore import ( # noqa
-    Amount, amount_format as format_amount, amount_parse as parse_amount,
+    amount_format as format_amount, amount_parse as parse_amount,
     amount_convert as convert_amount,
     UnsupportedCurrencyError)
 
+
+# Temporary helper
+def is_amount(a):
+    from ._ccore import Amount
+    return isinstance(a, Amount)
 
 def prorate_amount(amount, spread_over_range, wanted_range):
     """Returns the prorated part of ``amount`` spread over ``spread_over_range`` for the ``wanted_range``.

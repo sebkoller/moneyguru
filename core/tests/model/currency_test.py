@@ -11,10 +11,10 @@ from pytest import raises
 from hscommon.testutil import jointhreads, eq_
 
 from ...model.amount import convert_amount
-from ...model.amount import Amount
 from ...model.currency import (
     Currencies, RateProviderUnavailable, RatesDB)
 from ...plugin import boc_currency_provider
+from ..base import Amount
 
 def slow_down(func):
     def wrapper(*args, **kwargs):

@@ -18,8 +18,8 @@ from pytest import mark, raises
 
 from hscommon.testutil import eq_
 
+from ..base import Amount
 from ...model._ccore import Entry
-from ...model.amount import Amount
 from ...model.transaction import Transaction
 from ...plugin.fuzzy_date_bind import FuzzyDateBind
 
@@ -28,12 +28,10 @@ PENALTIES = FuzzyDateBind.PENALTIES
 
 
 def create_entry(entry_date, description, amount):
-    if isinstance(amount, Amount):
-        txn = Transaction(entry_date, description=description, amount=amount)
-    elif isinstance(amount, int) or isinstance(amount, float):
+    if isinstance(amount, int) or isinstance(amount, float):
         txn = Transaction(entry_date, description=description, amount=Amount(amount, 'USD'))
     else:
-        raise TypeError("amount must be of type model.amount.Amount, int or float!")
+        txn = Transaction(entry_date, description=description, amount=amount)
     if not isinstance(description, str):
         raise TypeError("description must be of type str!")
     split = txn.splits[0]

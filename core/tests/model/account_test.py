@@ -12,12 +12,12 @@ from hscommon.testutil import eq_
 
 from ...model._ccore import AccountList
 from ...model.account import Group, AccountType, ACCOUNT_SORT_KEY
-from ...model.amount import Amount
 from ...model.currency import Currencies
 from ...model.date import MonthRange
 from ...model.oven import Oven
 from ...model.transaction import Transaction
 from ...model.transaction_list import TransactionList
+from ..base import Amount
 
 class TestAccountComparison:
     def test_comparison(self):

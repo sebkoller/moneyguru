@@ -9,13 +9,12 @@ from collections import defaultdict
 
 from hscommon.testutil import eq_
 
-from ..base import TestApp, with_app, DictLoader, testdata
+from ..base import TestApp, with_app, DictLoader, testdata, Amount
 from ...model.date import YearRange
 from ...gui.import_window import ActionSelectionOptions
 
 from core.model.transaction import Split
 from core.model.account import AccountType
-from core.model.amount import Amount
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 
 # Legacy structure

@@ -9,10 +9,9 @@ from datetime import date
 from pytest import raises
 from hscommon.testutil import eq_
 
-from ..base import testdata
+from ..base import testdata, Amount
 from ...exception import FileFormatError
 from ...loader import ofx
-from ...model.amount import Amount
 
 def test_dont_choke_on_empty_files():
     # The ofx loader doesn't choke on an empty file

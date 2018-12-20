@@ -11,7 +11,7 @@ from io import StringIO
 from hscommon.gui.table import GUITable as GUITableBase, Row as RowBase
 from hscommon.gui.column import Columns
 
-from ..model.amount import Amount
+from ..model.amount import is_amount
 from ..model.sort import sort_string
 
 # Subclasses of this class must have a "view" and a "document" attribute
@@ -153,7 +153,7 @@ class Row(RowBase):
         value = RowBase.sort_key_for_column(self, column_name)
         if isinstance(value, str):
             value = sort_string(value)
-        elif isinstance(value, Amount):
+        elif is_amount(value):
             value = float(value)
         return value
 

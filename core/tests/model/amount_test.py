@@ -9,7 +9,11 @@ from pytest import raises
 from hscommon.testutil import eq_
 
 from ...model.currency import Currencies
-from ...model.amount import format_amount, parse_amount, Amount, UnsupportedCurrencyError
+from ...model.amount import format_amount, parse_amount, UnsupportedCurrencyError
+# This is the only place in python code where we import the Amount initializer.
+# Tests in this units will soon be rewritten in pure C code and we can then
+# remove the Amount initializer.
+from ...model._ccore import Amount
 
 
 # --- Amount

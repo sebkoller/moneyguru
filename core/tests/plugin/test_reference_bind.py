@@ -9,8 +9,8 @@ from itertools import starmap
 
 from hscommon.testutil import eq_
 
+from ..base import Amount
 from ...model._ccore import Entry
-from ...model.amount import Amount
 from ...model.transaction import Transaction
 from ...plugin.base_import_bind import ReferenceBind
 

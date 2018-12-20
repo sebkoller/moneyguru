@@ -10,7 +10,7 @@ import datetime
 from hscommon.util import allsame, first
 
 from ..const import NOEDIT
-from .amount import Amount, convert_amount, of_currency
+from .amount import parse_amount, convert_amount, of_currency
 from ._ccore import Split, Transaction as TransactionBase
 
 class Transaction(TransactionBase):
@@ -149,7 +149,7 @@ class Transaction(TransactionBase):
         if currency is not NOEDIT:
             tochange = (s for s in self.splits if s.amount and s.amount.currency_code != currency)
             for split in tochange:
-                split.amount = Amount(float(split.amount), currency)
+                split.amount = parse_amount('{} {}'.format(float(split.amount), currency))
                 split.reconciliation_date = None
         # Reconciliation can never be lower than txn date
         for split in self.splits:

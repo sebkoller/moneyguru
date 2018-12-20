@@ -9,8 +9,7 @@ from datetime import date
 from hscommon.testutil import eq_
 
 from ...loader.csv import Loader, CsvField
-from ...model.amount import Amount
-from ..base import testdata
+from ..base import testdata, Amount
 
 def test_fortis():
     # a fortis csv import. ';' delimiter, with headers.
