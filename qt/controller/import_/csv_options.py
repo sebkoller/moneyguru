@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QLineEdit, QSpacerItem, QSizePolicy, QHBoxLayout, QPushButton, QTableView, QAbstractItemView
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 from core.gui.csv_options import FIELD_NAMES, FIELD_ORDER, SUPPORTED_ENCODINGS
 
 tr = trget('ui')

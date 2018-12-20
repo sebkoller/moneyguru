@@ -12,7 +12,7 @@ from calendar import monthrange
 from itertools import chain
 
 from hscommon.util import nonone
-from hscommon.trans import tr
+from core.trans import tr
 
 from .date import (
     inc_day, inc_week, inc_month, inc_year, inc_weekday_in_month, inc_last_weekday_in_month

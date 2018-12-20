@@ -7,7 +7,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from core.document import FilterType
-from hscommon.trans import trget
+from core.trans import trget
 
 from ..filter_bar import FilterBar
 

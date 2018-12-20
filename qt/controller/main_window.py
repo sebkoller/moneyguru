@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QSpacerItem, QStackedWidget, QLabel
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 from core.const import PaneType, PaneArea
 from core.gui.main_window import MainWindow as MainWindowModel
 from core.gui.custom_date_range_panel import CustomDateRangePanel as CustomDateRangePanelModel

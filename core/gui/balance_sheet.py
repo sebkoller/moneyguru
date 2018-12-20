@@ -6,7 +6,7 @@
 
 from datetime import timedelta, date
 
-from hscommon.trans import trget, tr
+from core.trans import trget, tr
 from .column import Column
 from ..model.account import AccountType
 from ..model.amount import convert_amount

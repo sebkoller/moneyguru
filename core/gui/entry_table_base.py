@@ -8,7 +8,7 @@ import datetime
 from operator import attrgetter
 
 from hscommon.util import nonone
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..model._ccore import Entry
 from ..model.amount import convert_amount

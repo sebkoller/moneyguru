@@ -8,7 +8,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import QWidget, QShortcut, QVBoxLayout, QListWidget, QAbstractItemView
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from ..support.search_edit import SearchEdit
 

@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QLineEdit, QDialogButtonBox
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 from core.model.date import clean_format
 
 from ..util import verticalSpacer, horizontalWrap

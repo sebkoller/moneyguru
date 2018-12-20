@@ -6,7 +6,7 @@
 
 from PyQt5.QtWidgets import QFormLayout, QComboBox, QSizePolicy
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from .base_view import BaseView
 from .selectable_list import ComboboxModel

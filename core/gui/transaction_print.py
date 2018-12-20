@@ -8,7 +8,7 @@
 
 from collections import namedtuple
 
-from hscommon.trans import tr
+from core.trans import tr
 from .print_view import PrintView
 
 SplitValues = namedtuple('SplitValues', 'account memo amount')

@@ -8,7 +8,7 @@ import csv
 import logging
 
 from hscommon.util import stripfalse
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..exception import FileFormatError, FileLoadError
 from . import base

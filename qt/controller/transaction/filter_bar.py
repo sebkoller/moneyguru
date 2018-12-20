@@ -6,7 +6,7 @@
 # which should be included with this package. The terms are also available at 
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from hscommon.trans import trget
+from core.trans import trget
 from core.document import FilterType
 
 from ..filter_bar import FilterBar

@@ -7,7 +7,7 @@
 import csv
 from io import StringIO
 
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..model.account import ACCOUNT_SORT_KEY
 from .column import Columns

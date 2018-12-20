@@ -9,7 +9,7 @@ import weakref
 
 from hscommon.notify import Repeater
 from hscommon.util import first, minmax
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..const import PaneType
 from ..document import FilterType

@@ -4,7 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..model.account import sort_accounts
 from .base import MainWindowPanel

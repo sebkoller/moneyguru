@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QHBoxLayout, QPushButton, QSpacerItem, QSizePolicy
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from core.document import ScheduleScope
 

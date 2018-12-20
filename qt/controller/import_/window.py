@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QLabel, QSizePolicy, QGridLayout, QCheckBox, QAbstractItemView
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 from core.gui.import_window import ActionSelectionOptions
 
 from ...support.item_view import TableView

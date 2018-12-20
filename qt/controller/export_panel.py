@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox, QApplication, QDialog, QFileDialog, QCheckBox
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 from core.gui.export_panel import ExportFormat
 
 from .panel import Panel

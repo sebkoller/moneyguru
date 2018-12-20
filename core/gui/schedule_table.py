@@ -8,7 +8,7 @@
 
 import datetime
 
-from hscommon.trans import trget, tr
+from core.trans import trget, tr
 from .column import Column
 from ..model.amount import convert_amount
 from .table import GUITable, Row, rowattr, TableWithAmountMixin

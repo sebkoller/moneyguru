@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from hscommon.notify import Listener
-from hscommon.trans import tr
+from core.trans import tr
 from ..const import PaneType
 from .base import BaseView, MESSAGES_DOCUMENT_CHANGED
 from .filter_bar import EntryFilterBar

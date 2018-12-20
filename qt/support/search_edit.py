@@ -8,7 +8,7 @@ from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QIcon, QPixmap, QPainter, QPalette
 from PyQt5.QtWidgets import QToolButton, QLineEdit, QStyle, QStyleOptionFrame
 
-from hscommon.trans import trget
+from core.trans import trget
 
 tr = trget('ui')
 

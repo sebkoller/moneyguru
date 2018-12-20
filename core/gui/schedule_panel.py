@@ -8,7 +8,7 @@ from datetime import date
 import weakref
 
 from hscommon.util import first
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..exception import OperationAborted
 from ..model.recurrence import Recurrence, RepeatType

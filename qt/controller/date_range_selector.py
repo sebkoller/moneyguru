@@ -9,7 +9,7 @@
 from PyQt5.QtCore import QObject
 from PyQt5.QtWidgets import QMenu, QAction
 
-from hscommon.trans import trget
+from core.trans import trget
 
 tr = trget('ui')
 

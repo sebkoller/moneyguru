@@ -8,7 +8,7 @@
 # they're all grouped here.
 
 from collections import defaultdict
-from hscommon.trans import tr
+from core.trans import tr
 from ..model.account import AccountType
 from ..model.amount import convert_amount
 from ..model.date import DateRange

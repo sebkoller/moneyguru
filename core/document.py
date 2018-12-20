@@ -14,7 +14,7 @@ from functools import wraps
 
 from hscommon.notify import Repeater
 from hscommon.util import nonone, allsame, dedupe, extract, first, flatten
-from hscommon.trans import tr
+from core.trans import tr
 
 from .const import NOEDIT, DATE_FORMAT_FOR_PREFERENCES
 from .exception import FileFormatError, OperationAborted

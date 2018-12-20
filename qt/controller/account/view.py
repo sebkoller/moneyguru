@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
 
 from core.const import PaneArea
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from ...support.item_view import TableView
 from ...support.line_graph_view import LineGraphView

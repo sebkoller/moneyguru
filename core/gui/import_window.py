@@ -10,7 +10,7 @@ from collections import defaultdict
 # To avoid clashing with "first" in the "first/second" pattern being all over the place in this
 # unit, we rename our imported first() function here
 from hscommon.util import flatten, dedupe, first as getfirst
-from hscommon.trans import tr
+from core.trans import tr
 
 from hscommon.notify import Listener
 from ..exception import OperationAborted

@@ -12,7 +12,7 @@ from PyQt5.QtWidgets import (
     QPushButton
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from ..support.item_view import TableView
 from ..support.date_edit import DateEdit

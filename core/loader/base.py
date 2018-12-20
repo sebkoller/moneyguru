@@ -11,7 +11,7 @@ from itertools import groupby
 from operator import attrgetter
 
 from hscommon.util import nonone, flatten, stripfalse, dedupe
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..exception import FileFormatError
 from ..model._ccore import AccountList

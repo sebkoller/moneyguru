@@ -6,7 +6,7 @@
 
 import weakref
 
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..model.account import AccountType
 from ..model.currency import Currencies

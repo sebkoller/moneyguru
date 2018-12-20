@@ -6,7 +6,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from hscommon.trans import tr
+from core.trans import tr
 from ..const import PaneType
 from .base import BaseView, MESSAGES_DOCUMENT_CHANGED
 from .general_ledger_table import GeneralLedgerTable

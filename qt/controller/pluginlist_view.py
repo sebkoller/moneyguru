@@ -6,7 +6,7 @@
 
 from PyQt5.QtWidgets import QVBoxLayout, QLabel, QAbstractItemView
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from ..support.item_view import TableView
 from .base_view import BaseView

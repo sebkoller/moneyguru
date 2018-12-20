@@ -9,7 +9,7 @@ from collections import namedtuple
 from PyQt5.QtCore import pyqtSignal, QObject
 from PyQt5.QtWidgets import QAction
 
-from hscommon.trans import trget
+from core.trans import trget
 from hscommon.util import dedupe
 
 tr = trget('ui')

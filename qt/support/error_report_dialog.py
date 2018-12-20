@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QDesktopServices
 
-from hscommon.trans import trget
+from core.trans import trget
 from ..util import horizontalSpacer
 
 tr = trget('ui')

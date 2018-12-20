@@ -14,7 +14,7 @@ from PyQt5.QtCore import QFile, QTextStream, QSettings
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QApplication
 
-import hscommon.trans
+import core.trans
 from core.args import get_parser
 from qt.support.error_report_dialog import install_excepthook
 from qt.util import setupQtLogging
@@ -43,7 +43,7 @@ def main():
     app.setStyleSheet(style)
     lang = settings.value('Language')
     locale_folder = op.join('@SHAREPATH@', 'locale')
-    hscommon.trans.install_gettext_trans_under_qt(locale_folder, lang)
+    core.trans.install_gettext_trans_under_qt(locale_folder, lang)
     # Many strings are translated at import time, so this is why we only import after the translator
     # has been installed
     from qt.app import MoneyGuru

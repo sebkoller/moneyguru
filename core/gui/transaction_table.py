@@ -9,7 +9,7 @@
 import datetime
 from operator import attrgetter
 
-from hscommon.trans import trget, tr
+from core.trans import trget, tr
 from .column import Column
 from ..model.amount import convert_amount
 from ..model.recurrence import Spawn

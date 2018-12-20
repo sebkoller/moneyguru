@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from ..support.date_edit import DateEdit
 from ..support.completable_edit import PayeeEdit, AccountEdit, DescriptionEdit

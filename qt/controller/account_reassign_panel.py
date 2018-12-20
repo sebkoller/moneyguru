@@ -9,7 +9,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QSizePolicy, QSpacerItem, QPushButton
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from .panel import Panel
 from .selectable_list import ComboboxModel

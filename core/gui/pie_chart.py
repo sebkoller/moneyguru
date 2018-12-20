@@ -9,7 +9,7 @@
 from math import radians, sin
 from itertools import combinations
 
-from hscommon.trans import tr
+from core.trans import tr
 from hscommon.geometry import Rect, Point
 from hscommon.util import extract
 from .chart import Chart

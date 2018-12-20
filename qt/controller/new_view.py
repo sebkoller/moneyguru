@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QListView, QAbstractItemView
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 from core.const import PaneType
 
 from ..util import horizontalSpacer, verticalSpacer

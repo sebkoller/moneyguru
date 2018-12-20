@@ -10,7 +10,7 @@ import re
 from calendar import monthrange
 from datetime import date, datetime, timedelta
 
-from hscommon.trans import tr
+from core.trans import tr
 from hscommon.util import iterdaterange
 
 ONE_DAY = timedelta(1)

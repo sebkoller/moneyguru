@@ -6,7 +6,7 @@
 
 import datetime
 
-from hscommon.trans import trget
+from core.trans import trget
 from .column import Column
 
 from .table import GUITable, Row, rowattr, TableWithAmountMixin

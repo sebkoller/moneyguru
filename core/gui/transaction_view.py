@@ -8,7 +8,7 @@
 
 import weakref
 
-from hscommon.trans import tr
+from core.trans import tr
 from ..const import PaneType
 from ..document import FilterType
 from ..model.account import AccountType

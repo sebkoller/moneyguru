@@ -8,7 +8,7 @@
 
 import weakref
 
-from hscommon.trans import tr
+from core.trans import tr
 from ..const import PaneType
 from .base import BaseView, MESSAGES_EVERYTHING_CHANGED
 from .budget_table import BudgetTable

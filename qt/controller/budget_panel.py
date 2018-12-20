@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox, QSpinBox
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from ..support.date_edit import DateEdit
 from .panel import Panel

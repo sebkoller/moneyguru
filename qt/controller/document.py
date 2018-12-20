@@ -12,7 +12,7 @@ import tempfile
 from PyQt5.QtCore import pyqtSignal, Qt, QObject, QFile
 from PyQt5.QtWidgets import QFileDialog, QMessageBox, QApplication
 
-from hscommon.trans import trget
+from core.trans import trget
 from core.exception import FileFormatError
 from core.document import Document as DocumentModel, ScheduleScope
 

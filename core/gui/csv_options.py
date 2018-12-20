@@ -7,7 +7,7 @@
 from itertools import dropwhile
 
 from hscommon.util import first, nonone
-from hscommon.trans import tr
+from core.trans import tr
 
 from ..exception import FileLoadError
 from ..loader.csv import CsvField, MERGABLE_FIELDS

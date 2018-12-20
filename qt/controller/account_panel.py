@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
     QCheckBox, QDialogButtonBox
 )
 
-from hscommon.trans import trget
+from core.trans import trget
 
 from .panel import Panel
 from .selectable_list import ComboboxModel
