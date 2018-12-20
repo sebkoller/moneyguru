@@ -4,7 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from hscommon.util import first
+from core.util import first
 
 from ..const import PaneType
 from .base import BaseView

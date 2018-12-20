@@ -6,7 +6,7 @@
 
 from itertools import dropwhile
 
-from hscommon.util import first, nonone
+from core.util import first, nonone
 from core.trans import tr
 
 from ..exception import FileLoadError

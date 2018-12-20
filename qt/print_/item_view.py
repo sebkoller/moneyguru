@@ -11,7 +11,7 @@ from collections import namedtuple
 from PyQt5.QtCore import Qt, QRect, QSize, QPoint, QModelIndex
 from PyQt5.QtGui import QFont, QFontMetrics
 
-from hscommon.util import nonone
+from core.util import nonone
 
 from ..const import (
     INDENTATION_OFFSET_ROLE, EXTRA_ROLE, EXTRA_UNDERLINED, EXTRA_UNDERLINED_DOUBLE,

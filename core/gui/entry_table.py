@@ -7,7 +7,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from core.trans import tr, trget
-from hscommon.util import dedupe
+from core.util import dedupe
 from .column import Column, Columns
 from .entry_table_base import EntryTableBase, PreviousBalanceRow, TotalRow
 

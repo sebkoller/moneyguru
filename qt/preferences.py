@@ -10,7 +10,7 @@ from PyQt5.QtCore import Qt, QSettings, QRect, QObject, pyqtSignal, QLocale
 from PyQt5.QtWidgets import QApplication
 
 from core.trans import trget
-from hscommon.util import tryint
+from core.util import tryint
 
 from core.model.date import clean_format
 

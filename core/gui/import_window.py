@@ -9,7 +9,7 @@ from collections import defaultdict
 
 # To avoid clashing with "first" in the "first/second" pattern being all over the place in this
 # unit, we rename our imported first() function here
-from hscommon.util import flatten, dedupe, first as getfirst
+from core.util import flatten, dedupe, first as getfirst
 from core.trans import tr
 
 from hscommon.notify import Listener
@@ -27,7 +27,7 @@ DAY = 'day'
 MONTH = 'month'
 YEAR = 'year'
 
-# Could be a good target for hscommon.util?
+# Could be a good target for core.util?
 def unique_groups(lst, keyfunc):
     """Given a list and a keyfunction, return lists of all objects with the same key"""
     results = defaultdict(list)

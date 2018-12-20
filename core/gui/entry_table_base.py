@@ -7,7 +7,7 @@
 import datetime
 from operator import attrgetter
 
-from hscommon.util import nonone
+from core.util import nonone
 from core.trans import tr
 
 from ..model._ccore import Entry

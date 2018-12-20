@@ -7,7 +7,7 @@
 import weakref
 from datetime import date
 
-from hscommon.util import first
+from core.util import first
 
 from ..model._ccore import AccountList
 from ..model.account import AccountType

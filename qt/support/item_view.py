@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import (
     QAbstractItemView, QTableView, QTreeView, QAbstractItemDelegate
 )
 
-from hscommon.util import first
+from core.util import first
 
 # The big problem with tableview/treeview and multiple inheritance...
 # Like with Cocoa, when you start to want to add common behavior to both your treeviews and

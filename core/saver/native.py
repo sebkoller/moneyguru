@@ -9,7 +9,7 @@ import os.path as op
 import xml.etree.cElementTree as ET
 
 from ..model.amount import format_amount
-from hscommon.util import remove_invalid_xml, ensure_folder
+from core.util import remove_invalid_xml, ensure_folder
 
 def save(filename, document_id, properties, accounts, groups, transactions, schedules, budgets):
     def date2str(date):

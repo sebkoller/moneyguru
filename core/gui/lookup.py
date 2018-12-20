@@ -7,7 +7,7 @@
 from collections import defaultdict
 from itertools import combinations
 
-from hscommon.util import extract
+from core.util import extract
 
 from ..model.sort import sort_string
 from .base import NoopGUI

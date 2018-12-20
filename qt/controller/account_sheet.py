@@ -7,7 +7,7 @@
 from PyQt5.QtCore import Qt, QMimeData, QByteArray, QItemSelection
 from PyQt5.QtGui import QPixmap, QPalette, QFont
 
-from hscommon.util import nonone
+from core.util import nonone
 
 from ..const import (
     MIME_NODEPATHS, INDENTATION_OFFSET_ROLE, EXTRA_ROLE, EXTRA_UNDERLINED, EXTRA_UNDERLINED_DOUBLE

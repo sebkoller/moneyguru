@@ -11,7 +11,7 @@ import datetime
 from calendar import monthrange
 from itertools import chain
 
-from hscommon.util import nonone
+from core.util import nonone
 from core.trans import tr
 
 from .date import (

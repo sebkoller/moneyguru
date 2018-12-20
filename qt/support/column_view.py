@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import QStyleOptionViewItem, QStyle
 import re
 import logging
 
-from hscommon.util import nonone
+from core.util import nonone
 
 CURR_VALUE_RE = re.compile(r"([^\d]{3} )?(.*)")
 

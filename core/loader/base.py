@@ -10,7 +10,7 @@ import re
 from itertools import groupby
 from operator import attrgetter
 
-from hscommon.util import nonone, flatten, stripfalse, dedupe
+from core.util import nonone, flatten, stripfalse, dedupe
 from core.trans import tr
 
 from ..exception import FileFormatError

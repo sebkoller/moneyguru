@@ -9,7 +9,7 @@ from datetime import date
 from itertools import dropwhile
 from operator import attrgetter
 
-from hscommon.util import flatten
+from core.util import flatten
 
 from ._ccore import oven_cook_txns
 

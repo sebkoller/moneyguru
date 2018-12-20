@@ -7,7 +7,7 @@
 from datetime import datetime
 import xml.etree.cElementTree as ET
 
-from hscommon.util import tryint
+from core.util import tryint
 
 from ..exception import FileFormatError
 from .base import SplitInfo, TransactionInfo

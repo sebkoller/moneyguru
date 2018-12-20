@@ -7,7 +7,7 @@
 import csv
 import logging
 
-from hscommon.util import stripfalse
+from core.util import stripfalse
 from core.trans import tr
 
 from ..exception import FileFormatError, FileLoadError

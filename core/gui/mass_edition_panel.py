@@ -7,7 +7,7 @@
 import weakref
 from datetime import date
 
-from hscommon.util import allsame, flatten
+from core.util import allsame, flatten
 
 from ..model.currency import Currencies
 from .base import MainWindowPanel

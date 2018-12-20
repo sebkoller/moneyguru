@@ -6,7 +6,7 @@
 
 from datetime import date
 
-from hscommon.util import extract
+from core.util import extract
 
 from .amount import prorate_amount
 from .date import DateRange, ONE_DAY

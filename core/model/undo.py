@@ -6,7 +6,7 @@
 
 import copy
 
-from hscommon.util import extract
+from core.util import extract
 
 from ..model.recurrence import Spawn
 

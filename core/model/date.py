@@ -11,7 +11,7 @@ from calendar import monthrange
 from datetime import date, datetime, timedelta
 
 from core.trans import tr
-from hscommon.util import iterdaterange
+from core.util import iterdaterange
 
 ONE_DAY = timedelta(1)
 

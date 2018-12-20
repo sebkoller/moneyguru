@@ -7,7 +7,7 @@
 import time
 import datetime
 
-from hscommon.util import allsame, first
+from core.util import allsame, first
 
 from ..const import NOEDIT
 from .amount import parse_amount, convert_amount, of_currency

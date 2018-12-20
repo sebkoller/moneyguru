@@ -7,7 +7,7 @@ from datetime import date
 
 # flatten(list) transforms [[1, 2], [3, 4]] into [1, 2, 3, 4]. We'll need this to have a list of all
 # splits in our transactions.
-from hscommon.util import flatten
+from core.util import flatten
 from core.plugin import ReadOnlyTablePlugin, Column
 from core.model.currency import Currencies
 

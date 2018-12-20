@@ -8,7 +8,7 @@ import logging
 import weakref
 
 from hscommon.notify import Repeater
-from hscommon.util import first, minmax
+from core.util import first, minmax
 from core.trans import tr
 
 from ..const import PaneType

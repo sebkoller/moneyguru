@@ -12,7 +12,7 @@ from PyQt5.QtCore import Qt, QRect, QSize, QPoint
 from PyQt5.QtGui import QPixmap, QPainter, QFont, QFontMetrics
 from PyQt5.QtWidgets import QApplication
 
-from hscommon.util import first
+from core.util import first
 
 class LayoutElement:
     def __init__(self, rect):

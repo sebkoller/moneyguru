@@ -7,7 +7,7 @@
 import io
 import logging
 
-from hscommon.util import first
+from core.util import first
 
 from PyQt5.QtCore import QStandardPaths
 from PyQt5.QtGui import QPixmap, QIcon

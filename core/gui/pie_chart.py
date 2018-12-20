@@ -11,7 +11,7 @@ from itertools import combinations
 
 from core.trans import tr
 from hscommon.geometry import Rect, Point
-from hscommon.util import extract
+from core.util import extract
 from .chart import Chart
 
 # Regardless of the view size, we always display this number of slices. If we have more, we group

@@ -15,7 +15,7 @@ import re
 import importlib
 
 from hscommon.notify import Broadcaster
-from hscommon.util import nonone
+from core.util import nonone
 
 from .gui.date_widget import DateWidget
 

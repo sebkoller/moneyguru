@@ -7,7 +7,7 @@
 from datetime import date
 import weakref
 
-from hscommon.util import first
+from core.util import first
 from core.trans import tr
 
 from ..exception import OperationAborted

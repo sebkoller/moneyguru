@@ -5,7 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from .base import GUIObject
-from hscommon.util import nonone
+from core.util import nonone
 
 class TextFieldView:
     """Expected interface for :class:`TextField`'s view.

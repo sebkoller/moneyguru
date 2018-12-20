@@ -12,7 +12,7 @@ from collections import namedtuple, defaultdict
 from itertools import groupby, combinations
 from operator import attrgetter
 
-from hscommon.util import first, stripfalse
+from core.util import first, stripfalse
 
 from ..exception import FileFormatError
 from ..model.account import AccountType
