@@ -2203,18 +2203,6 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
     }
 }
 
-static PyObject*
-PyEntryList_balance_of_reconciled(PyEntryList *self, PyObject *args)
-{
-    Amount amount;
-    EntryList *el = _PyEntryList_entries(self);
-    if (entries_balance_of_reconciled(el, &amount)) {
-        return pyamount(&amount);
-    } else {
-        return PyLong_FromLong(0);
-    }
-}
-
 static bool
 _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
 {
@@ -2291,19 +2279,6 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
     }
     EntryList *el = _PyEntryList_entries(self);
     if (!entries_balance(el, &res, date, false)) {
-        return NULL;
-    } else {
-        account_normalize_amount(self->account, &res);
-        return pyamount(&res);
-    }
-}
-
-static PyObject*
-PyEntryList_normal_balance_of_reconciled(PyEntryList *self, PyObject *args)
-{
-    Amount res;
-    EntryList *el = _PyEntryList_entries(self);
-    if (!entries_balance_of_reconciled(el, &res)) {
         return NULL;
     } else {
         account_normalize_amount(self->account, &res);
@@ -3145,8 +3120,6 @@ static PyMethodDef PyEntryList_methods[] = {
     // If `currency` is specified, the result is converted to it.
     // if `with_budget` is True, budget spawns are counted.
     {"balance", (PyCFunction)PyEntryList_balance, METH_VARARGS, ""},
-    // Returns `reconciled_balance` for our last reconciled entry.
-    {"balance_of_reconciled", (PyCFunction)PyEntryList_balance_of_reconciled, METH_NOARGS, ""},
     // Returns the sum of entry amounts occuring in `date_range`.
     // If `currency` is specified, the result is converted to it.
     {"cash_flow", (PyCFunction)PyEntryList_cash_flow, METH_VARARGS, ""},
@@ -3156,7 +3129,6 @@ static PyMethodDef PyEntryList_methods[] = {
     // If `date` isn't specified, returns the last entry in the list.
     {"last_entry", (PyCFunction)PyEntryList_last_entry, METH_VARARGS, ""},
     {"normal_balance", (PyCFunction)PyEntryList_normal_balance, METH_VARARGS, ""},
-    {"normal_balance_of_reconciled", (PyCFunction)PyEntryList_normal_balance_of_reconciled, METH_NOARGS, ""},
     {"normal_cash_flow", (PyCFunction)PyEntryList_normal_cash_flow, METH_VARARGS, ""},
     {0, 0, 0, 0},
 };
