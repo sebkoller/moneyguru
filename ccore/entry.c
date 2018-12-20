@@ -12,6 +12,55 @@ entry_init(Entry *entry, Split *split, Transaction *txn)
     entry->index = -1;
 }
 
+bool
+entry_amount_set(Entry *entry, const Amount *amount)
+{
+    if (entry->txn->splitcount != 2) {
+        return false;
+    }
+    Split *other = &entry->txn->splits[0];
+    if (other == entry->split) {
+        other = &entry->txn->splits[1];
+    }
+    split_amount_set(entry->split, amount);
+    Amount *other_amount = &other->amount;
+    bool is_mct = false;
+    // Weird rules, but well...
+    bool same_currency = amount->currency == other_amount->currency;
+    if (amount->currency == NULL || other_amount->currency == NULL) {
+        same_currency = true;
+    }
+    if (!same_currency) {
+        bool is_asset = false;
+        bool other_is_asset = false;
+        Account *a = entry->split->account;
+        if (a != NULL) {
+            is_asset = account_is_balance_sheet(a);
+        }
+        a = other->account;
+        if (a != NULL) {
+            other_is_asset = account_is_balance_sheet(a);
+        }
+        if (is_asset && other_is_asset) {
+            is_mct = true;
+        }
+    }
+
+    if (is_mct) {
+        // don't touch other side unless we have a logical imbalance
+        if ((entry->split->amount.val > 0) == (other_amount->val > 0)) {
+            Amount a;
+            amount_neg(&a, other_amount);
+            split_amount_set(other, &a);
+        }
+    } else {
+        Amount a;
+        amount_neg(&a, amount);
+        split_amount_set(other, &a);
+    }
+    return true;
+}
+
 void
 entry_copy(Entry *dst, const Entry *src)
 {

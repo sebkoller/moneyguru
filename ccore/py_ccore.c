@@ -304,17 +304,6 @@ strisexpr(const char *s)
     return false;
 }
 
-static bool
-same_currency(const Amount *a, const Amount *b)
-{
-    // Weird rules, but well...
-    if (a->currency == NULL || b->currency == NULL) {
-        return true;
-    } else {
-        return a->currency == b->currency;
-    }
-}
-
 static PyObject*
 lower_and_strip(PyObject *s)
 {
@@ -1954,62 +1943,12 @@ PyEntry_transfer(PyEntry *self)
     return r;
 }
 
-/* Change the amount of `split`, from the perspective of the account ledger.
- *
- * This can only be done if the Transaction to which we belong is a two-way
- * transaction. This will trigger a two-way balancing with
- * `Transaction.balance`.
- */
 static PyObject*
-PyEntry_change_amount(PyEntry *self, PyObject *args)
+PyEntry_change_amount(PyEntry *self, PyObject *amount)
 {
-    PyObject *amount_p;
-
-    if (!PyArg_ParseTuple(args, "O", &amount_p)) {
-        return NULL;
-    }
-
-    PyObject *splits = PyEntry_splits(self);
-    if (PyList_Size(splits) != 1) {
+    if (!entry_amount_set(&self->entry, get_amount(amount))) {
         PyErr_SetString(PyExc_ValueError, "not a two-way txn");
         return NULL;
-    }
-    Split *split = self->entry.split;
-    PySplit *other = (PySplit *)PyList_GetItem(splits, 0); // borrowed
-    Py_DECREF(splits);
-    const Amount *amount = get_amount(amount_p);
-    split_amount_set(split, amount);
-    Amount *other_amount = &other->split->amount;
-    bool is_mct = false;
-    if (!same_currency(amount, other_amount)) {
-        bool is_asset = false;
-        bool other_is_asset = false;
-        Account *a = split->account;
-        if (a != NULL) {
-            is_asset = account_is_balance_sheet(a);
-        }
-        a = other->split->account;
-        if (a != NULL) {
-            other_is_asset = account_is_balance_sheet(a);
-        }
-        if (is_asset && other_is_asset) {
-            is_mct = true;
-        }
-    }
-
-    if (is_mct) {
-        // don't touch other side unless we have a logical imbalance
-        if ((split->amount.val > 0) == (other_amount->val > 0)) {
-            Amount a;
-            amount_copy(&a, other_amount);
-            a.val *= -1;
-            split_amount_set(other->split, &a);
-        }
-    } else {
-        Amount a;
-        amount_copy(&a, amount);
-        a.val *= -1;
-        split_amount_set(other->split, &a);
     }
     Py_RETURN_NONE;
 }
@@ -3142,7 +3081,7 @@ PyType_Spec Split_Type_Spec = {
 static PyMethodDef PyEntry_methods[] = {
     {"__copy__", (PyCFunction)PyEntry_copy, METH_NOARGS, ""},
     {"__deepcopy__", (PyCFunction)PyEntry_deepcopy, METH_VARARGS, ""},
-    {"change_amount", (PyCFunction)PyEntry_change_amount, METH_VARARGS, ""},
+    {"change_amount", (PyCFunction)PyEntry_change_amount, METH_O, ""},
     {"normal_balance", (PyCFunction)PyEntry_normal_balance, METH_NOARGS, ""},
     {0, 0, 0, 0},
 };

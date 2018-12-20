@@ -30,6 +30,17 @@ typedef struct {
 void
 entry_init(Entry *entry, Split *split, Transaction *txn);
 
+/* Change the amount of `split`, from the perspective of the account ledger.
+ *
+ * This can only be done if the Transaction to which we belong is a two-way
+ * transaction. This will trigger a two-way balancing with
+ * `Transaction.balance`.
+ *
+ * Returns false if it can't proceed (if it's not a two-way entry)
+ */
+bool
+entry_amount_set(Entry *entry, const Amount *amount);
+
 void
 entry_copy(Entry *dst, const Entry *src);
 
