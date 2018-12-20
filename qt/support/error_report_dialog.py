@@ -8,11 +8,13 @@ import traceback
 import sys
 import os
 
-from PyQt5.QtCore import Qt, QCoreApplication, QSize
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton
+from PyQt5.QtCore import Qt, QCoreApplication, QSize, QUrl
+from PyQt5.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPlainTextEdit, QPushButton,
+)
+from PyQt5.QtGui import QDesktopServices
 
 from hscommon.trans import trget
-from hscommon.desktop import open_url
 from ..util import horizontalSpacer
 
 tr = trget('ui')
@@ -70,7 +72,8 @@ class ErrorReportDialog(QDialog):
         self.verticalLayout.addLayout(self.horizontalLayout)
 
     def goToGithub(self):
-        open_url(self.github_url)
+        url = QUrl(self.github_url)
+        QDesktopServices.openUrl(url)
 
 
 def install_excepthook(github_url):
