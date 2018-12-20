@@ -92,7 +92,6 @@ static PyObject *Transaction_Type;
 typedef struct {
     PyObject_HEAD
     Entry entry;
-    PySplit *split;
     PyTransaction *txn;
 } PyEntry;
 
@@ -328,6 +327,24 @@ lower_and_strip(PyObject *s)
     return res;
 }
 
+static PyObject *
+create_amount(int64_t ival, Currency *currency)
+{
+    /* Create a new amount in a way that is faster than the normal init */
+    PyAmount *r;
+
+    r = (PyAmount *)PyType_GenericAlloc((PyTypeObject *)Amount_Type, 0);
+    r->amount.val = ival;
+    r->amount.currency = currency;
+    return (PyObject *)r;
+}
+
+static PyObject *
+pyamount(const Amount *amount)
+{
+    return create_amount(amount->val, amount->currency);
+}
+
 /* Currency functions */
 static PyObject*
 py_currency_global_init(PyObject *self, PyObject *args)
@@ -470,18 +487,6 @@ py_currency_daterange(PyObject *self, PyObject *args)
 
 /* Amount Methods */
 
-static PyObject *
-create_amount(int64_t ival, Currency *currency)
-{
-    /* Create a new amount in a way that is faster than the normal init */
-    PyAmount *r;
-
-    r = (PyAmount *)PyType_GenericAlloc((PyTypeObject *)Amount_Type, 0);
-    r->amount.val = ival;
-    r->amount.currency = currency;
-    return (PyObject *)r;
-}
-
 static int
 PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
 {
@@ -512,9 +517,7 @@ PyAmount_init(PyAmount *self, PyObject *args, PyObject *kwds)
 static PyObject *
 PyAmount_copy(PyObject *self)
 {
-    return create_amount(
-        ((PyAmount *)self)->amount.val,
-        ((PyAmount *)self)->amount.currency);
+    return pyamount(&((PyAmount *)self)->amount);
 }
 
 static PyObject *
@@ -943,27 +946,27 @@ py_amount_parse(PyObject *self, PyObject *args, PyObject *kwds)
 static PyObject*
 py_amount_convert(PyObject *self, PyObject *args)
 {
-    PyObject *pyamount;
+    PyObject *amount_p;
     char *code;
     PyObject *pydate;
     Amount dest;
 
-    if (!PyArg_ParseTuple(args, "OsO", &pyamount, &code, &pydate)) {
+    if (!PyArg_ParseTuple(args, "OsO", &amount_p, &code, &pydate)) {
         return NULL;
     }
 
-    const Amount *amount = get_amount(pyamount);
+    const Amount *amount = get_amount(amount_p);
     if (!amount->val) {
-        Py_INCREF(pyamount);
-        return pyamount;
+        Py_INCREF(amount_p);
+        return amount_p;
     }
     dest.currency = getcur(code);
     if (dest.currency == NULL) {
         return NULL;
     }
     if (dest.currency == amount->currency) {
-        Py_INCREF(pyamount);
-        return pyamount;
+        Py_INCREF(amount_p);
+        return amount_p;
     }
     time_t date = pydate2time(pydate);
     if (date == 1) {
@@ -973,7 +976,7 @@ py_amount_convert(PyObject *self, PyObject *args)
         PyErr_SetString(PyExc_ValueError, "problems getting a rate");
         return NULL;
     }
-    return create_amount(dest.val, dest.currency);
+    return pyamount(&dest);
 }
 
 /* Account */
@@ -1183,7 +1186,7 @@ PyAccount_normalize_amount(PyAccount *self, PyObject *amount)
     Amount res;
     amount_copy(&res, &((PyAmount *)amount)->amount);
     account_normalize_amount(self->account, &res);
-    return create_amount(res.val, res.currency);
+    return pyamount(&res);
 }
 
 static PyObject*
@@ -1339,7 +1342,7 @@ static PyObject *
 PySplit_amount(PySplit *self)
 {
     Split *split = self->split;
-    return create_amount(split->amount.val, split->amount.currency);
+    return pyamount(&split->amount);
 }
 
 static int
@@ -1376,7 +1379,7 @@ PySplit_debit(PySplit *self)
 {
     Amount *a = &self->split->amount;
     if (a->val > 0) {
-        return create_amount(a->val, a->currency);
+        return pyamount(a);
     } else {
         return PyLong_FromLong(0);
     }
@@ -1794,14 +1797,15 @@ PyTransaction_dealloc(PyTransaction *self)
 static int
 PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
 {
+    PySplit *split_p;
     static char *kwlist[] = {"split", "transaction", NULL};
 
     int res = PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO", kwlist, &self->split, &self->txn);
+        args, kwds, "OO", kwlist, &split_p, &self->txn);
     if (!res) {
         return -1;
     }
-    if (!Split_Check(self->split)) {
+    if (!Split_Check(split_p)) {
         PyErr_SetString(PyExc_TypeError, "not a split");
         return -1;
     }
@@ -1809,36 +1813,38 @@ PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
         PyErr_SetString(PyExc_TypeError, "not a txn");
         return -1;
     }
-    Py_INCREF(self->split);
     Py_INCREF(self->txn);
-    entry_init(&self->entry, self->split->split, &self->txn->txn);
+    entry_init(&self->entry, split_p->split, &self->txn->txn);
     return 0;
 }
 
 static PyObject *
 PyEntry_account(PyEntry *self)
 {
-    return PySplit_account(self->split);
+    Split *split = self->entry.split;
+    if (split->account == NULL) {
+        Py_RETURN_NONE;
+    } else {
+        return (PyObject *)_PyAccount_from_account(split->account);
+    }
 }
 
 static PyObject *
 PyEntry_amount(PyEntry *self)
 {
-    return PySplit_amount(self->split);
+    return pyamount(&self->entry.split->amount);
 }
 
 static PyObject *
 PyEntry_balance(PyEntry *self)
 {
-    return create_amount(self->entry.balance.val, self->entry.balance.currency);
+    return pyamount(&self->entry.balance);
 }
 
 static PyObject *
 PyEntry_balance_with_budget(PyEntry *self)
 {
-    return create_amount(
-        self->entry.balance_with_budget.val,
-        self->entry.balance_with_budget.currency);
+    return pyamount(&self->entry.balance_with_budget);
 }
 
 static PyObject *
@@ -1874,34 +1880,35 @@ PyEntry_mtime(PyEntry *self)
 static PyObject *
 PyEntry_reconciled(PyEntry *self)
 {
-    return PySplit_reconciled(self->split);
+    if (self->entry.split->reconciliation_date == 0) {
+        Py_RETURN_FALSE;
+    } else {
+        Py_RETURN_TRUE;
+    }
 }
 
 static PyObject *
 PyEntry_reconciled_balance(PyEntry *self)
 {
-    return create_amount(
-        self->entry.reconciled_balance.val,
-        self->entry.reconciled_balance.currency);
+    return pyamount(&self->entry.reconciled_balance);
 }
 
 static PyObject *
 PyEntry_reconciliation_date(PyEntry *self)
 {
-    return PySplit_reconciliation_date(self->split);
+    return time2pydate(self->entry.split->reconciliation_date);
 }
 
 static PyObject *
 PyEntry_reference(PyEntry *self)
 {
-    return PySplit_reference(self->split);
+    return _strget(self->entry.split->reference);
 }
 
 static PyObject *
 PyEntry_split(PyEntry *self)
 {
-    Py_INCREF(self->split);
-    return (PyObject *)self->split;
+    return (PyObject *)_PySplit_proxy(self->entry.split);
 }
 
 static PyObject *
@@ -1967,16 +1974,17 @@ PyEntry_change_amount(PyEntry *self, PyObject *args)
         PyErr_SetString(PyExc_ValueError, "not a two-way txn");
         return NULL;
     }
+    Split *split = self->entry.split;
     PySplit *other = (PySplit *)PyList_GetItem(splits, 0); // borrowed
     Py_DECREF(splits);
     const Amount *amount = get_amount(amount_p);
-    split_amount_set(self->split->split, amount);
+    split_amount_set(split, amount);
     Amount *other_amount = &other->split->amount;
     bool is_mct = false;
     if (!same_currency(amount, other_amount)) {
         bool is_asset = false;
         bool other_is_asset = false;
-        Account *a = self->split->split->account;
+        Account *a = split->account;
         if (a != NULL) {
             is_asset = account_is_balance_sheet(a);
         }
@@ -1991,7 +1999,7 @@ PyEntry_change_amount(PyEntry *self, PyObject *args)
 
     if (is_mct) {
         // don't touch other side unless we have a logical imbalance
-        if ((self->split->split->amount.val > 0) == (other_amount->val > 0)) {
+        if ((split->amount.val > 0) == (other_amount->val > 0)) {
             Amount a;
             amount_copy(&a, other_amount);
             a.val *= -1;
@@ -2011,21 +2019,19 @@ PyEntry_normal_balance(PyEntry *self, PyObject *args)
 {
     Amount amount;
     amount_copy(&amount, &self->entry.balance);
-    Account *a = self->split->split->account;
+    Account *a = self->entry.split->account;
     if (a != NULL) {
         if (account_is_credit(a)) {
             amount.val *= -1;
         }
     }
-    return create_amount(amount.val, amount.currency);
+    return pyamount(&amount);
 }
 
 static PyObject *
 PyEntry_copy(PyEntry *self)
 {
     PyEntry *r = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
-    r->split = self->split;
-    Py_INCREF(r->split);
     r->txn = self->txn;
     Py_INCREF(r->txn);
     entry_copy(&r->entry, &self->entry);
@@ -2045,7 +2051,7 @@ PyEntry_richcompare(PyEntry *a, PyObject *b, int op)
         Py_RETURN_NOTIMPLEMENTED;
     }
     if (op == Py_EQ) {
-        if (a->split == ((PyEntry *)b)->split) {
+        if (a->entry.split == ((PyEntry *)b)->entry.split) {
             Py_RETURN_TRUE;
         } else {
             Py_RETURN_FALSE;
@@ -2065,7 +2071,7 @@ PyEntry_richcompare(PyEntry *a, PyObject *b, int op)
 static Py_hash_t
 PyEntry_hash(PyEntry *self)
 {
-    return PyObject_Hash((PyObject *)self->split);
+    return (Py_hash_t)self->entry.split;
 }
 
 static PyObject *
@@ -2082,7 +2088,6 @@ PyEntry_repr(PyEntry *self)
 static void
 PyEntry_dealloc(PyEntry *self)
 {
-    Py_DECREF(self->split);
     Py_DECREF(self->txn);
 }
 
@@ -2252,7 +2257,7 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
         return NULL;
     } else {
         if (dst.currency != NULL) {
-            return create_amount(dst.val, dst.currency);
+            return pyamount(&dst);
         } else {
             return PyLong_FromLong(0);
         }
@@ -2265,7 +2270,7 @@ PyEntryList_balance_of_reconciled(PyEntryList *self, PyObject *args)
     Amount amount;
     EntryList *el = _PyEntryList_entries(self);
     if (entries_balance_of_reconciled(el, &amount)) {
-        return create_amount(amount.val, amount.currency);
+        return pyamount(&amount);
     } else {
         return PyLong_FromLong(0);
     }
@@ -2288,7 +2293,7 @@ _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
         if (PySequence_Contains(daterange, date_p)) {
             Amount a;
             a.currency = dst->currency;
-            Amount *src = &entry->split->split->amount;
+            Amount *src = &entry->entry.split->amount;
             time_t date = pydate2time(date_p);
             if (date == 1) {
                 return false;
@@ -2320,7 +2325,7 @@ PyEntryList_cash_flow(PyEntryList *self, PyObject *args)
     if (!_PyEntryList_cash_flow(self, &res, daterange)) {
         return NULL;
     }
-    return create_amount(res.val, res.currency);
+    return pyamount(&res);
 }
 
 static PyObject*
@@ -2350,7 +2355,7 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
         return NULL;
     } else {
         account_normalize_amount(self->account, &res);
-        return create_amount(res.val, res.currency);
+        return pyamount(&res);
     }
 }
 
@@ -2363,7 +2368,7 @@ PyEntryList_normal_balance_of_reconciled(PyEntryList *self, PyObject *args)
         return NULL;
     } else {
         account_normalize_amount(self->account, &res);
-        return create_amount(res.val, res.currency);
+        return pyamount(&res);
     }
 }
 
@@ -2389,7 +2394,7 @@ PyEntryList_normal_cash_flow(PyEntryList *self, PyObject *args)
         return NULL;
     } else {
         account_normalize_amount(self->account, &res);
-        return create_amount(res.val, res.currency);
+        return pyamount(&res);
     }
 }
 
@@ -2944,16 +2949,15 @@ _py_oven_cook_splits(
             Py_DECREF(newentries);
             return false;
         }
-        entry->split = (PySplit *)PyTuple_GetItem(item, 1); // borrowed
-        if (entry->split == NULL) {
+        PySplit *split_p = (PySplit *)PyTuple_GetItem(item, 1); // borrowed
+        if (split_p == NULL) {
             Py_DECREF(item);
             Py_DECREF(entry);
             Py_DECREF(newentries);
             return NULL;
         }
-        Py_INCREF(entry->split);
         Py_INCREF(entry->txn);
-        entry_init(&entry->entry, entry->split->split, &entry->txn->txn);
+        entry_init(&entry->entry, split_p->split, &entry->txn->txn);
         tocook.entries[i] = &entry->entry;
         PyList_SetItem(newentries, i, (PyObject *)entry); // stolen
     }
