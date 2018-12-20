@@ -2,7 +2,7 @@ PYTHON ?= python
 
 SRCS = currency.c amount.c account.c split.c transaction.c entry.c util.c
 OBJS = $(SRCS:%.c=%.o)
-TEST_SRCS = $(addprefix tests/, transaction.c main.c)
+TEST_SRCS = $(addprefix tests/, amount.c transaction.c main.c)
 TEST_OBJS = $(TEST_SRCS:%.c=%.o)
 
 PY_CC = $(shell $(PYTHON) -c "import sysconfig; print(sysconfig.get_config_var('CC'))")

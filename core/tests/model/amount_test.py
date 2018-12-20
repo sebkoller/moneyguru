@@ -8,8 +8,7 @@ import pytest
 from pytest import raises
 from hscommon.testutil import eq_
 
-from ...model.currency import Currencies
-from ...model.amount import format_amount, parse_amount, UnsupportedCurrencyError
+from ...model.amount import format_amount
 # This is the only place in python code where we import the Amount initializer.
 # Tests in this units will soon be rewritten in pure C code and we can then
 # remove the Amount initializer.
@@ -115,13 +114,6 @@ def test_immutable():
     else:
         raise AssertionError("It shouldn't be possible to set an Amount's currency")
 
-def test_init_with_float():
-    # We don't have the same restriction as Decimal regarding initialization with floats.
-    try:
-        Amount(1.42, 'CAD')
-    except TypeError:
-        raise AssertionError("Amount should be able to be created with floats")
-
 def test_mul_amount():
     # It doesn't make sense to multiply two amounts together.
     with raises(TypeError):
@@ -172,185 +164,6 @@ def test_hash():
     eq_(hash(Amount(2, 'CAD')), hash(Amount(2, 'CAD')))
     assert hash(Amount(2, 'CAD')) != hash(Amount(3, 'CAD'))
     assert hash(Amount(2, 'CAD')) != hash(Amount(2, 'USD'))
-
-# --- Parse amount
-def test_parse_comma_as_decimal_sep():
-    # commas are correctly parsed when used instead of a dot for decimal separators.
-    eq_(parse_amount('54,67', 'USD') , Amount(54.67, 'USD'))
-
-def test_parse_comma_as_grouping_sep():
-    # When a comma is used as a grouping separator, it doesn't prevent the number from being read.
-    eq_(parse_amount('1,454,67', 'USD') , Amount(1454.67, 'USD'))
-    Currencies.register('CZK', 'CZK')
-    eq_(parse_amount('CZK 3,000.00', 'USD') , Amount(3000, 'CZK'))
-    eq_(parse_amount('CZK 3 000.00', 'USD') , Amount(3000, 'CZK'))
-
-def test_parse_currency():
-    # Prefixing or suffixing the amount with a currency ISO code sets the currency attr of the
-    # amount.
-    eq_(parse_amount('42.12 eur'), Amount(42.12, 'EUR'))
-    eq_(parse_amount('eur42.12'), Amount(42.12, 'EUR'))
-
-def test_parse_currency_not_in_list():
-    # If the currency is not in the list, the amount is invalid.
-    with raises(ValueError):
-        parse_amount('42.12 foo')
-
-def test_parse_currency_and_garbage():
-    # If there is garbage in addition to the currency, the whole amount is invalid.
-    with raises(ValueError):
-        parse_amount('42.12 cadalala')
-
-def test_parse_division_result_in_a_float():
-    # Dividing an amount by another amount gives a float.
-    eq_(parse_amount('1 / 2 CAD'), Amount(0.5, 'CAD'))
-
-def test_parse_empty():
-    eq_(parse_amount(''), 0)
-    eq_(parse_amount(' '), 0)
-
-def test_parse_expressions():
-    eq_(parse_amount('18 + 24 CAD'), Amount(42, 'CAD'))
-    eq_(parse_amount('56.23 - 13.99 USD'), Amount(42.24, 'USD'))
-    eq_(parse_amount('21 * 4 / (1 + 1) EUR'), Amount(42, 'EUR'))
-
-def test_parse_garbage_around():
-    # Amounts with garbage around them can still be parsed.
-    eq_(parse_amount('$10.42', 'USD', False), Amount(10.42, 'USD'))
-    eq_(parse_amount('foo10bar', 'USD', False), Amount(10.00, 'USD'))
-    eq_(parse_amount('$.42', 'USD', False), Amount(0.42, 'USD'))
-
-def test_parse_invalid():
-    expressions = ['asdf', '+-.', '()']
-    for expression in expressions:
-        with raises(ValueError):
-            parse_amount(expression, 'USD')
-    try:
-        with raises(ValueError):
-            parse_amount('open(\'some_important_file\').read()')
-    except IOError:
-        raise AssertionError("Something is very wrong with parse_amount. You must *not* perform an eval on a string like this.")
-
-def test_parse_quote_as_grouping_sep():
-    # an amount using quotes as grouping sep is correctly parsed.
-    eq_(parse_amount('1\'234.56', 'USD'), Amount(1234.56, 'USD'))
-
-def test_parse_simple_amounts():
-    eq_(parse_amount('1 EUR'), Amount(1, 'EUR'))
-    eq_(parse_amount('1.23 CAD'), Amount(1.23, 'CAD'))
-
-def test_parse_space_as_thousand_sep():
-    # When a space is used as a thousand separator, it doesn't prevent the number from being read.
-    eq_(parse_amount('1 454,67', 'USD') , Amount(1454.67, 'USD'))
-
-def test_parse_non_breaking_space_as_thousand_sep():
-    # Sometimes, when the thousand sep in the system is space, we actually end up with non-breaking
-    # space characters (xa0). We have to support those.
-    eq_(parse_amount('1\xa0234 567,89', 'USD') , Amount(1234567.89, 'USD'))
-
-def test_parse_10000():
-    # In the thousand sep regexp, I used \u00A0 which ended up being a mistake because it somehow
-    # matched the '0' character which made '10000' be parsed as 1000! I'm glad I caught this because
-    # it wasn't directly tested.
-    eq_(parse_amount('10000', 'USD') , Amount(10000, 'USD'))
-
-def test_parse_zero():
-    eq_(parse_amount('0'), 0)
-
-def test_parse_zero_prefixed():
-    # Parsing an amount prefixed by a zero does not result in it being interpreted as an octal
-    # number.
-    Currencies.register('PLN', 'PLN')
-    eq_(parse_amount('0200+0200 PLN'), Amount(400, 'PLN'))
-
-def test_parse_zero_after_dot():
-    # A 0 after a dot dot not get misinterpreted as an octal prefix.
-    eq_(parse_amount('.02 EUR'), Amount(.02, 'EUR'))
-
-def test_parse_auto_decimal_places():
-    # When auto_decimal_place is True, the decimal is automatically placed.
-    eq_(parse_amount('1234', default_currency='USD', auto_decimal_place=True), Amount(12.34, 'USD'))
-
-def test_parse_auto_decimal_places_different_exponent():
-    # When the currency has a different exponent, the decimal is correctly placed.
-    # TND has 3 decimal places.
-    Currencies.register('TND', 'TND', exponent=3)
-    Currencies.register('JPY', 'JPY', exponent=0)
-    eq_(parse_amount('1234', default_currency='TND', auto_decimal_place=True), Amount(1.234, 'TND'))
-    # JPY has 0 decimal places
-    eq_(parse_amount('1234', default_currency='JPY', auto_decimal_place=True), Amount(1234, 'JPY'))
-
-def test_parse_auto_decimal_places_only_cents():
-    # Parsing correctly occurs when the amount of numbers typed is below the decimal places.
-    # TND has 3 decimal places.
-    Currencies.register('TND', 'TND', exponent=3)
-    eq_(parse_amount('123', default_currency='TND', auto_decimal_place=True), Amount(.123, 'TND'))
-    eq_(parse_amount('1', default_currency='TND', auto_decimal_place=True), Amount(.001, 'TND'))
-
-def test_parse_auto_decimal_places_with_space():
-    # Spaces are correctly trimmed when counting decimal places.
-    eq_(parse_amount('1234 ', default_currency='USD', auto_decimal_place=True), Amount(12.34, 'USD'))
-
-def test_parse_auto_decimal_places_expression():
-    # When there's an expression, the auto_decimal_place option is ignored
-    eq_(parse_amount('2+3', default_currency='USD', auto_decimal_place=True), Amount(5, 'USD'))
-
-def test_parse_zero_division():
-    # Instead of raising ZeroDivisionError, raise a ValueError when the expression to parse is a
-    # division by zero.
-    with raises(ValueError):
-        parse_amount('42/0')
-
-def test_parse_thousand_sep():
-    # Thousand separators are correctly seen as such (in bug #336, it was mistaken for a decimal
-    # sep).
-    eq_(parse_amount('1,000', default_currency='USD'), Amount(1000, 'USD'))
-
-def test_parse_expression_with_thousand_and_decimal_seps():
-    eq_(parse_amount('1,000.00*1.1', default_currency='USD'), Amount(1100, 'USD'))
-
-def test_parse_currencies_with_large_exponents():
-    # Dinars have 3 decimal places, making them awkward to parse because for "normal" currencies, we
-    # specifically look for 2 digits after the separator to avoid confusion with thousand sep. For
-    # dinars, however, we look for 3 digits adter the decimal sep. So yes, we are vulnerable to
-    # confusion with the thousand sep, but well, there isn't much we can do about that.
-    Currencies.register('BHD', 'BHD', exponent=3)
-    eq_(parse_amount('1,000 BHD'), Amount(1, 'BHD'))
-    # Moreover, with custom currencies, we might have currencies with even bigger exponent.
-    Currencies.register('ABC', 'My foo currency', exponent=5)
-    eq_(parse_amount('1.23456 abc'), Amount(1.23456, 'ABC'))
-
-def test_parse_divide_rounding():
-    # Make sure that the value of an amount resulting from a division has the same precision as its
-    # currency, not more (otherwise, we end up with errors when balancing them out).
-    # we test for either 6.19 or 6.18 because we don't care about the details of rounding and we
-    # wouldn't want a specific python implementation to come and create a false failure.
-    assert float(parse_amount('12.37/2', 'USD')) in {6.18, 6.19}
-
-def test_parse_negative_amount():
-    # Test that a negative amount is correctly parsed
-    eq_(parse_amount('-12.34', 'USD'), Amount(-12.34, 'USD'))
-    eq_(parse_amount('-12.34', 'USD', with_expression=False), Amount(-12.34, 'USD'))
-
-def test_parse_negative_amount_parenthesis():
-    # Test that a negative amount denoted with parenthesis
-    # is parsed correctly
-    eq_(parse_amount('(12.34)', 'USD', with_expression=False), Amount(-12.34, 'USD'))
-    eq_(parse_amount('$(12.34)', 'USD', with_expression=False), Amount(-12.34, 'USD'))
-    eq_(parse_amount('-(12.34)', 'USD', with_expression=False), Amount(-12.34, 'USD'))
-
-def test_parse_dot_ambiguity():
-    # See #379
-    eq_(parse_amount('USD 1000*1.055'), Amount(1055, 'USD'))
-    # first dot should be considered a thousand sep
-    eq_(parse_amount('USD 1.000*1.055'), Amount(1055, 'USD'))
-
-def test_strict_currency():
-    # With the strict_currency flag enabled, we raise UnsupportedCurrencyError on unsupported
-    # currencies, even with a default_currency.
-    eq_(parse_amount('42', default_currency='USD', strict_currency=True), Amount(42, 'USD'))
-    with raises(UnsupportedCurrencyError):
-        parse_amount('ZZZ 42', default_currency='USD', strict_currency=True)
 
 # --- Format amount
 def test_format_blank_zero():
