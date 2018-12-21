@@ -30,7 +30,7 @@ def copydoc(doc):
         newdoc.entrycounts[a.name] = len(entries)
     newdoc.groups = copy.deepcopy(newdoc.groups)
     newdoc.transactions = [t.replicate() for t in newdoc.transactions]
-    newdoc.schedules = copy.deepcopy(newdoc.schedules)
+    newdoc.schedules = [s.replicate() for s in newdoc.schedules]
     newdoc.budgets = copy.copy(newdoc.budgets)
     return newdoc
 

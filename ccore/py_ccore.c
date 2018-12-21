@@ -461,18 +461,6 @@ py_currency_daterange(PyObject *self, PyObject *args)
 
 /* Amount Methods */
 static PyObject *
-PyAmount_copy(PyObject *self)
-{
-    return pyamount(&((PyAmount *)self)->amount);
-}
-
-static PyObject *
-PyAmount_deepcopy(PyObject *self, PyObject *args, PyObject *kwds)
-{
-    return PyAmount_copy(self);
-}
-
-static PyObject *
 PyAmount_repr(PyAmount *self)
 {
     PyObject *r, *fmt, *args;
@@ -1146,12 +1134,6 @@ PyAccount_copy(PyAccount *self)
     return (PyObject *)r;
 }
 
-static PyObject *
-PyAccount_deepcopy(PyAccount *self, PyObject *args, PyObject *kwds)
-{
-    return PyAccount_copy(self);
-}
-
 static void
 PyAccount_dealloc(PyAccount *self)
 {
@@ -1400,23 +1382,6 @@ PySplit_is_on_same_side(PySplit *self, PyObject *args)
     }
 }
 
-static PyObject *
-PySplit_copy(PySplit *self)
-{
-    PySplit *r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
-    r->split = malloc(sizeof(Split));
-    r->owned = true;
-    split_init(r->split, NULL, amount_zero(), 0);
-    PySplit_copy_from(r, (PyObject *)self);
-    return (PyObject *)r;
-}
-
-static PyObject *
-PySplit_deepcopy(PySplit *self, PyObject *args, PyObject *kwds)
-{
-    return PySplit_copy(self);
-}
-
 static Py_hash_t
 PySplit_hash(PySplit *self)
 {
@@ -1640,6 +1605,17 @@ PyTransaction_remove_split(PyTransaction *self, PySplit *split)
         return NULL;
     }
     Py_RETURN_NONE;
+}
+
+static PyObject *
+PyTransaction_repr(PyTransaction *self)
+{
+    PyObject *tdate = PyTransaction_date(self);
+    if (tdate == NULL) {
+        return NULL;
+    }
+    return PyUnicode_FromFormat(
+        "Transaction(%d %S %s)", self->txn.type, tdate, self->txn.description);
 }
 
 static int
@@ -1870,22 +1846,6 @@ PyEntry_normal_balance(PyEntry *self, PyObject *args)
         }
     }
     return pyamount(&amount);
-}
-
-static PyObject *
-PyEntry_copy(PyEntry *self)
-{
-    PyEntry *r = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
-    r->txn = self->txn;
-    Py_INCREF(r->txn);
-    entry_copy(&r->entry, &self->entry);
-    return (PyObject *)r;
-}
-
-static PyObject *
-PyEntry_deepcopy(PyEntry *self, PyObject *args, PyObject *kwds)
-{
-    return PyEntry_copy(self);
 }
 
 static PyObject *
@@ -2961,11 +2921,7 @@ PyTransactionList_dealloc(PyTransactionList *self)
 
 /* Python Boilerplate */
 
-/* We need both __copy__ and __deepcopy__ methods for amounts to behave
- * correctly in undo_test. */
 static PyMethodDef PyAmount_methods[] = {
-    {"__copy__", (PyCFunction)PyAmount_copy, METH_NOARGS, ""},
-    {"__deepcopy__", (PyCFunction)PyAmount_deepcopy, METH_VARARGS, ""},
     {0, 0, 0, 0},
 };
 
@@ -3000,8 +2956,6 @@ PyType_Spec Amount_Type_Spec = {
 };
 
 static PyMethodDef PySplit_methods[] = {
-    {"__copy__", (PyCFunction)PySplit_copy, METH_NOARGS, ""},
-    {"__deepcopy__", (PyCFunction)PySplit_deepcopy, METH_VARARGS, ""},
     {"copy_from", (PyCFunction)PySplit_copy_from, METH_O, ""},
     {"is_on_same_side", (PyCFunction)PySplit_is_on_same_side, METH_VARARGS, ""},
     {0, 0, 0, 0},
@@ -3064,8 +3018,6 @@ PyType_Spec Split_Type_Spec = {
 };
 
 static PyMethodDef PyEntry_methods[] = {
-    {"__copy__", (PyCFunction)PyEntry_copy, METH_NOARGS, ""},
-    {"__deepcopy__", (PyCFunction)PyEntry_deepcopy, METH_VARARGS, ""},
     {"change_amount", (PyCFunction)PyEntry_change_amount, METH_O, ""},
     {"normal_balance", (PyCFunction)PyEntry_normal_balance, METH_NOARGS, ""},
     {0, 0, 0, 0},
@@ -3161,7 +3113,6 @@ PyType_Spec EntryList_Type_Spec = {
 
 static PyMethodDef PyAccount_methods[] = {
     {"__copy__", (PyCFunction)PyAccount_copy, METH_NOARGS, ""},
-    {"__deepcopy__", (PyCFunction)PyAccount_deepcopy, METH_VARARGS, ""},
     {"normalize_amount", (PyCFunction)PyAccount_normalize_amount, METH_O, ""},
     {"is_balance_sheet_account", (PyCFunction)PyAccount_is_balance_sheet_account, METH_NOARGS, ""},
     {"is_credit_account", (PyCFunction)PyAccount_is_credit_account, METH_NOARGS, ""},
@@ -3277,6 +3228,7 @@ static PyType_Slot Transaction_Slots[] = {
     {Py_tp_init, PyTransaction_init},
     {Py_tp_methods, PyTransaction_methods},
     {Py_tp_getset, PyTransaction_getseters},
+    {Py_tp_repr, PyTransaction_repr},
     {Py_tp_dealloc, PyTransaction_dealloc},
     {0, 0},
 };

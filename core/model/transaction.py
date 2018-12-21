@@ -34,14 +34,6 @@ class Transaction(TransactionBase):
         TransactionBase.__init__(
             self, self.TYPE, date, description, payee, checkno, account, amount)
 
-    def __repr__(self):
-        return '<%s %r %r>' % (self.__class__.__name__, self.date, self.description)
-
-    def __deepcopy__(self, *args, **kwargs):
-        res = Transaction(self.date)
-        res.copy_from(self)
-        return res
-
     def amount_for_account(self, account, currency):
         """Returns the total sum attributed to ``account``.
 
