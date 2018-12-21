@@ -85,7 +85,7 @@ class Oven:
                     rdate = split.reconciliation_date
                     if rdate is not None and rdate >= from_date:
                         from_date = min(from_date, txn.date)
-        self._transactions.thelist().sort(key=attrgetter('date', 'position')) # needed in case until_date is None
+        self._transactions.sort() # needed in case until_date is None
         if until_date is None:
             until_date = self._transactions.last().date if self._transactions else from_date
         # Clear old cooked data
@@ -104,7 +104,7 @@ class Oven:
         # len(transactions)
         for counter, spawn in enumerate(spawns, start=len(self._transactions)):
             spawn.position = counter
-        txns = self._transactions.thelist() + spawns
+        txns = list(self._transactions) + spawns
         # we don't filter out txns > until_date because they might be budgets affecting current data
         # XXX now that budget's base date is the start date, isn't this untrue?
         tocook = [t for t in txns if from_date <= t.date]

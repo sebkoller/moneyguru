@@ -2917,10 +2917,28 @@ PyTransactionList_remove(PyTransactionList *self, PyObject *txn)
 }
 
 static PyObject*
-PyTransactionList_thelist(PyTransactionList *self, PyObject *args)
+PyTransactionList_sort(PyTransactionList *self, PyObject *args)
 {
-    Py_INCREF(self->txns);
-    return self->txns;
+    Py_ssize_t len = PyList_Size(self->txns);
+    PyObject *sorter = PyList_New(len);
+    for (int i=0; i<len; i++) {
+        PyTransaction *txn = (PyTransaction *)PyList_GetItem(self->txns, i); // borrowed
+        PyObject *date = PyTransaction_date(txn);
+        PyObject *position = PyTransaction_position(txn);
+        PyObject *t = PyTuple_Pack(3, date, position, (PyObject *)txn);
+        Py_DECREF(date);
+        Py_DECREF(position);
+        PyList_SetItem(sorter, i, t); // stolen
+    }
+    PyList_Sort(sorter);
+    for (int i=0; i<len; i++) {
+        PyObject *t = PyList_GetItem(sorter, i); // borrowed
+        PyObject *txn = PyTuple_GetItem(t, 2); // borrowed
+        Py_INCREF(txn);
+        PyList_SetItem(self->txns, i, txn); // stolen
+    }
+    Py_DECREF(sorter);
+    Py_RETURN_NONE;
 }
 
 static PyObject*
@@ -3277,8 +3295,7 @@ static PyMethodDef PyTransactionList_methods[] = {
     {"first", (PyCFunction)PyTransactionList_first, METH_NOARGS, ""},
     {"last", (PyCFunction)PyTransactionList_last, METH_NOARGS, ""},
     {"remove", (PyCFunction)PyTransactionList_remove, METH_O, ""},
-    // very temporarily there
-    {"thelist", (PyCFunction)PyTransactionList_thelist, METH_NOARGS, ""},
+    {"sort", (PyCFunction)PyTransactionList_sort, METH_NOARGS, ""},
     {0, 0, 0, 0},
 };
 
