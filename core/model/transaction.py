@@ -34,20 +34,6 @@ class Transaction(TransactionBase):
         TransactionBase.__init__(
             self, self.TYPE, date, description, payee, checkno, account, amount)
 
-    def amount_for_account(self, account, currency):
-        """Returns the total sum attributed to ``account``.
-
-        All amounts are converted to ``currency`` before doing the sum. This is needed because we
-        might have amounts with different currencies here.
-
-        :param account: :class:`.Account`
-        :Param currency: :class:`.Currency`
-
-        .. seealso:: :func:`.convert_amount`
-        """
-        splits = (s for s in self.splits if s.account == account)
-        return sum(convert_amount(s.amount, currency, self.date) for s in splits)
-
     def affected_accounts(self):
         """Returns a set of all accounts affected by self.
 

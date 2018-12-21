@@ -137,6 +137,29 @@ transaction_add_split(Transaction *txn)
 }
 
 void
+transaction_amount_for_account(
+    const Transaction *txn,
+    Amount *dest,
+    const Account *account)
+{
+    if (dest->currency == NULL) {
+        return;
+    }
+
+    Amount a;
+    amount_set(&a, 0, dest->currency);
+    dest->val = 0;
+
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        Split *s = &txn->splits[i];
+        if (s->account == account) {
+            amount_convert(&a, &s->amount, txn->date);
+            dest->val += a.val;
+        }
+    }
+}
+
+void
 transaction_balance_currencies(Transaction *txn, const Split *strong_split)
 {
     // What we're doings here is that we solve a logical imbalance. First, we

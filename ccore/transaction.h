@@ -43,6 +43,18 @@ transaction_deinit(Transaction *txn);
 Split*
 transaction_add_split(Transaction *txn);
 
+/* Returns the total sum attributed to `account`.
+ * 
+ * All amounts are converted to `dest->currency` (which must be set) before
+ * doing the sum. This is needed because we might have amounts with different
+ * currencies here.
+ */
+void
+transaction_amount_for_account(
+    const Transaction *txn,
+    Amount *dest,
+    const Account *account);
+
 /* Balances a multi-currency transaction.
  * 
  * Balancing out multi-currencies transasctions can be real easy because we

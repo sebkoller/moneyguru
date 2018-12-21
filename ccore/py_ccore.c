@@ -1538,6 +1538,27 @@ PyTransaction_splits_set(PyTransaction *self, PyObject *value)
 }
 
 static PyObject *
+PyTransaction_amount_for_account(PyTransaction *self, PyObject *args)
+{
+    PyObject *account_p;
+    char *code;
+    if (!PyArg_ParseTuple(args, "Os", &account_p, &code)) {
+        return NULL;
+    }
+    Account *account = NULL;
+    if (account_p != Py_None) {
+        account = ((PyAccount *)account_p)->account;
+    }
+    Amount a;
+    a.currency = getcur(code);
+    if (a.currency == NULL) {
+        return NULL;
+    }
+    transaction_amount_for_account(&self->txn, &a, account);
+    return pyamount(&a);
+}
+
+static PyObject *
 PyTransaction_add_split(PyTransaction *self, PySplit *split)
 {
     transaction_resize_splits(&self->txn, self->txn.splitcount+1);
@@ -3204,6 +3225,7 @@ PyType_Spec AccountList_Type_Spec = {
 };
 
 static PyMethodDef PyTransaction_methods[] = {
+    {"amount_for_account", (PyCFunction)PyTransaction_amount_for_account, METH_VARARGS, ""},
     {"add_split", (PyCFunction)PyTransaction_add_split, METH_O, ""},
     {"balance", (PyCFunction)PyTransaction_balance, METH_VARARGS, ""},
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
