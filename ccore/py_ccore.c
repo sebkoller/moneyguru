@@ -1646,6 +1646,7 @@ PyTransaction_remove_split(PyTransaction *self, PySplit *split)
     if (!transaction_remove_split(&self->txn, split->split)) {
         return NULL;
     }
+    transaction_balance(&self->txn, NULL, false);
     Py_RETURN_NONE;
 }
 

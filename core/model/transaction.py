@@ -194,10 +194,6 @@ class Transaction(TransactionBase):
                 split.reconciliation_date = None
                 split.account = reassign_to
 
-    def remove_split(self, split):
-        TransactionBase.remove_split(self, split)
-        self.balance()
-
     def replicate(self):
         res = Transaction(self.date)
         res.copy_from(self)
