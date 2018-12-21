@@ -187,7 +187,7 @@ class BaseDocument:
         for split in new.splits:
             if split.account is not None:
                 split.account = self.accounts.find(split.account.name, split.account.type)
-        original.set_splits(new.splits)
+        original.change(splits=new.splits)
         min_date = min(original.date, new.date)
         self._change_transaction(
             original, date=new.date, description=new.description,
@@ -1090,10 +1090,9 @@ class Document(BaseDocument, Repeater, GUIObject):
         self._undoer.record(action)
         original = schedule.ref
         min_date = min(original.date, new_ref.date)
-        original.set_splits(new_ref.splits)
         original.change(
             description=new_ref.description, payee=new_ref.payee,
-            checkno=new_ref.checkno, notes=new_ref.notes
+            checkno=new_ref.checkno, notes=new_ref.notes, splits=new_ref.splits
         )
         schedule.start_date = new_ref.date
         schedule.repeat_type = repeat_type

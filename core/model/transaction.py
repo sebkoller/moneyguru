@@ -92,7 +92,7 @@ class Transaction(TransactionBase):
 
     def change(
             self, date=NOEDIT, description=NOEDIT, payee=NOEDIT, checkno=NOEDIT, from_=NOEDIT,
-            to=NOEDIT, amount=NOEDIT, currency=NOEDIT, notes=NOEDIT):
+            to=NOEDIT, amount=NOEDIT, currency=NOEDIT, notes=NOEDIT, splits=NOEDIT):
         """Changes our transaction and do all proper stuff.
 
         Sets all specified arguments to their specified values and do proper adjustments, such as
@@ -135,6 +135,10 @@ class Transaction(TransactionBase):
             self.checkno = checkno
         if notes is not NOEDIT:
             self.notes = notes
+        if all(arg is not NOEDIT for arg in {amount, from_, to}) and not self.splits:
+            # special case: we're wanting to setup a new two-way txn.
+            self.splits = [Split(from_, amount), Split(to, -amount)]
+            amount = from_ = to = NOEDIT
         # the amount field has to be set first so that splitted_splits() is not confused by splits
         # with no amount.
         if (amount is not NOEDIT) and self.can_set_amount and amount != self.amount:
@@ -159,6 +163,8 @@ class Transaction(TransactionBase):
             for split in tochange:
                 split.amount = parse_amount('{} {}'.format(float(split.amount), currency))
                 split.reconciliation_date = None
+        if splits is not NOEDIT:
+            self.splits = splits
         # Reconciliation can never be lower than txn date
         for split in self.splits:
             if split.reconciliation_date is not None:
@@ -203,9 +209,6 @@ class Transaction(TransactionBase):
         res = Transaction(self.date)
         res.copy_from(self)
         return res
-
-    def set_splits(self, splits):
-        self.splits = splits
 
     def splitted_splits(self):
         """Returns :attr:`splits` separated in two groups ("froms" and "tos").

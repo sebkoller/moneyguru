@@ -11,7 +11,7 @@ from core.util import extract
 from .amount import prorate_amount
 from .date import DateRange, ONE_DAY
 from .recurrence import Recurrence, Spawn, DateCounter, RepeatType
-from .transaction import Transaction, Split
+from .transaction import Transaction
 
 class BudgetSpawn(Spawn):
     """:class:`.Spawn`, but for budgets.
@@ -98,9 +98,9 @@ class Budget(Recurrence):
             if abs(txns_amount) < abs(budget_amount):
                 spawn_amount = budget_amount - txns_amount
                 if spawn.amount_for_account(account, budget_amount.currency_code) != spawn_amount:
-                    spawn.set_splits([Split(account, spawn_amount), Split(self.target, -spawn_amount)])
+                    spawn.change(amount=spawn_amount, from_=account, to=self.target)
             else:
-                spawn.set_splits([])
+                spawn.change(amount=0, from_=account, to=self.target)
             consumedtxns |= set(wheat)
         self._previous_spawns = spawns
         return spawns
