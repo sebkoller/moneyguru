@@ -137,8 +137,13 @@ class Transaction(TransactionBase):
             self.notes = notes
         # the amount field has to be set first so that splitted_splits() is not confused by splits
         # with no amount.
-        if (amount is not NOEDIT) and self.can_set_amount:
-            self.amount = abs(amount)
+        if (amount is not NOEDIT) and self.can_set_amount and amount != self.amount:
+            amount = abs(amount)
+            debit = first(s for s in self.splits if s.debit)
+            credit = first(s for s in self.splits if s.credit)
+            debit_account = debit.account if debit is not None else None
+            credit_account = credit.account if credit is not None else None
+            self.splits = [Split(debit_account, amount), Split(credit_account, -amount)]
         if from_ is not NOEDIT:
             fsplits, _ = self.splitted_splits()
             if len(fsplits) == 1:
@@ -241,17 +246,6 @@ class Transaction(TransactionBase):
             return amount_sum * 0.5
         else:
             return sum(s.debit for s in self.splits)
-
-    @amount.setter
-    def amount(self, value):
-        assert self.can_set_amount
-        if value == self.amount:
-            return
-        debit = first(s for s in self.splits if s.debit)
-        credit = first(s for s in self.splits if s.credit)
-        debit_account = debit.account if debit is not None else None
-        credit_account = credit.account if credit is not None else None
-        self.splits = [Split(debit_account, value), Split(credit_account, -value)]
 
     @property
     def can_set_amount(self):

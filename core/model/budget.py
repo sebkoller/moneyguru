@@ -98,7 +98,6 @@ class Budget(Recurrence):
             if abs(txns_amount) < abs(budget_amount):
                 spawn_amount = budget_amount - txns_amount
                 if spawn.amount_for_account(account, budget_amount.currency_code) != spawn_amount:
-                    spawn.amount = abs(spawn_amount)
                     spawn.set_splits([Split(account, spawn_amount), Split(self.target, -spawn_amount)])
             else:
                 spawn.set_splits([])
