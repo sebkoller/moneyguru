@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -6,17 +6,17 @@
 
 from operator import itemgetter
 
-class TransactionList(list):
+from ._ccore import TransactionList as TransactionListBase
+
+class TransactionList(TransactionListBase):
     """Manages the :class:`.Transaction` instances of a document.
 
     This class is mostly about managing transactions sorting order, moving them around and keeping
     a cache of values to use for completion. There's only one of those in a document, in
     :attr:`.Document.transactions`.
-
-    Subclasses ``list``.
     """
-    def __init__(self, *args, **kwargs):
-        list.__init__(self, *args, **kwargs)
+    def __init__(self):
+        TransactionListBase.__init__(self)
         self._descriptions = None
         self._payees = None
         self._account_names = None
@@ -24,7 +24,7 @@ class TransactionList(list):
     # --- Overrides
     def remove(self, transaction):
         """Removes ``transaction`` from the list."""
-        list.remove(self, transaction)
+        TransactionListBase.remove(self, transaction)
         self.clear_cache()
 
     # --- Private
@@ -71,12 +71,12 @@ class TransactionList(list):
             transactions = self.transactions_at_date(transaction.date)
             if transactions:
                 transaction.position = max(t.position for t in transactions) + 1
-        self.append(transaction)
+        TransactionListBase.add(self, transaction)
         self.clear_cache()
 
     def clear(self):
         """Clears the list of all transactions."""
-        del self[:]
+        TransactionListBase.clear(self)
         self.clear_cache()
 
     def clear_cache(self):
@@ -95,7 +95,7 @@ class TransactionList(list):
         If, after such an operation, a transaction ends up referencing no account at all, it is
         removed.
         """
-        for transaction in self[:]:
+        for transaction in list(self):
             transaction.reassign_account(account, reassign_to)
             if not transaction.affected_accounts():
                 self.remove(transaction)

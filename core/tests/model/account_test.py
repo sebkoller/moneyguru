@@ -67,7 +67,8 @@ class TestOneAccount:
         Currencies.get_rates_db().set_CAD_value(date(2008, 1, 3), 'USD', 0.7)
         self.accounts = AccountList('CAD')
         self.account = self.accounts.create('Checking', 'USD', AccountType.Asset)
-        transactions = TransactionList([
+        transactions = TransactionList()
+        transactions.thelist().extend([
             Transaction(date(2007, 12, 31), account=self.account, amount=Amount(20, 'USD')),
             Transaction(date(2008, 1, 1), account=self.account, amount=Amount(100, 'USD')),
             Transaction(date(2008, 1, 2), account=self.account, amount=Amount(50, 'USD')),

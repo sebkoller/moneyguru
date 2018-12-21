@@ -110,6 +110,13 @@ typedef struct {
 
 static PyObject *EntryList_Type;
 
+typedef struct {
+    PyObject_HEAD
+    PyObject *txns;
+} PyTransactionList;
+
+static PyObject *TransactionList_Type;
+
 /* Utils */
 static PyObject*
 time2pydate(time_t date)
@@ -2842,6 +2849,98 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+/* PyTransactionList */
+
+static int
+PyTransactionList_init(PyTransactionList *self, PyObject *args, PyObject *kwds)
+{
+    static char *kwlist[] = {NULL};
+
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "", kwlist);
+    if (!res) {
+        return -1;
+    }
+
+    self->txns = PyList_New(0);
+    return 0;
+}
+
+static PyObject*
+PyTransactionList_add(PyTransactionList *self, PyObject *args)
+{
+    PyTransaction *txn;
+    int keep_position = false;
+    int position = -1;
+
+    if (!PyArg_ParseTuple(args, "O|pi", &txn, &keep_position, &position)) {
+        return NULL;
+    }
+    if (!PyObject_IsInstance((PyObject *)txn, Transaction_Type)) {
+        PyErr_SetString(PyExc_TypeError, "not a txn");
+        return NULL;
+    }
+    PyList_Append(self->txns, (PyObject *)txn);
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyTransactionList_clear(PyTransactionList *self, PyObject *args)
+{
+    Py_ssize_t len = PyList_Size(self->txns);
+    if (PyList_SetSlice(self->txns, 0, len, NULL) == -1) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyTransactionList_first(PyTransactionList *self, PyObject *args)
+{
+    PyObject *res = PyList_GetItem(self->txns, 0); // borrowed
+    Py_INCREF(res);
+    return res;
+}
+
+static PyObject*
+PyTransactionList_last(PyTransactionList *self, PyObject *args)
+{
+    Py_ssize_t len = PyList_Size(self->txns);
+    PyObject *res = PyList_GetItem(self->txns, len - 1); // borrowed
+    Py_INCREF(res);
+    return res;
+}
+
+static PyObject*
+PyTransactionList_remove(PyTransactionList *self, PyObject *txn)
+{
+    return PyObject_CallMethod(self->txns, "remove", "O", txn);
+}
+
+static PyObject*
+PyTransactionList_thelist(PyTransactionList *self, PyObject *args)
+{
+    Py_INCREF(self->txns);
+    return self->txns;
+}
+
+static PyObject*
+PyTransactionList_iter(PyTransactionList *self)
+{
+    return PyObject_GetIter(self->txns);
+}
+
+static Py_ssize_t
+PyTransactionList_len(PyTransactionList *self)
+{
+    return PyList_Size(self->txns);
+}
+
+static void
+PyTransactionList_dealloc(PyTransactionList *self)
+{
+    Py_DECREF(self->txns);
+}
+
 /* Python Boilerplate */
 
 /* We need both __copy__ and __deepcopy__ methods for amounts to behave
@@ -3172,6 +3271,34 @@ PyType_Spec Transaction_Type_Spec = {
     Transaction_Slots,
 };
 
+static PyMethodDef PyTransactionList_methods[] = {
+    {"add", (PyCFunction)PyTransactionList_add, METH_VARARGS, ""},
+    {"clear", (PyCFunction)PyTransactionList_clear, METH_NOARGS, ""},
+    {"first", (PyCFunction)PyTransactionList_first, METH_NOARGS, ""},
+    {"last", (PyCFunction)PyTransactionList_last, METH_NOARGS, ""},
+    {"remove", (PyCFunction)PyTransactionList_remove, METH_O, ""},
+    // very temporarily there
+    {"thelist", (PyCFunction)PyTransactionList_thelist, METH_NOARGS, ""},
+    {0, 0, 0, 0},
+};
+
+static PyType_Slot TransactionList_Slots[] = {
+    {Py_tp_init, PyTransactionList_init},
+    {Py_tp_methods, PyTransactionList_methods},
+    {Py_sq_length, PyTransactionList_len},
+    {Py_tp_iter, PyTransactionList_iter},
+    {Py_tp_dealloc, PyTransactionList_dealloc},
+    {0, 0},
+};
+
+PyType_Spec TransactionList_Type_Spec = {
+    "_ccore.TransactionList",
+    sizeof(PyTransactionList),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    TransactionList_Slots,
+};
+
 static struct PyModuleDef CCoreDef = {
     PyModuleDef_HEAD_INIT,
     "_ccore",
@@ -3225,5 +3352,8 @@ PyInit__ccore(void)
 
     Transaction_Type = PyType_FromSpec(&Transaction_Type_Spec);
     PyModule_AddObject(m, "Transaction", Transaction_Type);
+
+    TransactionList_Type = PyType_FromSpec(&TransactionList_Type_Spec);
+    PyModule_AddObject(m, "TransactionList", TransactionList_Type);
     return m;
 }

@@ -25,7 +25,7 @@ def test_checkbook_values():
     account = accounts[1]
     eq_(account.name, 'Account 2')
     eq_(account.currency, 'USD')
-    transactions = loader.transactions
+    transactions = list(loader.transactions)
     eq_(len(transactions), 8)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 1, 1))
@@ -101,7 +101,7 @@ def test_missing_values():
     account = accounts[0]
     eq_(account.name, 'Account')
     eq_(account.currency, 'USD')
-    transactions = loader.transactions
+    transactions = list(loader.transactions)
     eq_(len(transactions), 3)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 1, 1))
@@ -131,7 +131,6 @@ def test_four_digit_year():
     loader.load()
     accounts = loader.account_infos
     eq_(len(accounts), 1)
-    account = accounts[0]
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
     transaction = transactions[0]
@@ -143,7 +142,6 @@ def test_ddmmyy():
     loader.load()
     accounts = loader.account_infos
     eq_(len(accounts), 1)
-    account = accounts[0]
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
     transaction = transactions[0]
@@ -155,7 +153,6 @@ def test_ddmmyyyy():
     loader.load()
     accounts = loader.account_infos
     eq_(len(accounts), 1)
-    account = accounts[0]
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
     transaction = transactions[0]
@@ -167,7 +164,6 @@ def test_ddmmyyyy_with_dots():
     loader.load()
     accounts = loader.account_infos
     eq_(len(accounts), 1)
-    account = accounts[0]
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
     transaction = transactions[0]
@@ -179,7 +175,6 @@ def test_yyyymmdd_without_sep():
     loader.load()
     accounts = loader.account_infos
     eq_(len(accounts), 1)
-    account = accounts[0]
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
     transaction = transactions[0]
@@ -191,7 +186,6 @@ def test_yyyymmdd_with_sep():
     loader.load()
     accounts = loader.account_infos
     eq_(len(accounts), 1)
-    account = accounts[0]
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
     transaction = transactions[0]
@@ -203,7 +197,6 @@ def test_chr13_line_sep():
     loader.load()
     accounts = loader.account_infos
     eq_(len(accounts), 1)
-    account = accounts[0]
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
     transaction = transactions[0]
@@ -227,7 +220,7 @@ def test_accountless_with_splits():
     account = accounts[0]
     eq_(account.name, 'Account')
     eq_(account.currency, 'USD')
-    transactions = loader.transactions
+    transactions = list(loader.transactions)
     eq_(len(transactions), 2)
     transaction = transactions[0]
     eq_(transaction.date, date(2008, 8, 28))
@@ -251,7 +244,7 @@ def test_missing_line_sep():
     loader.parse(testdata.filepath('qif', 'missing_line_sep.qif'))
     loader.load()
     eq_(len(loader.transactions), 1)
-    eq_(loader.transactions[0].splits[0].amount, Amount(42.32, 'USD'))
+    eq_(loader.transactions.first().splits[0].amount, Amount(42.32, 'USD'))
 
 def test_credit_card():
     # A CCard account is imported as a liability
@@ -312,7 +305,7 @@ def test_extra_dline():
     loader.parse(testdata.filepath('qif', 'extra_dline.qif'))
     loader.load() # no crash
     eq_(len(loader.transactions), 1)
-    txn = loader.transactions[0]
+    txn = loader.transactions.first()
     eq_(txn.date, date(2010, 8, 7))
 
 def test_transfer_space_in_account_names():
@@ -359,7 +352,7 @@ def test_quicken_split_duplicate():
     loader.parse(testdata.filepath('qif', 'quicken_split_duplicate.qif'))
     loader.load()
     eq_(len(loader.transactions), 1)
-    eq_(len(loader.transactions[0].splits), 3)
+    eq_(len(loader.transactions.first().splits), 3)
 
 def test_same_date_same_amount():
     # There was a bug in QIF loading where two transactions with the same date and the same amount,

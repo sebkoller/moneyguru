@@ -1133,13 +1133,13 @@ class Document(BaseDocument, Repeater, GUIObject):
                 newdate += datetime.timedelta(days=refdate.day-newdate.day)
             return newdate
 
-        latest_date = self.transactions[-1].date
+        latest_date = self.transactions.last().date
         TODAY = datetime.date.today()
         year_diff = TODAY.year - latest_date.year
         month_diff = year_diff * 12 + (TODAY.month - latest_date.month)
         if month_diff < 1:
             return
-        for txn in self.transactions[:]:
+        for txn in list(self.transactions):
             txn.date = inc_month_overflow(txn.date, month_diff)
             if txn.date > TODAY:
                 self.transactions.remove(txn)
@@ -1350,8 +1350,8 @@ class Document(BaseDocument, Repeater, GUIObject):
         """Sets :attr:`date_range` to a :class:`.AllTransactionsRange`."""
         if not self.transactions:
             return
-        first_date = self.transactions[0].date
-        last_date = self.transactions[-1].date
+        first_date = self.transactions.first().date
+        last_date = self.transactions.last().date
         self.date_range = AllTransactionsRange(
             first_date=first_date, last_date=last_date,
             ahead_months=self.ahead_months

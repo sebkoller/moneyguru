@@ -29,7 +29,7 @@ def test_fortis():
     eq_(account.name, 'CSV Import')
     transactions = loader.transactions
     eq_(len(transactions), 18)
-    txn = transactions[0]
+    txn = transactions.first()
     eq_(txn.date, date(2008, 12, 1))
     eq_(txn.description, 'RETRAIT A UN DISTRIBUTEUR FORTIS')
     eq_(txn.splits[0].account.name, 'CSV Import')
