@@ -90,30 +90,6 @@ class Transaction(TransactionBase):
         TransactionBase.__init__(
             self, self.TYPE, date, description, payee, checkno, account, amount)
 
-    def assign_imbalance(self, target_split):
-        """Assigns remaining imbalance to the selected split.
-
-        If the ``target_split`` is not an assigned split, does nothing.
-        """
-        if target_split.account is None:
-            return
-        unassigned = [
-            split for split in self.splits
-            if split.account is None and split.amount
-        ]
-        if not unassigned:
-            return
-        if target_split.amount:
-            target_currency = target_split.amount.currency_code
-        else:
-            # Use whatever is the currency of the first split to show up
-            target_currency = unassigned[0].amount.currency_code
-        unassigned = [split for split in unassigned if split.amount.currency_code == target_currency]
-        amount = sum(split.amount for split in unassigned)
-        target_split.amount += amount
-        for split in unassigned:
-            self.remove_split(split)
-
     def change(
             self, date=NOEDIT, description=NOEDIT, payee=NOEDIT, checkno=NOEDIT, from_=NOEDIT,
             to=NOEDIT, amount=NOEDIT, currency=NOEDIT, notes=NOEDIT):

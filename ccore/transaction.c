@@ -64,15 +64,25 @@ _txn_balance_for_currency(const Transaction *txn, Amount *result)
 
 }
 
+/* Returns the first found unassigned split of the specified currency.
+ *
+ * If currency is NULL, we don't care about the currency.
+ * If a split has a zero amount, will match any specified currency.
+ * We never return a split with the index `except_index`.
+ */
 static Split*
 _txn_find_unassigned(Transaction *txn, Currency *c, int except_index)
 {
     for (unsigned int i=0; i<txn->splitcount; i++) {
         if (i == except_index) continue;
         Split *s = &txn->splits[i];
-        if (s->account == NULL
-            && (s->amount.currency == c || s->amount.currency == NULL)) {
-            return s;
+        if (s->account == NULL) {
+            if (c == NULL || s->amount.currency == NULL) {
+                return s;
+            }
+            if (s->amount.currency == c) {
+                return s;
+            }
         }
     }
     return NULL;
@@ -172,6 +182,34 @@ transaction_amount_for_account(
             dest->val += a.val;
         }
     }
+}
+
+bool
+transaction_assign_imbalance(Transaction *txn, Split *target)
+{
+    if (target->account == NULL) {
+        return false;
+    }
+    // get rid of zero-splits
+    transaction_balance(txn, target, false);
+    if (target->amount.currency == NULL) {
+        // We have a zero-amount target to which we want to assign an imbalance
+        // Use whatever is the currency of the first unassigned split we find.
+        Split *s = _txn_find_unassigned(txn, NULL, -1);
+        target->amount.currency = s->amount.currency;
+        if (target->amount.currency == NULL) {
+            // Hum, something's wrong.
+            return false;
+        }
+    }
+
+    Split *s = _txn_find_unassigned(txn, target->amount.currency, -1);
+    while (s != NULL) {
+        target->amount.val += s->amount.val;
+        transaction_remove_split(txn, s);
+        s = _txn_find_unassigned(txn, target->amount.currency, -1);
+    }
+    return true;
 }
 
 void

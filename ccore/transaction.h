@@ -55,6 +55,15 @@ transaction_add_split(Transaction *txn);
 Account**
 transaction_affected_accounts(Transaction *txn);
 
+/* Assigns remaining imbalance to the selected split.
+ *
+ * If the `target` is not an assigned split, does nothing.
+ *
+ * Returns whether an assignation was done.
+ */
+bool
+transaction_assign_imbalance(Transaction *txn, Split *target);
+
 /* Returns the total sum attributed to `account`.
  * 
  * All amounts are converted to `dest->currency` (which must be set) before

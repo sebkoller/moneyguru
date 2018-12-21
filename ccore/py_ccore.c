@@ -1583,6 +1583,13 @@ PyTransaction_add_split(PyTransaction *self, PySplit *split)
 }
 
 static PyObject *
+PyTransaction_assign_imbalance(PyTransaction *self, PySplit *target_split)
+{
+    transaction_assign_imbalance(&self->txn, target_split->split);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
 PyTransaction_balance(PyTransaction *self, PyObject *args)
 {
     PyObject *strong_split_p = NULL;
@@ -3237,6 +3244,7 @@ static PyMethodDef PyTransaction_methods[] = {
     {"amount_for_account", (PyCFunction)PyTransaction_amount_for_account, METH_VARARGS, ""},
     {"add_split", (PyCFunction)PyTransaction_add_split, METH_O, ""},
     {"affected_accounts", (PyCFunction)PyTransaction_affected_accounts, METH_NOARGS, ""},
+    {"assign_imbalance", (PyCFunction)PyTransaction_assign_imbalance, METH_O, ""},
     {"balance", (PyCFunction)PyTransaction_balance, METH_VARARGS, ""},
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
     {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
