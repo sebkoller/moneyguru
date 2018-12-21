@@ -58,4 +58,15 @@ strclone(char **dst, const char *src)
     return true;
 }
 
-
+/* Other */
+bool
+pointer_in_list(void **list, void *target)
+{
+    while (*list != NULL) {
+        if (*list == target) {
+            return true;
+        }
+        list++;
+    }
+    return false;
+}

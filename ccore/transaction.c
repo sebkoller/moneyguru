@@ -33,21 +33,15 @@ Currency**
 _txn_currencies(const Transaction *txn)
 {
     Currency **res = calloc((txn->splitcount + 1), sizeof(Currency *));
+    int count = 0;
     for (unsigned int i=0; i<txn->splitcount; i++) {
         Currency *c = txn->splits[i].amount.currency;
         if (c == NULL) {
             continue;
         }
-        Currency **iter = res;
-        while (1) {
-            if (*iter == c) {
-                break;
-            } else if (*iter == NULL) {
-                *iter = c;
-                break;
-            } else {
-                iter++;
-            }
+        if (!pointer_in_list((void**)res, (void*)c)) {
+            res[count] = c;
+            count++;
         }
     }
     return res;
@@ -117,6 +111,7 @@ transaction_init(Transaction *txn, TransactionType type, time_t date)
     txn->mtime = 0;
     txn->splits = malloc(0);
     txn->splitcount = 0;
+    txn->affected_accounts = NULL;
 }
 
 void
@@ -127,6 +122,7 @@ transaction_deinit(Transaction *txn)
     strfree(&txn->checkno);
     strfree(&txn->notes);
     free(txn->splits);
+    free(txn->affected_accounts);
 }
 
 Split*
@@ -134,6 +130,25 @@ transaction_add_split(Transaction *txn)
 {
     transaction_resize_splits(txn, txn->splitcount+1);
     return &txn->splits[txn->splitcount-1];
+}
+
+Account**
+transaction_affected_accounts(Transaction *txn)
+{
+    txn->affected_accounts = realloc(
+        txn->affected_accounts, sizeof(Account*) * (txn->splitcount+1));
+    txn->affected_accounts[0] = NULL;
+    int count = 0;
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        Split *s = &txn->splits[i];
+        if (s->account == NULL) continue;
+        if (!pointer_in_list((void**)txn->affected_accounts, (void*)s->account)) {
+            txn->affected_accounts[count] = s->account;
+            count++;
+            txn->affected_accounts[count] = NULL;
+        }
+    }
+    return txn->affected_accounts;
 }
 
 void

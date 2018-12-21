@@ -90,13 +90,6 @@ class Transaction(TransactionBase):
         TransactionBase.__init__(
             self, self.TYPE, date, description, payee, checkno, account, amount)
 
-    def affected_accounts(self):
-        """Returns a set of all accounts affected by self.
-
-        ... meaning all accounts references by our :attr:`splits`.
-        """
-        return set(s.account for s in self.splits if s.account is not None)
-
     def assign_imbalance(self, target_split):
         """Assigns remaining imbalance to the selected split.
 

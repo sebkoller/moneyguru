@@ -113,6 +113,30 @@ static void test_balance()
     accounts_deinit(&al);
 }
 
+static void test_affected_accounts()
+{
+    Currency *USD = currency_get("USD");
+    AccountList al;
+    accounts_init(&al, 2, USD);
+    Account *a1 = accounts_create(&al);
+    Account *a2 = accounts_create(&al);
+    Transaction t;
+    transaction_init(&t, TXN_TYPE_NORMAL, 42);
+
+    Split *s = transaction_add_split(&t);
+    s->account = a2;
+    s = transaction_add_split(&t);
+    s->account = NULL;
+    s = transaction_add_split(&t);
+    s->account = a1;
+    s = transaction_add_split(&t);
+    s->account = a2;
+    Account **affected = transaction_affected_accounts(&t);
+    CU_ASSERT_PTR_EQUAL(affected[0], a2);
+    CU_ASSERT_PTR_EQUAL(affected[1], a1);
+    CU_ASSERT_PTR_NULL(affected[2]);
+}
+
 void test_transaction_init()
 {
     CU_pSuite s;
@@ -121,4 +145,5 @@ void test_transaction_init()
     CU_ADD_TEST(s, test_remove_split);
     CU_ADD_TEST(s, test_balance_currencies);
     CU_ADD_TEST(s, test_balance);
+    CU_ADD_TEST(s, test_affected_accounts);
 }

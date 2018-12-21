@@ -37,3 +37,10 @@ strfree(char **dst);
 
 bool
 strclone(char **dst, const char *src);
+
+/* Other */
+
+/* Returns whether pointer `target` is is NULL-terminated list `list`
+ */
+bool
+pointer_in_list(void **list, void *target);

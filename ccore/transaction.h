@@ -32,6 +32,9 @@ typedef struct {
     // list is never over-allocated. This means that all splits are "valid".
     Split *splits;
     unsigned int splitcount;
+    // Used to hold the result of transaction_affected_accounts(). Is
+    // reinitialized on each call and freed on transaction_deinit().
+    Account **affected_accounts;
 } Transaction;
 
 void
@@ -42,6 +45,15 @@ transaction_deinit(Transaction *txn);
 
 Split*
 transaction_add_split(Transaction *txn);
+
+/* Returns a NULL-terminated list of all accounts affected by txn.
+ *
+ * ... meaning all accounts references by our splits. Returned list is managed
+ * by the transaction itself. Do not free. Do not keep around either, will be
+ * overwritten/reallocated on next call.
+ */
+Account**
+transaction_affected_accounts(Transaction *txn);
 
 /* Returns the total sum attributed to `account`.
  * 

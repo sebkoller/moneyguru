@@ -1559,6 +1559,20 @@ PyTransaction_amount_for_account(PyTransaction *self, PyObject *args)
 }
 
 static PyObject *
+PyTransaction_affected_accounts(PyTransaction *self, PyObject *args)
+{
+    Account **accounts = transaction_affected_accounts(&self->txn);
+    PyObject *res = PySet_New(NULL);
+    while (*accounts != NULL) {
+        PyAccount *a = _PyAccount_from_account(*accounts);
+        PySet_Add(res, (PyObject*)a);
+        Py_DECREF(a);
+        accounts++;
+    }
+    return res;
+}
+
+static PyObject *
 PyTransaction_add_split(PyTransaction *self, PySplit *split)
 {
     transaction_resize_splits(&self->txn, self->txn.splitcount+1);
@@ -2942,10 +2956,6 @@ PyTransactionList_dealloc(PyTransactionList *self)
 
 /* Python Boilerplate */
 
-static PyMethodDef PyAmount_methods[] = {
-    {0, 0, 0, 0},
-};
-
 static PyGetSetDef PyAmount_getseters[] = {
     {"currency_code", (getter)PyAmount_getcurrency_code, NULL, "currency_code", NULL},
     {0, 0, 0, 0, 0},
@@ -2955,7 +2965,6 @@ static PyType_Slot Amount_Slots[] = {
     {Py_tp_repr, PyAmount_repr},
     {Py_tp_hash, PyAmount_hash},
     {Py_tp_richcompare, PyAmount_richcompare},
-    {Py_tp_methods, PyAmount_methods},
     {Py_tp_getset, PyAmount_getseters},
     {Py_nb_add, PyAmount_add},
     {Py_nb_subtract, PyAmount_sub},
@@ -3227,6 +3236,7 @@ PyType_Spec AccountList_Type_Spec = {
 static PyMethodDef PyTransaction_methods[] = {
     {"amount_for_account", (PyCFunction)PyTransaction_amount_for_account, METH_VARARGS, ""},
     {"add_split", (PyCFunction)PyTransaction_add_split, METH_O, ""},
+    {"affected_accounts", (PyCFunction)PyTransaction_affected_accounts, METH_NOARGS, ""},
     {"balance", (PyCFunction)PyTransaction_balance, METH_VARARGS, ""},
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
     {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
