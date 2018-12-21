@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-01-09
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -14,6 +12,7 @@ from ..document import FilterType
 from ..model.account import AccountType
 from ..model.amount import convert_amount
 from ..model.budget import BudgetSpawn
+from ..model.transaction import txn_matches
 from .base import BaseView, MESSAGES_DOCUMENT_CHANGED
 from .filter_bar import FilterBar
 from .mass_edition_panel import MassEditionPanel
@@ -81,7 +80,7 @@ class TransactionView(BaseView, ViewWithTransactionsMixin):
             return
         if query_string:
             query = self.app.parse_search_query(query_string)
-            txns = [t for t in txns if t.matches(query)]
+            txns = [t for t in txns if txn_matches(t, query)]
         if filter_type is FilterType.Unassigned:
             txns = [t for t in txns if t.has_unassigned_split]
         elif filter_type is FilterType.Income:

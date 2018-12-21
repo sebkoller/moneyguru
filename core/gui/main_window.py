@@ -16,6 +16,7 @@ from ..document import FilterType
 from ..exception import OperationAborted, FileFormatError
 from ..model.date import inc_month, DateFormat
 from ..model.recurrence import Recurrence, RepeatType
+from ..model.transaction import txn_matches
 from ..loader import csv, qif, ofx, native
 from .base import GUIObject, MESSAGES_DOCUMENT_CHANGED
 from .search_field import SearchField
@@ -277,7 +278,7 @@ class MainWindow(Repeater, GUIObject):
         filter_type = self.document.filter_type
         if query_string:
             query = self.app.parse_search_query(query_string)
-            entries = [e for e in entries if e.transaction.matches(query)]
+            entries = [e for e in entries if txn_matches(e.transaction, query)]
         if filter_type is FilterType.Unassigned:
             entries = [e for e in entries if not e.transfer]
         elif (filter_type is FilterType.Income) or (filter_type is FilterType.Expense):
