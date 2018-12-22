@@ -36,6 +36,8 @@ class monkeyplus(MonkeyPatch):
         time_now = time.time()
         delta = today - new_today
         self.setattr(time, 'time', lambda: time_now - (delta.days * 24 * 60 * 60))
+        from core.model._ccore import patch_today
+        patch_today(new_today)
 
     def patch_time_ticking(self, force_int_diff=False):
         """Patches time.time() and ensures that it never returns the same value each time it's
@@ -61,6 +63,11 @@ class monkeyplus(MonkeyPatch):
             return result
 
         self.setattr(time, 'time', fake_time)
+
+    def undo(self):
+        super().undo()
+        from core.model._ccore import patch_today
+        patch_today(None)
 
 
 global_monkeypatch = None

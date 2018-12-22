@@ -4,13 +4,9 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import time
-import datetime
-
 from core.util import allsame, first
 
-from ..const import NOEDIT
-from .amount import parse_amount, convert_amount, of_currency
+from .amount import convert_amount, of_currency
 from ._ccore import Split, Transaction as TransactionBase
 
 def txn_matches(txn, query):
@@ -89,87 +85,6 @@ class Transaction(TransactionBase):
     def __init__(self, date, description=None, payee=None, checkno=None, account=None, amount=None):
         TransactionBase.__init__(
             self, self.TYPE, date, description, payee, checkno, account, amount)
-
-    def change(
-            self, date=NOEDIT, description=NOEDIT, payee=NOEDIT, checkno=NOEDIT, from_=NOEDIT,
-            to=NOEDIT, amount=NOEDIT, currency=NOEDIT, notes=NOEDIT, splits=NOEDIT):
-        """Changes our transaction and do all proper stuff.
-
-        Sets all specified arguments to their specified values and do proper adjustments, such as
-        making sure that our :attr:`Split.reconciliation_date` still make sense and updates our
-        :attr:`mtime`.
-
-        Moreover, it offers a convenient interface to specify a two-way transaction with ``from_``,
-        ``to`` and ``amount``. When those are set, we'll set up splits corresponding to this two-way
-        money movement.
-
-        If ``currency`` is set, it changes the currency of the amounts in all :attr:`splits`,
-        without conversion with exchange rates. Amounts are kept intact.
-
-        :param date: ``datetime.date``
-        :param description: ``str``
-        :param payee: ``str``
-        :param checkno: ``str``
-        :param from_: :class:`.Account`
-        :param to: :class:`.Account`
-        :param amount: :class:`.Amount`
-        :param currency: :class:`.Currency`
-        :param notes: ``str``
-        """
-        # from_ and to are Account instances
-        if date is not NOEDIT:
-            # If reconciliation dates were equal to txn date, make it follow
-            for split in self.splits:
-                if split.reconciliation_date == self.date:
-                    split.reconciliation_date = date
-            # If the new date is in the future, we de-reconcile the splits
-            if date > datetime.date.today():
-                for split in self.splits:
-                    split.reconciliation_date = None
-            self.date = date
-        if description is not NOEDIT:
-            self.description = description
-        if payee is not NOEDIT:
-            self.payee = payee
-        if checkno is not NOEDIT:
-            self.checkno = checkno
-        if notes is not NOEDIT:
-            self.notes = notes
-        if all(arg is not NOEDIT for arg in {amount, from_, to}) and not self.splits:
-            # special case: we're wanting to setup a new two-way txn.
-            self.splits = [Split(from_, amount), Split(to, -amount)]
-            amount = from_ = to = NOEDIT
-        # the amount field has to be set first so that splitted_splits() is not confused by splits
-        # with no amount.
-        if (amount is not NOEDIT) and self.can_set_amount and amount != self.amount:
-            amount = abs(amount)
-            debit = first(s for s in self.splits if s.debit)
-            credit = first(s for s in self.splits if s.credit)
-            debit_account = debit.account if debit is not None else None
-            credit_account = credit.account if credit is not None else None
-            self.splits = [Split(debit_account, amount), Split(credit_account, -amount)]
-        if from_ is not NOEDIT:
-            fsplits, _ = self.splitted_splits()
-            if len(fsplits) == 1:
-                fsplit = fsplits[0]
-                fsplit.account = from_
-        if to is not NOEDIT:
-            _, tsplits = self.splitted_splits()
-            if len(tsplits) == 1:
-                tsplit = tsplits[0]
-                tsplit.account = to
-        if currency is not NOEDIT:
-            tochange = (s for s in self.splits if s.amount and s.amount.currency_code != currency)
-            for split in tochange:
-                split.amount = parse_amount('{} {}'.format(float(split.amount), currency))
-                split.reconciliation_date = None
-        if splits is not NOEDIT:
-            self.splits = splits
-        # Reconciliation can never be lower than txn date
-        for split in self.splits:
-            if split.reconciliation_date is not None:
-                split.reconciliation_date = max(split.reconciliation_date, self.date)
-        self.mtime = time.time()
 
     def mct_balance(self, new_split_currency):
         """Balances a :ref:`multi-currency transaction <multi-currency-txn>` using exchange rates.

@@ -1625,6 +1625,187 @@ PyTransaction_copy_from(PyTransaction *self, PyTransaction *other)
     Py_RETURN_NONE;
 }
 
+/* Changes our transaction and do all proper stuff.
+ *
+ * Sets all specified arguments to their specified values and do proper
+ * adjustments, such as making sure that our `Split.reconciliation_date`
+ * still make sense and updates our `mtime`.
+ *
+ * Moreover, it offers a convenient interface to specify a two-way transaction
+ * with `from_`, `to` and `amount`. When those are set, we'll set up splits
+ * corresponding to this two-way money movement.
+ *
+ * If `currency` is set, it changes the currency of the amounts in all `splits`,
+ * without conversion with exchange rates. Amounts are kept intact.
+ */
+static PyObject*
+PyTransaction_change(PyTransaction *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *date_p = NULL;
+    PyObject *description = NULL;
+    PyObject *payee = NULL;
+    PyObject *checkno = NULL;
+    PyObject *notes = NULL;
+    PyAccount *from_p = NULL;
+    PyAccount *to_p = NULL;
+    PyObject *amount_p = NULL;
+    PyObject *splits = NULL;
+    char *currency_code = NULL;
+    static char *kwlist[] = {"date", "description", "payee", "checkno", "from_",
+        "to", "amount", "currency", "notes", "splits", NULL};
+
+    int res = PyArg_ParseTupleAndKeywords(args, kwds, "|OOOOOOOzOO", kwlist,
+        &date_p, &description, &payee, &checkno, &from_p, &to_p, &amount_p,
+        &currency_code, &notes, &splits);
+    if (!res) {
+        return NULL;
+    }
+
+    Transaction *txn = &self->txn;
+    Account *from = NULL;
+    if (from_p != NULL && (PyObject *)from_p != Py_None) {
+        from = from_p->account;
+    }
+    Account *to = NULL;
+    if (to_p != NULL && (PyObject *)to_p != Py_None) {
+        to = to_p->account;
+    }
+    const Amount *amount = NULL;
+    if (amount_p != NULL) {
+        amount = get_amount(amount_p);
+    }
+    Currency *currency = NULL;
+    if (currency_code != NULL) {
+        currency = getcur(currency_code);
+        if (currency == NULL) {
+            return NULL;
+        }
+    }
+    if (date_p != NULL) {
+        time_t date = pydate2time(date_p);
+        if (date == 1) {
+            return NULL;
+        }
+        bool future = date > today();
+        for (unsigned int i=0; i<txn->splitcount; i++) {
+            Split *s = &txn->splits[i];
+            if (future) {
+                s->reconciliation_date = 0;
+            } else if (s->reconciliation_date == txn->date) {
+                // When txn/split dates are in sync, we keep them in sync.
+                s->reconciliation_date = date;
+            }
+        }
+        txn->date = date;
+    }
+    if (description != NULL) {
+        _strset(&txn->description, description);
+    }
+    if (payee != NULL) {
+        _strset(&txn->payee, payee);
+    }
+    if (checkno != NULL) {
+        _strset(&txn->checkno, checkno);
+    }
+    if (notes != NULL) {
+        _strset(&txn->notes, notes);
+    }
+    if (amount != NULL && from_p != NULL && to_p != NULL && txn->splitcount == 0) {
+        // special case: we're wanting to setup a new two-way txn.
+        transaction_resize_splits(txn, 2);
+        txn->splits[0].account = from;
+        amount_copy(&txn->splits[0].amount, amount);
+        txn->splits[1].account = to;
+        amount_neg(&txn->splits[1].amount, amount);
+        amount = NULL;
+        from = to = NULL;
+        from_p = to_p = NULL;
+    }
+    if (amount != NULL && txn->splitcount == 2 && !transaction_is_mct(txn)) {
+        Amount *first = &txn->splits[0].amount;
+        Amount *second = &txn->splits[1].amount;
+        if ((first->val > 0) == (amount->val > 0)) {
+            amount_copy(first, amount);
+            amount_neg(second, amount);
+        } else {
+            amount_neg(first, amount);
+            amount_copy(second, amount);
+        }
+    }
+    if (from_p != NULL || to_p != NULL) {
+        Split *found_from = NULL;
+        Split *found_to = NULL;
+        bool multiple_from = false;
+        bool multiple_to = false;
+        for (unsigned int i=0; i<txn->splitcount; i++) {
+            Split *s = &txn->splits[i];
+            if (s->amount.val == 0) {
+                // could be either a to or a from. The rules below come from
+                // the old python implementation: When we have multiple null
+                // splits, "to" gets the last of them all the time. If there are
+                // more than 2, "from" gets none of them (can't have multiple
+                // splits in from/to assignment targets), but "to" still gets
+                // the last one. When we mix null and not-null splits on the
+                // "to" side, however, then we can get in a "multiple_to"
+                // situation.
+                if (found_from == NULL) {
+                    found_from = s;
+                } else if (found_to == NULL) {
+                    found_to = s;
+                } else {
+                    multiple_from = true;
+                    if (found_to->amount.val == 0) {
+                        found_to = s;
+                    } else {
+                        multiple_to = true;
+                    }
+                }
+            }
+            else if (txn->splits[i].amount.val <= 0) {
+                if (found_from == NULL) {
+                    found_from = s;
+                } else {
+                    multiple_from = true;
+                }
+            } else {
+                if (found_to == NULL) {
+                    found_to = s;
+                } else {
+                    multiple_to = true;
+                }
+            }
+        }
+        if (found_from != NULL && from_p != NULL && !multiple_from) {
+            split_account_set(found_from, from);
+        }
+        if (found_to != NULL && to_p != NULL && !multiple_to) {
+            split_account_set(found_to, to);
+        }
+    }
+    if (currency != NULL) {
+        for (unsigned int i=0; i<txn->splitcount; i++) {
+            Split *s = &txn->splits[i];
+            if (s->amount.currency != NULL && s->amount.currency != currency) {
+                s->amount.currency = currency;
+                s->reconciliation_date = 0;
+            }
+        }
+        transaction_balance(txn, NULL, false);
+    }
+    if (splits != NULL) {
+        PyTransaction_splits_set(self, splits);
+    }
+    // Reconciliation can never be lower than txn date
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        Split *s = &txn->splits[i];
+        if (s->reconciliation_date > 0 && s->reconciliation_date < txn->date) {
+            s->reconciliation_date = txn->date;
+        }
+    }
+    txn->mtime = now();
+    Py_RETURN_NONE;
+}
+
 static PyObject *
 PyTransaction_move_split(PyTransaction *self, PyObject *args)
 {
@@ -2852,6 +3033,22 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject*
+py_patch_today(PyObject *self, PyObject *today_p)
+{
+    if (today_p == Py_None) {
+        // unpatch
+        today_patch(0);
+    } else {
+        time_t today = pydate2time(today_p);
+        if (today == 1) {
+            return NULL;
+        }
+        today_patch(today);
+    }
+    Py_RETURN_NONE;
+}
+
 /* PyTransactionList */
 
 static int
@@ -3112,6 +3309,7 @@ static PyMethodDef module_methods[] = {
     {"currency_set_CAD_value", py_currency_set_CAD_value, METH_VARARGS},
     {"currency_daterange", py_currency_daterange, METH_VARARGS},
     {"oven_cook_txns", py_oven_cook_txns, METH_VARARGS},
+    {"patch_today", py_patch_today, METH_O},
     {NULL}  /* Sentinel */
 };
 
@@ -3247,6 +3445,7 @@ static PyMethodDef PyTransaction_methods[] = {
     {"affected_accounts", (PyCFunction)PyTransaction_affected_accounts, METH_NOARGS, ""},
     {"assign_imbalance", (PyCFunction)PyTransaction_assign_imbalance, METH_O, ""},
     {"balance", (PyCFunction)PyTransaction_balance, METH_VARARGS, ""},
+    {"change", (PyCFunction)PyTransaction_change, METH_VARARGS|METH_KEYWORDS, ""},
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
     {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
     {"remove_split", (PyCFunction)PyTransaction_remove_split, METH_O, ""},

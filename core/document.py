@@ -124,15 +124,11 @@ class BaseDocument:
         min_date = min(t.date for t in transactions)
         self._cook(from_date=min_date)
 
-    def _change_transaction(
-            self, transaction, date=NOEDIT, description=NOEDIT, payee=NOEDIT,
-            checkno=NOEDIT, from_=NOEDIT, to=NOEDIT, amount=NOEDIT, currency=NOEDIT,
-            notes=NOEDIT, global_scope=False):
+    def _change_transaction(self, transaction, global_scope=False, **kwargs):
+        date = kwargs.get('date', NOEDIT)
         date_changed = date is not NOEDIT and date != transaction.date
-        transaction.change(
-            date=date, description=description, payee=payee, checkno=checkno,
-            from_=from_, to=to, amount=amount, currency=currency, notes=notes
-        )
+        kws = {k: v for k, v in kwargs.items() if v is not NOEDIT}
+        transaction.change(**kws)
         # XXX This Spawn-related code piece doesn't belong in `BaseDocument`, but in the middle of
         # a big refactoring, there wasn't an easy way to extract it out to `Document` without
         # needlessly complexifying the code. Some day, we'll have to find an elegant solution to

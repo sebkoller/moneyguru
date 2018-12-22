@@ -356,6 +356,32 @@ transaction_copy(Transaction *dst, Transaction *src)
 }
 
 bool
+transaction_is_mct(const Transaction *txn)
+{
+    if (txn->splitcount < 2) {
+        return false;
+    }
+    Currency **currencies = _txn_currencies(txn);
+    // Because we have more than 0 splits, currencies has at the very least 2
+    // items, so the check below is safe.
+    bool mct = currencies[1] != NULL;
+    free(currencies);
+    return mct;
+}
+
+bool
+transaction_is_null(const Transaction *txn)
+{
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        Split *s = &txn->splits[i];
+        if (s->account != NULL || s->amount.val != 0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool
 transaction_move_split(Transaction *txn, Split *split, unsigned int newindex)
 {
     if (!_txn_check_ownership(txn, split)) {

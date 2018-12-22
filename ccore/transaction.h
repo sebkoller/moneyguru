@@ -140,6 +140,15 @@ transaction_cmp(const Transaction *a, const Transaction *b);
 bool
 transaction_copy(Transaction *dst, Transaction *src);
 
+// Returns whether splits hold more than one currency
+bool
+transaction_is_mct(const Transaction *txn);
+
+// Returns true if txn doesn't contain any significant split (either with an
+// amount or an account)
+bool
+transaction_is_null(const Transaction *txn);
+
 bool
 transaction_move_split(Transaction *txn, Split *split, unsigned int newindex);
 

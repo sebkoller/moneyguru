@@ -57,6 +57,40 @@ strclone(char **dst, const char *src)
     }
     return true;
 }
+/* Time */
+
+static time_t g_patched_today = 0;
+
+time_t
+today()
+{
+    if (g_patched_today > 0) {
+        return g_patched_today;
+    }
+    time_t r = time(NULL);
+    r /= 60 * 60 * 24;
+    r *= 60 * 60 * 24;
+    return r;
+}
+
+void
+today_patch(time_t today)
+{
+    g_patched_today = today;
+}
+
+static time_t g_prevnow = 0;
+
+time_t
+now()
+{
+    time_t r = time(NULL);
+    if (r <= g_prevnow) {
+        r = g_prevnow + 1;
+    }
+    g_prevnow = r;
+    return r;
+}
 
 /* Other */
 bool

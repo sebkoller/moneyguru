@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <time.h>
 
 /* String management in ccore
  *
@@ -37,6 +38,22 @@ strfree(char **dst);
 
 bool
 strclone(char **dst, const char *src);
+
+/* Time */
+// Returns today's time_t in a "normalized" way (truncated to discard time).
+// today() == today() if both are called in the same day.
+time_t
+today();
+
+// Patch the result of today()
+void
+today_patch(time_t today);
+
+// Returns time(0) but at the same time ensures uniqueness of the results. If
+// In other words, now() < now() is always true. This causes us to bend time
+// a little bit when needed.
+time_t
+now();
 
 /* Other */
 
