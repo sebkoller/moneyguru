@@ -149,6 +149,20 @@ transaction_is_mct(const Transaction *txn);
 bool
 transaction_is_null(const Transaction *txn);
 
+/* Balances a multi-currency transaction using exchange rates.
+ *
+ * *This balancing doesn't occur automatically, it is a user-initiated action.*
+ * 
+ * Sums up the value of all splits in `new_split_currency`, using exchange
+ * rates for `txn.date`. If not zero, create a new unassigned split with the
+ * opposite of that amount.
+ * 
+ * Of course, we need to have called `transaction_balance()` before we can call
+ * this.
+ */
+void
+transaction_mct_balance(Transaction *txn, Currency *new_split_currency);
+
 bool
 transaction_move_split(Transaction *txn, Split *split, unsigned int newindex);
 

@@ -4,10 +4,10 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from core.util import allsame, first
+from core.util import allsame
 
-from .amount import convert_amount, of_currency
-from ._ccore import Split, Transaction as TransactionBase
+from .amount import convert_amount
+from ._ccore import Transaction as TransactionBase
 
 def txn_matches(txn, query):
     """Return whether ``txn`` is matching ``query``.
@@ -101,27 +101,6 @@ class Transaction(TransactionBase):
     def __init__(self, date, description=None, payee=None, checkno=None, account=None, amount=None):
         TransactionBase.__init__(
             self, self.TYPE, date, description, payee, checkno, account, amount)
-
-    def mct_balance(self, new_split_currency):
-        """Balances a :ref:`multi-currency transaction <multi-currency-txn>` using exchange rates.
-
-        *This balancing doesn't occur automatically, it is a user-initiated action.*
-
-        Sums up the value of all splits in ``new_split_currency``, using exchange rates for
-        :attr:`date`. If not zero, create a new unassigned split with the opposite of that amount.
-
-        Of course, we need to have called :meth:`balance` before we can call this.
-
-        :param new_split_currency: :class:`.Currency`
-        """
-        converted_amounts = (convert_amount(split.amount, new_split_currency, self.date) for split in self.splits)
-        converted_total = sum(converted_amounts)
-        if converted_total != 0:
-            target = first(s for s in self.splits if (s.account is None) and of_currency(s.amount, new_split_currency))
-            if target is not None:
-                target.amount -= converted_total
-            else:
-                self.add_split(Split(None, -converted_total))
 
     def reassign_account(self, account, reassign_to=None):
         """Reassign all splits from ``account`` to ``reassign_to``.

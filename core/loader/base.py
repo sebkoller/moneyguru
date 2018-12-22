@@ -14,14 +14,14 @@ from core.util import nonone, flatten, stripfalse, dedupe
 from core.trans import tr
 
 from ..exception import FileFormatError
-from ..model._ccore import AccountList
+from ..model._ccore import AccountList, Split
 from ..model.account import Group, GroupList, AccountType
 from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
 from ..model.budget import Budget
 from ..model.currency import Currencies
 from ..model.oven import Oven
 from ..model.recurrence import Recurrence, Spawn
-from ..model.transaction import Transaction, Split
+from ..model.transaction import Transaction
 from ..model.transaction_list import TransactionList
 
 # date formats to use for format guessing

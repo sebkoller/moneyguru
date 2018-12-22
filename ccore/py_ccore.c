@@ -1807,6 +1807,22 @@ PyTransaction_change(PyTransaction *self, PyObject *args, PyObject *kwds)
 }
 
 static PyObject *
+PyTransaction_mct_balance(PyTransaction *self, PyObject *args)
+{
+    char *new_split_currency_code;
+
+    if (!PyArg_ParseTuple(args, "s", &new_split_currency_code)) {
+        return NULL;
+    }
+    Currency *new_split_currency = getcur(new_split_currency_code);
+    if (new_split_currency == NULL) {
+        return NULL;
+    }
+    transaction_mct_balance(&self->txn, new_split_currency);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
 PyTransaction_move_split(PyTransaction *self, PyObject *args)
 {
     PySplit *split;
@@ -3447,6 +3463,7 @@ static PyMethodDef PyTransaction_methods[] = {
     {"balance", (PyCFunction)PyTransaction_balance, METH_VARARGS, ""},
     {"change", (PyCFunction)PyTransaction_change, METH_VARARGS|METH_KEYWORDS, ""},
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
+    {"mct_balance", (PyCFunction)PyTransaction_mct_balance, METH_VARARGS, ""},
     {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
     {"remove_split", (PyCFunction)PyTransaction_remove_split, METH_O, ""},
     {0, 0, 0, 0},

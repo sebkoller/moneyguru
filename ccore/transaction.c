@@ -381,6 +381,34 @@ transaction_is_null(const Transaction *txn)
     return true;
 }
 
+void
+transaction_mct_balance(Transaction *txn, Currency *new_split_currency)
+{
+    Amount bal;
+    amount_set(&bal, 0, new_split_currency);
+    Amount a;
+    a.currency = new_split_currency;
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        amount_convert(&a, &txn->splits[i].amount, txn->date);
+        bal.val += a.val;
+    }
+    if (bal.val != 0) {
+        Split *found = NULL;
+        for (unsigned int i=0; i<txn->splitcount; i++) {
+            Split *s = &txn->splits[i];
+            if (s->account == NULL && amount_check(&s->amount, &bal)) {
+                found = s;
+                break;
+            }
+        }
+        if (found == NULL) {
+            found = transaction_add_split(txn);
+        }
+        a.val = found->amount.val - bal.val;
+        split_amount_set(found, &a);
+    }
+}
+
 bool
 transaction_move_split(Transaction *txn, Split *split, unsigned int newindex)
 {

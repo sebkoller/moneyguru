@@ -13,7 +13,7 @@ from ..base import TestApp, with_app, DictLoader, testdata, Amount
 from ...model.date import YearRange
 from ...gui.import_window import ActionSelectionOptions
 
-from core.model.transaction import Split
+from core.model._ccore import Split
 from core.model.account import AccountType
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 

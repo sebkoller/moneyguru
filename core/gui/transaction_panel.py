@@ -9,9 +9,9 @@ from datetime import date
 
 from core.util import first
 
-from ..model._ccore import AccountList
+from ..model._ccore import AccountList, Split
 from ..model.account import AccountType
-from ..model.transaction import Split, Transaction
+from ..model.transaction import Transaction
 from .base import MainWindowPanel
 from .split_table import SplitTable
 from .completable_edit import CompletableEdit
