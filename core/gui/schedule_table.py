@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-08-11
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,6 +6,7 @@
 
 import datetime
 
+from core.model.transaction import splitted_splits
 from core.trans import trget, tr
 from .column import Column
 from ..model.amount import convert_amount
@@ -82,7 +81,7 @@ class ScheduleTableRow(Row):
         self._description = txn.description
         self._payee = txn.payee
         self._checkno = txn.checkno
-        froms, tos = txn.splitted_splits()
+        froms, tos = splitted_splits(txn.splits)
         self._from_count = len(froms)
         self._to_count = len(tos)
         UNASSIGNED = tr('Unassigned') if len(froms) > 1 else ''

@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-07-11
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,6 +7,7 @@
 import datetime
 from operator import attrgetter
 
+from core.model.transaction import splitted_splits
 from core.trans import trget, tr
 from .column import Column
 from ..model.amount import convert_amount
@@ -73,7 +72,7 @@ class TransactionTable(TransactionTableBase):
                 return
             row_index = self.selected_index
         txn = self[row_index].transaction
-        froms, tos = txn.splitted_splits()
+        froms, tos = splitted_splits(txn.splits)
         splits = tos if use_to_column else froms
         account_to_show = splits[0].account
         self.mainwindow.open_account(account_to_show)
@@ -154,7 +153,7 @@ class TransactionTableRow(Row, RowWithDateMixIn):
         self._date_fmt = None
         self._position = transaction.position
         splits = transaction.splits
-        froms, tos = self.transaction.splitted_splits()
+        froms, tos = splitted_splits(splits)
         self._from_count = len(froms)
         self._to_count = len(tos)
         UNASSIGNED = tr('Unassigned') if len(froms) > 1 else ''

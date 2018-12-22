@@ -65,6 +65,22 @@ def txn_matches(txn, query):
                 return True
     return False
 
+def splitted_splits(splits):
+    """Returns `splits` separated in two groups ("froms" and "tos").
+
+    "froms" are splits with a negative amount and "tos", the positive ones. Null splits are
+    generally sent to the "froms" side, unless "tos" is empty.
+
+    Returns ``(froms, tos)``.
+    """
+    null_amounts = [s for s in splits if s.amount == 0]
+    froms = [s for s in splits if s.amount < 0]
+    tos = [s for s in splits if s.amount > 0]
+    if not tos and null_amounts:
+        tos.append(null_amounts.pop())
+    froms += null_amounts
+    return froms, tos
+
 class Transaction(TransactionBase):
     """A movement of money between two or more accounts at a specific date.
 
@@ -124,23 +140,6 @@ class Transaction(TransactionBase):
         res = Transaction(self.date)
         res.copy_from(self)
         return res
-
-    def splitted_splits(self):
-        """Returns :attr:`splits` separated in two groups ("froms" and "tos").
-
-        "froms" are splits with a negative amount and "tos", the positive ones. Null splits are
-        generally sent to the "froms" side, unless "tos" is empty.
-
-        Returns ``(froms, tos)``.
-        """
-        splits = self.splits
-        null_amounts = [s for s in splits if s.amount == 0]
-        froms = [s for s in splits if s.amount < 0]
-        tos = [s for s in splits if s.amount > 0]
-        if not tos and null_amounts:
-            tos.append(null_amounts.pop())
-        froms += null_amounts
-        return froms, tos
 
     # --- Properties
     @property
