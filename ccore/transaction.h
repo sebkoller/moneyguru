@@ -170,6 +170,16 @@ transaction_move_split(Transaction *txn, Split *split, unsigned int newindex);
 void
 transaction_print(const Transaction *txn);
 
+/* Reassign all splits from `account` to `reassign_to`.
+ *
+ * All splits belonging to `account` will be changed to `reassign_to`.
+ */
+void
+transaction_reassign_account(
+    Transaction *txn,
+    const Account *account,
+    Account *reassign_to);
+
 bool
 transaction_remove_split(Transaction *txn, Split *split);
 

@@ -102,19 +102,6 @@ class Transaction(TransactionBase):
         TransactionBase.__init__(
             self, self.TYPE, date, description, payee, checkno, account, amount)
 
-    def reassign_account(self, account, reassign_to=None):
-        """Reassign all splits from ``account`` to ``reassign_to``.
-
-        All :attr:`splits` belonging to ``account`` will be changed to ``reassign_to``.
-
-        :param account: :class:`.Account`
-        :param reassign_to: :class:`.Account`
-        """
-        for split in self.splits:
-            if split.account == account:
-                split.reconciliation_date = None
-                split.account = reassign_to
-
     def replicate(self):
         res = Transaction(self.date)
         res.copy_from(self)

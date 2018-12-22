@@ -1838,6 +1838,22 @@ PyTransaction_move_split(PyTransaction *self, PyObject *args)
 }
 
 static PyObject *
+PyTransaction_reassign_account(PyTransaction *self, PyObject *args)
+{
+    PyAccount *account_p, *reassign_to_p = NULL;
+
+    if (!PyArg_ParseTuple(args, "O|O", &account_p, &reassign_to_p)) {
+        return NULL;
+    }
+    Account *account = account_p->account;
+    Account *reassign_to = NULL;
+    if (reassign_to_p != NULL && (PyObject *)reassign_to_p != Py_None) {
+        reassign_to = reassign_to_p->account;
+    }
+    transaction_reassign_account(&self->txn, account, reassign_to);
+    Py_RETURN_NONE;
+}
+static PyObject *
 PyTransaction_remove_split(PyTransaction *self, PySplit *split)
 {
     if (!transaction_remove_split(&self->txn, split->split)) {
@@ -3465,6 +3481,7 @@ static PyMethodDef PyTransaction_methods[] = {
     {"copy_from", (PyCFunction)PyTransaction_copy_from, METH_O, ""},
     {"mct_balance", (PyCFunction)PyTransaction_mct_balance, METH_VARARGS, ""},
     {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
+    {"reassign_account", (PyCFunction)PyTransaction_reassign_account, METH_VARARGS, ""},
     {"remove_split", (PyCFunction)PyTransaction_remove_split, METH_O, ""},
     {0, 0, 0, 0},
 };

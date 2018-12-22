@@ -456,6 +456,20 @@ transaction_print(const Transaction *txn)
     }
 }
 
+void
+transaction_reassign_account(
+    Transaction *txn,
+    const Account *account,
+    Account *reassign_to)
+{
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        Split *s = &txn->splits[i];
+        if (s->account == account) {
+            split_account_set(s, reassign_to);
+        }
+    }
+}
+
 bool
 transaction_remove_split(Transaction *txn, Split *split)
 {
