@@ -4,10 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from core.util import allsame
-
-from .amount import convert_amount
-from ._ccore import Transaction as TransactionBase
+from ._ccore import Transaction as _Transaction
 
 def txn_matches(txn, query):
     """Return whether ``txn`` is matching ``query``.
@@ -81,78 +78,5 @@ def splitted_splits(splits):
     froms += null_amounts
     return froms, tos
 
-class Transaction(TransactionBase):
-    """A movement of money between two or more accounts at a specific date.
-
-    Money movements that a transaction implies are listed in :attr:`splits`. The splits of a
-    transaction *always balance*, which means that the sum of amounts in its splits is always zero.
-
-    Whenever a potentially unbalancing operation is made on the splits, call :meth:`balance` to
-    balance the transaction out.
-
-    Initialization arguments are mostly just directly assigned to their relevant attributes in the
-    transaction, except for ``account`` and ``amount`` (there is no such attributes). If specified,
-    we initialize what would otherwise be an empty split list with two splits: One adding ``amount``
-    to ``account``, and the other adding ``-amount`` to ``None`` (an unassigned split).
-    """
-
-    TYPE = 1 # Used in CCore
-
-    def __init__(self, date, description=None, payee=None, checkno=None, account=None, amount=None):
-        TransactionBase.__init__(
-            self, self.TYPE, date, description, payee, checkno, account, amount)
-
-    def replicate(self):
-        res = Transaction(self.date)
-        res.copy_from(self)
-        return res
-
-    # --- Properties
-    @property
-    def amount(self):
-        """*get/set*. :class:`.Amount`. Total amount of the transaction.
-
-        In short, the sum of all positive :attr:`splits`.
-
-        Can only be set if :attr:`can_set_amount` is true, that is, if we have less than two splits.
-        When set, we'll set :attr:`splits` in order to create a two-way transaction of that amount,
-        preserving from and to accounts if needed.
-        """
-        if self.is_mct:
-            # We need an approximation for the amount value. What we do is we take the currency of the
-            # first split and use it as a base currency. Then, we sum up all amounts, convert them, and
-            # divide the sum by 2.
-            splits_with_amount = [s for s in self.splits if s.amount != 0]
-            currency = splits_with_amount[0].amount.currency_code
-            convert = lambda a: convert_amount(abs(a), currency, self.date)
-            amount_sum = sum(convert(s.amount) for s in splits_with_amount)
-            return amount_sum * 0.5
-        else:
-            return sum(s.debit for s in self.splits)
-
-    @property
-    def can_set_amount(self):
-        """*readonly*. ``bool``. Whether we can set :attr:`amount`.
-
-        True is we have two or less splits of the same currency.
-        """
-        return (len(self.splits) <= 2) and (not self.is_mct)
-
-    @property
-    def has_unassigned_split(self):
-        """*readonly*. ``bool``. Whether any of our splits is unassigned (None)."""
-        return any(s.account is None for s in self.splits)
-
-    @property
-    def is_mct(self):
-        """*readonly*. ``bool``. Whether our splits contain more than one currency."""
-        splits_with_amount = (s for s in self.splits if s.amount != 0)
-        try:
-            return not allsame(s.amount.currency_code for s in splits_with_amount)
-        except ValueError: # no split with amount
-            return False
-
-    @property
-    def is_null(self):
-        """*readonly*. ``bool``. Whether our splits all have null amounts."""
-        return all(not s.amount for s in self.splits)
+def Transaction(date, description=None, payee=None, checkno=None, account=None, amount=None):
+    return _Transaction(1, date, description, payee, checkno, account, amount)

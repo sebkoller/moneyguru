@@ -161,6 +161,32 @@ transaction_affected_accounts(Transaction *txn)
     return txn->affected_accounts;
 }
 
+bool
+transaction_amount(const Transaction *txn, Amount *dest)
+{
+    dest->val = 0;
+    Currency **currencies = _txn_currencies(txn);
+    dest->currency = currencies[0];
+    free(currencies);
+    if (dest->currency == NULL) {
+        return true;
+    }
+    for (unsigned int i=0; i<txn->splitcount; i++) {
+        Split *s = &txn->splits[i];
+        Amount a;
+        a.currency = dest->currency;
+        if (!amount_convert(&a, &s->amount, txn->date)) {
+            return false;
+        }
+        if (a.val < 0) {
+            a.val *= -1;
+        }
+        dest->val += a.val;
+    }
+    dest->val /= 2;
+    return true;
+}
+
 void
 transaction_amount_for_account(
     const Transaction *txn,
@@ -309,6 +335,12 @@ transaction_balance(
     }
 }
 
+bool
+transaction_can_set_amount(const Transaction *txn)
+{
+    return (txn->splitcount <= 2) && !transaction_is_mct(txn);
+}
+
 int
 transaction_cmp(const Transaction *a, const Transaction *b)
 {
@@ -374,7 +406,7 @@ transaction_is_null(const Transaction *txn)
 {
     for (unsigned int i=0; i<txn->splitcount; i++) {
         Split *s = &txn->splits[i];
-        if (s->account != NULL || s->amount.val != 0) {
+        if (s->amount.val != 0) {
             return false;
         }
     }

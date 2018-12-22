@@ -15,7 +15,7 @@ from core.trans import tr
 from .date import (
     inc_day, inc_week, inc_month, inc_year, inc_weekday_in_month, inc_last_weekday_in_month
 )
-from .transaction import Transaction
+from ._ccore import Transaction
 
 class RepeatType:
     """Available repetition types for :class:`Recurrence`.
@@ -119,7 +119,9 @@ class Spawn(Transaction):
 
     def __init__(self, recurrence, ref, recurrence_date, date=None):
         date = date or recurrence_date
-        Transaction.__init__(self, date, ref.description, ref.payee, ref.checkno)
+        Transaction.__init__(
+            self, self.TYPE, date, ref.description, ref.payee, ref.checkno,
+            None, None)
         #: ``datetime.date``. Date at which the spawn is "supposed to happen", which can be
         #: overridden by the ``date`` argument, if we're in an "exception" situation. We need to
         #: keep track of this date because it's used as a kind of ID (oh, the spawn

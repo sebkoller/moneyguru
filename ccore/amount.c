@@ -643,6 +643,10 @@ amount_convert(Amount *dest, const Amount *src, time_t date)
 {
     double rate;
 
+    if (dest->currency == src->currency) {
+        amount_copy(dest, src);
+        return true;
+    }
     if (!src->val) {
         dest->val = 0;
         return true;

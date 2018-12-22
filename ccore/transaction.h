@@ -9,6 +9,15 @@ typedef enum {
     TXN_TYPE_BUDGET = 3,
 } TransactionType;
 
+/* A movement of money between two or more accounts at a specific date.
+ * 
+ * Money movements that a transaction implies are listed in `splits`. The
+ * splits of a transaction *always balance*, which means that the sum of
+ * amounts in its splits is always zero.
+ * 
+ * Whenever a potentially unbalancing operation is made on the splits, call
+ * `transaction_balance()` to balance the transaction out.
+ */
 typedef struct {
     TransactionType type;
     // Date at which the transation occurs.
@@ -54,6 +63,13 @@ transaction_add_split(Transaction *txn);
  */
 Account**
 transaction_affected_accounts(Transaction *txn);
+
+/* Total amount of the transaction, that is, the absolute sum of all splits,
+ * divided by 2. If `txn` is a multi-currency txn, result is converted to the
+ * currency of the first split.
+ */
+bool
+transaction_amount(const Transaction *txn, Amount *dest);
 
 /* Assigns remaining imbalance to the selected split.
  *
@@ -132,6 +148,10 @@ transaction_balance(
     Split *strong_split,
     bool keep_two_splits);
 
+// Whether we have two or less splits of the same currency.
+bool
+transaction_can_set_amount(const Transaction *txn);
+
 int
 transaction_cmp(const Transaction *a, const Transaction *b);
 
@@ -144,8 +164,7 @@ transaction_copy(Transaction *dst, Transaction *src);
 bool
 transaction_is_mct(const Transaction *txn);
 
-// Returns true if txn doesn't contain any significant split (either with an
-// amount or an account)
+// Whether our splits all have null amounts.
 bool
 transaction_is_null(const Transaction *txn);
 

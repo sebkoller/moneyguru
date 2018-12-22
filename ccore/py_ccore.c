@@ -1538,6 +1538,58 @@ PyTransaction_splits_set(PyTransaction *self, PyObject *value)
 }
 
 static PyObject *
+PyTransaction_amount(PyTransaction *self)
+{
+    Amount amount;
+    if (transaction_amount(&self->txn, &amount)) {
+        return pyamount(&amount);
+    } else {
+        return NULL;
+    }
+}
+
+static PyObject *
+PyTransaction_can_set_amount(PyTransaction *self)
+{
+    if (transaction_can_set_amount(&self->txn)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject *
+PyTransaction_has_unassigned_split(PyTransaction *self)
+{
+    for (unsigned int i=0; i<self->txn.splitcount; i++) {
+        if (self->txn.splits[i].account == NULL) {
+            Py_RETURN_TRUE;
+        }
+    }
+    Py_RETURN_FALSE;
+}
+
+static PyObject *
+PyTransaction_is_mct(PyTransaction *self)
+{
+    if (transaction_is_mct(&self->txn)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject *
+PyTransaction_is_null(PyTransaction *self)
+{
+    if (transaction_is_null(&self->txn)) {
+        Py_RETURN_TRUE;
+    } else {
+        Py_RETURN_FALSE;
+    }
+}
+
+static PyObject *
 PyTransaction_amount_for_account(PyTransaction *self, PyObject *args)
 {
     PyObject *account_p;
@@ -1853,6 +1905,7 @@ PyTransaction_reassign_account(PyTransaction *self, PyObject *args)
     transaction_reassign_account(&self->txn, account, reassign_to);
     Py_RETURN_NONE;
 }
+
 static PyObject *
 PyTransaction_remove_split(PyTransaction *self, PySplit *split)
 {
@@ -1861,6 +1914,14 @@ PyTransaction_remove_split(PyTransaction *self, PySplit *split)
     }
     transaction_balance(&self->txn, NULL, false);
     Py_RETURN_NONE;
+}
+
+static PyObject *
+PyTransaction_replicate(PyTransaction *self, PyObject *noarg)
+{
+    PyTransaction *res = (PyTransaction *)PyType_GenericAlloc((PyTypeObject *)Transaction_Type, 0);
+    PyTransaction_copy_from(res, self);
+    return (PyObject *)res;
 }
 
 static PyObject *
@@ -3483,6 +3544,7 @@ static PyMethodDef PyTransaction_methods[] = {
     {"move_split", (PyCFunction)PyTransaction_move_split, METH_VARARGS, ""},
     {"reassign_account", (PyCFunction)PyTransaction_reassign_account, METH_VARARGS, ""},
     {"remove_split", (PyCFunction)PyTransaction_remove_split, METH_O, ""},
+    {"replicate", (PyCFunction)PyTransaction_replicate, METH_NOARGS, ""},
     {0, 0, 0, 0},
 };
 
@@ -3495,6 +3557,11 @@ static PyGetSetDef PyTransaction_getseters[] = {
     {"position", (getter)PyTransaction_position, (setter)PyTransaction_position_set, NULL, NULL},
     {"mtime", (getter)PyTransaction_mtime, (setter)PyTransaction_mtime_set, NULL, NULL},
     {"splits", (getter)PyTransaction_splits, (setter)PyTransaction_splits_set, NULL, NULL},
+    {"amount", (getter)PyTransaction_amount, NULL, NULL, NULL},
+    {"can_set_amount", (getter)PyTransaction_can_set_amount, NULL, NULL, NULL},
+    {"has_unassigned_split", (getter)PyTransaction_has_unassigned_split, NULL, NULL, NULL},
+    {"is_mct", (getter)PyTransaction_is_mct, NULL, NULL, NULL},
+    {"is_null", (getter)PyTransaction_is_null, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
 };
 
