@@ -2570,19 +2570,17 @@ PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
     if (from_account_p != NULL && from_account_p != Py_None) {
         from_account = ((PyAccount *)from_account_p)->account;
     }
-    Py_ssize_t len = PyList_Size(self->accounts);
+    int len = self->alist.count;
     for (int i=len-1; i>=0; i--) {
-        PyAccount *account_p = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
-        Account *account = account_p->account;
-        PyObject *entries = PyDict_GetItemString(self->entries, account->name);
-        if (!account->autocreated) {
-            continue;
-        } else if (account == from_account) {
-            continue;
-        } else if (PySequence_Length(entries) > 0) {
+        Account *a = &self->alist.accounts[i];
+        if (a->id < 1 || a->deleted || !a->autocreated || a == from_account) {
             continue;
         }
-        account->deleted = true;
+        PyObject *entries = PyDict_GetItemString(self->entries, a->name);
+        if (PySequence_Length(entries) > 0) {
+            continue;
+        }
+        a->deleted = true;
         if (PyList_SetSlice(self->accounts, i, i+1, NULL) == -1) {
             return NULL;
         }
@@ -2653,7 +2651,7 @@ PyAccountList_create_from(PyAccountList *self, PyAccount *account)
         PyErr_SetString(PyExc_ValueError, "owned account was deleted! can't use.");
         return NULL;
     }
-    if (PySequence_Contains(self->accounts, (PyObject *)account)) {
+    if (PySequence_Contains((PyObject *)self, (PyObject *)account)) {
         Py_INCREF(account);
         return (PyObject *)account;
     }
@@ -2795,9 +2793,7 @@ PyAccountList_find_reference(PyAccountList *self, PyObject *reference)
     }
     Account *found = accounts_find_by_reference(&self->alist, s);
     if (found != NULL) {
-        PyAccount *res = _PyAccountList_find_by_inner_pointer(self, found);
-        Py_INCREF(res);
-        return (PyObject *)res;
+        return (PyObject *)_PyAccount_from_account(found);
     }
     Py_RETURN_NONE;
 }
