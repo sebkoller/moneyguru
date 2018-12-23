@@ -118,19 +118,16 @@ part of this repo as git submodules:
 
 * Python 3.4+
 * PyQt5
+* SQLite 3 (as a library)
 * GNU build environment
 
 On Ubuntu, the apt-get command to install all pre-requisites is:
 
-    $ apt-get install python3-dev python3-pyqt5 pyqt5-dev-tools
-
-On Arch, it's:
-
-    $ pacman -S python-pyqt5
+    $ apt-get install python3-dev python3-pyqt5 pyqt5-dev-tools libsqlite3-dev
 
 On Gentoo, it's:
 
-    $ USE="gui widgets printsupport" emerge PyQt5
+    $ USE="gui widgets printsupport" emerge PyQt5 dev-db/sqlite
 
 ### make
 
