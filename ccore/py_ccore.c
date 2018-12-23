@@ -292,18 +292,6 @@ check_amounts(PyObject *a, PyObject *b, bool seterr)
     return true;
 }
 
-static PyObject*
-lower_and_strip(PyObject *s)
-{
-    PyObject *lowered = PyObject_CallMethod(s, "lower", NULL);
-    if (lowered == NULL) {
-        return NULL;
-    }
-    PyObject *res = PyObject_CallMethod(lowered, "strip", NULL);
-    Py_DECREF(lowered);
-    return res;
-}
-
 static PyObject *
 create_amount(int64_t ival, Currency *currency)
 {
@@ -2616,91 +2604,41 @@ PyAccountList_clear(PyAccountList *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyObject*
-_PyAccountList_find(PyAccountList *self, PyObject *name)
+static PyAccount*
+_PyAccountList_create(PyAccountList *self, char *name, Currency *cur, AccountType type)
 {
-    PyObject *normalized = lower_and_strip(name);
-    if (normalized == NULL) {
-        return NULL;
-    }
-    PyObject *res = NULL;
-    Py_ssize_t len = PyList_Size(self->accounts);
-    for (int i=0; i<len; i++) {
-        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
-        PyObject *aname = PyAccount_name(account);
-        PyObject *anorm = lower_and_strip(aname);
-        Py_DECREF(aname);
-        if (anorm == NULL) {
-            return NULL;
-        }
-        if (PyObject_RichCompareBool(anorm, normalized, Py_EQ) > 0) {
-            res = (PyObject *)account;
-            break;
-        }
-        PyObject *anum = PyAccount_account_number(account);
-        if (PyObject_IsTrue(anum)) {
-            PyObject *startswith = PyObject_CallMethod(
-                normalized, "startswith", "O", anum);
-            Py_DECREF(anum);
-            int r = PyObject_IsTrue(startswith);
-            Py_DECREF(startswith);
-            if (r) {
-                res = (PyObject *)account;
-                break;
-            }
-        } else {
-            Py_DECREF(anum);
-        }
-    }
-    if (res != NULL) {
-        Py_INCREF(res);
-        return res;
-    } else {
-        Py_RETURN_NONE;
-    }
+    PyAccount *account = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
+    account->owned = false;
+    Account *a = accounts_create(&self->alist);
+    account->account = a;
+    account_init(a, name, cur, type);
+    PyList_Append(self->accounts, (PyObject *)account);
+    return account;
 }
 
 static PyObject*
 PyAccountList_create(PyAccountList *self, PyObject *args)
 {
-    PyObject *name_p;
-    char *currency_code, *type_s;
+    char *name, *currency_code, *type_s;
 
-    if (!PyArg_ParseTuple(args, "Oss", &name_p, &currency_code, &type_s)) {
+    if (!PyArg_ParseTuple(args, "sss", &name, &currency_code, &type_s)) {
         return NULL;
     }
-    PyObject *found = _PyAccountList_find(self, name_p);
-    if (found == NULL) {
-        return NULL;
-    }
-    if (found != Py_None) {
+    Account *found = accounts_find_by_name(&self->alist, name);
+    if (found != NULL) {
         PyErr_SetString(PyExc_ValueError, "Account name already in list");
         return NULL;
     }
-    Py_DECREF(found);
-    PyAccount *account = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
-    account->owned = false;
-    Account *a = accounts_create(&self->alist);
-    account->account = a;
     Currency *cur = getcur(currency_code);
     if (cur == NULL) {
-        a->id = 0;
         return NULL;
     }
     AccountType type = _PyAccount_str2type(type_s);
     if (type < 0) {
-        a->id = 0;
         PyErr_SetString(PyExc_ValueError, "invalid type");
         return NULL;
     }
-    const char *name = PyUnicode_AsUTF8(name_p);
-    if (name == NULL) {
-        a->id = 0;
-        return NULL;
-    }
-    account_init(a, name, cur, type);
-    PyList_Append(self->accounts, (PyObject *)account);
-    return (PyObject *)account;
+    return (PyObject *)_PyAccountList_create(self, name, cur, type);
 }
 
 static PyObject*
@@ -2824,30 +2762,26 @@ PyAccountList_filter(PyAccountList *self, PyObject *args, PyObject *kwds)
 static PyObject*
 PyAccountList_find(PyAccountList *self, PyObject *args)
 {
-    PyObject *name;
-    PyObject *type = NULL;
+    char *name;
+    char *type_s = NULL;
 
-    if (!PyArg_ParseTuple(args, "O|O", &name, &type)) {
+    if (!PyArg_ParseTuple(args, "s|s", &name, &type_s)) {
         return NULL;
     }
-    PyObject *res = _PyAccountList_find(self, name);
-    if (res == NULL) {
-        return NULL;
+    Account *found = accounts_find_by_name(&self->alist, name);
+    if (found != NULL) {
+        return (PyObject *)_PyAccount_from_account(found);
     }
-    if (res != Py_None) {
-        Py_INCREF(res);
-        return res;
-    }
-    if (type == NULL) {
+    if (type_s == NULL) {
         Py_RETURN_NONE;
     }
-    PyObject *aname = PyObject_CallMethod(name, "strip", NULL);
-    PyObject *ccode = PyUnicode_FromString(self->alist.default_currency->code);
-    PyObject *newargs = PyTuple_Pack(3, aname, ccode, type);
-    Py_DECREF(aname);
-    Py_DECREF(ccode);
-    PyAccount *account = (PyAccount *)PyAccountList_create(self, newargs);
-    Py_DECREF(newargs);
+    AccountType type = _PyAccount_str2type(type_s);
+    if (type < 0) {
+        PyErr_SetString(PyExc_ValueError, "invalid type");
+        return NULL;
+    }
+    PyAccount *account = _PyAccountList_create(
+        self, name, self->alist.default_currency, type);
     account->account->autocreated = true;
     return (PyObject *)account;
 }
@@ -2882,24 +2816,23 @@ PyAccountList_has_multiple_currencies(PyAccountList *self, PyObject *args)
 }
 
 static PyObject*
-PyAccountList_new_name(PyAccountList *self, PyObject *base_name)
+PyAccountList_new_name(PyAccountList *self, PyObject *args)
 {
-    PyObject *name = base_name;
-    Py_INCREF(name);
+    char *base_name;
+    char name[1024] = {0};
+
+    if (!PyArg_ParseTuple(args, "s", &base_name)) {
+        return NULL;
+    }
+    strncpy(name, base_name, 1023);
     int index = 0;
     while (1) {
-        PyObject *found = _PyAccountList_find(self, name);
+        Account *found = accounts_find_by_name(&self->alist, name);
         if (found == NULL) {
-            return NULL;
+            return PyUnicode_FromString(name);
         }
-        if (found == Py_None) {
-            Py_DECREF(found);
-            return name;
-        }
-        Py_DECREF(found);
-        Py_DECREF(name);
         index++;
-        name = PyUnicode_FromFormat("%S %d", base_name, index);
+        sprintf(name, "%s %d", base_name, index);
     }
 }
 
@@ -2964,7 +2897,10 @@ PyAccountList_rename_account(PyAccountList *self, PyObject *args)
     }
     PyDict_SetItem(self->entries, newname, entries);
     PyDict_DelItemString(self->entries, a->name);
-    _strset(&a->name, newname);
+    char *s = NULL;
+    _strset(&s, newname);
+    account_name_set(a, s);
+    strfree(&s);
     Py_RETURN_NONE;
 }
 
@@ -3512,7 +3448,7 @@ static PyMethodDef PyAccountList_methods[] = {
     // Returns a unique name from ``base_name``.
     // If `base_name` already exists, append an incrementing number to it until
     // we find a unique name.
-    {"new_name", (PyCFunction)PyAccountList_new_name, METH_O, ""},
+    {"new_name", (PyCFunction)PyAccountList_new_name, METH_VARARGS, ""},
     {"remove", (PyCFunction)PyAccountList_remove, METH_O, ""},
     {"rename_account", (PyCFunction)PyAccountList_rename_account, METH_VARARGS, ""},
     {0, 0, 0, 0},

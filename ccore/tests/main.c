@@ -2,14 +2,18 @@
 #include <CUnit/Basic.h>
 #include "../currency.h"
 
+void test_util_init();
 void test_amount_init();
+void test_account_init();
 void test_transaction_init();
 
 int main()
 {
     currency_global_init(":memory:");
     CU_initialize_registry();
+    test_util_init();
     test_amount_init();
+    test_account_init();
     test_transaction_init();
     CU_basic_run_tests();
     CU_cleanup_registry();

@@ -39,6 +39,17 @@ strfree(char **dst);
 bool
 strclone(char **dst, const char *src);
 
+/* Copies `src` with stripped leading and trailing spaces into `dest`.
+ *
+ * The function malloc's `dest` **if a trimming was needed**. Otherwise, `dest`
+ * is left untouched. The caller is responsible for freeing `dest`.
+ *
+ * Returns true if a trimming operation (and thus a malloc()) occurred, false
+ * otherwise.
+ */
+bool
+strstrip(char **dst, const char *src);
+
 /* Time */
 // Returns today's time_t in a "normalized" way (truncated to discard time).
 // today() == today() if both are called in the same day.

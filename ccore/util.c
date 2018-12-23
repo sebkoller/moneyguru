@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "util.h"
 
 bool
@@ -57,6 +58,39 @@ strclone(char **dst, const char *src)
     }
     return true;
 }
+
+bool
+strstrip(char **dst, const char *src)
+{
+    int len = strlen(src);
+    int begin = 0;
+    int end = len - 1;
+    if (!len) {
+        return false;
+    }
+    while (isspace(src[begin])) {
+        begin++;
+    }
+    if (begin == len) {
+        // all spaces
+        *dst = malloc(1);
+        *dst[0] = '\0';
+        return true;
+    }
+    while (end > begin && isspace(src[end])) {
+        end--;
+    }
+    if (begin == 0 && end == (len - 1)) {
+        // nothing to trim
+        return false;
+    }
+    len = end - begin + 1;
+    *dst = malloc(len + 1);
+    memcpy(*dst, &src[begin], len);
+    (*dst)[len] = '\0';
+    return true;
+}
+
 /* Time */
 
 static time_t g_patched_today = 0;

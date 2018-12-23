@@ -596,7 +596,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         for account in accounts:
             if name is not NOEDIT and name:
                 other = self.accounts.find(name)
-                if (other is not None) and (other is not account):
+                if (other is not None) and (other != account):
                     return False
                 self.accounts.rename_account(account, name.strip())
             if (type is not NOEDIT) and (type != account.type):
@@ -643,7 +643,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         for schedule in affected_schedules:
             action.change_schedule(schedule)
         for account in accounts:
-            affected_budgets = [b for b in self.budgets if b.account == account or b.target is account]
+            affected_budgets = [b for b in self.budgets if b.account == account or b.target == account]
             if account.is_income_statement_account() and reassign_to is None:
                 action.deleted_budgets |= set(affected_budgets)
             else:
@@ -660,7 +660,7 @@ class Document(BaseDocument, Repeater, GUIObject):
                         self.budgets.remove(budget)
                     else:
                         budget.account = reassign_to
-                elif budget.target is account:
+                elif budget.target == account:
                     budget.target = reassign_to
                 budget.reset_spawn_cache()
             self.accounts.remove(account)

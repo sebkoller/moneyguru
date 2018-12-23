@@ -77,6 +77,9 @@ bool
 account_is_income_statement(Account *account);
 
 void
+account_name_set(Account *account, const char *name);
+
+void
 account_normalize_amount(Account *account, Amount *dst);
 
 void
@@ -85,7 +88,12 @@ accounts_init(AccountList *accounts, int initial_count, Currency *default_curren
 Account*
 accounts_create(AccountList *accounts);
 
-// NOTE: can return a deleted account
+/* Returns the first account that matches `name`.
+ *
+ * If `name` matches the account's `account_number`, we consider this a match.
+ *
+ * NOTE: can return a deleted account
+ */
 Account*
 accounts_find_by_name(const AccountList *accounts, const char *name);
 

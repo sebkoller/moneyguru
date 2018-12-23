@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <stdio.h>
 #include "account.h"
 #include "amount.h"
@@ -13,7 +14,8 @@ account_init(
     Currency *currency,
     AccountType type)
 {
-    strset(&account->name, name);
+    account->name = NULL;
+    account_name_set(account, name);
     account->currency = currency;
     account->type = type;
     account->inactive = false;
@@ -92,6 +94,18 @@ account_is_income_statement(Account *account)
 }
 
 void
+account_name_set(Account *account, const char *name)
+{
+    char *dst = NULL;
+    if (strstrip(&dst, name)) {
+        strset(&account->name, dst);
+        free(dst);
+    } else {
+        strset(&account->name, name);
+    }
+}
+
+void
 account_normalize_amount(Account *account, Amount *dst)
 {
     if (account_is_credit(account)) {
@@ -148,15 +162,32 @@ accounts_find_by_name(const AccountList *accounts, const char *name)
     if (name == NULL) {
         return NULL;
     }
+    Account *res = NULL;
+    char *dst = NULL;
+    const char *trimmed;
+    if (strstrip(&dst, name)) {
+        trimmed = dst;
+    } else {
+        trimmed = name;
+    }
     for (int i=0; i<accounts->count; i++) {
-        // id == 0 means deleted or not initialized
-        if (accounts->accounts[i].id > 0) {
-            if (strcmp(name, accounts->accounts[i].name) == 0) {
-                return &accounts->accounts[i];
+        Account *a = &accounts->accounts[i];
+        // id == 0 means not initialized
+        if (a->id > 0) {
+            if (strcasecmp(trimmed, a->name) == 0) {
+                res = a;
+                break;
+            }
+            if (a->account_number != NULL && strcmp(trimmed, a->account_number) == 0) {
+                res = a;
+                break;
             }
         }
     }
-    return NULL;
+    if (dst != NULL) {
+        free(dst);
+    }
+    return res;
 }
 
 Account*
