@@ -50,7 +50,19 @@ typedef struct {
 } AccountList;
 
 void
-account_normalize_amount(Account *account, Amount *dst);
+account_init(
+    Account *account,
+    const char *name,
+    Currency *currency,
+    AccountType type);
+
+void
+account_deinit(Account *account);
+
+// If dst is a fresh instance, it *has* to have been zeroed out before calling
+// this.
+bool
+account_copy(Account *dst, const Account *src);
 
 bool
 account_is_balance_sheet(Account *account);
@@ -64,13 +76,8 @@ account_is_debit(Account *account);
 bool
 account_is_income_statement(Account *account);
 
-// If dst is a fresh instance, it *has* to have been zeroed out before calling
-// this.
-bool
-account_copy(Account *dst, const Account *src);
-
 void
-account_deinit(Account *account);
+account_normalize_amount(Account *account, Amount *dst);
 
 void
 accounts_init(AccountList *accounts, int initial_count, Currency *default_currency);

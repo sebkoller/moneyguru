@@ -2663,12 +2663,13 @@ _PyAccountList_find(PyAccountList *self, PyObject *name)
 static PyObject*
 PyAccountList_create(PyAccountList *self, PyObject *args)
 {
-    PyObject *name, *currency, *type;
+    PyObject *name_p;
+    char *currency_code, *type_s;
 
-    if (!PyArg_ParseTuple(args, "OOO", &name, &currency, &type)) {
+    if (!PyArg_ParseTuple(args, "Oss", &name_p, &currency_code, &type_s)) {
         return NULL;
     }
-    PyObject *found = _PyAccountList_find(self, name);
+    PyObject *found = _PyAccountList_find(self, name_p);
     if (found == NULL) {
         return NULL;
     }
@@ -2681,22 +2682,23 @@ PyAccountList_create(PyAccountList *self, PyObject *args)
     account->owned = false;
     Account *a = accounts_create(&self->alist);
     account->account = a;
-    if (PyAccount_currency_set(account, currency) < 0) {
+    Currency *cur = getcur(currency_code);
+    if (cur == NULL) {
         a->id = 0;
         return NULL;
     }
-    if (PyAccount_type_set(account, type) < 0) {
+    AccountType type = _PyAccount_str2type(type_s);
+    if (type < 0) {
+        a->id = 0;
+        PyErr_SetString(PyExc_ValueError, "invalid type");
+        return NULL;
+    }
+    const char *name = PyUnicode_AsUTF8(name_p);
+    if (name == NULL) {
         a->id = 0;
         return NULL;
     }
-    if (!_strset(&a->name, name)) {
-        return NULL;
-    }
-    a->inactive = false;
-    a->account_number = "";
-    a->notes = "";
-    a->autocreated = false;
-    a->deleted = false;
+    account_init(a, name, cur, type);
     PyList_Append(self->accounts, (PyObject *)account);
     return (PyObject *)account;
 }
