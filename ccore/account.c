@@ -142,6 +142,24 @@ accounts_find_by_name(const AccountList *accounts, const char *name)
     return NULL;
 }
 
+Account*
+accounts_find_by_reference(const AccountList *accounts, const char *reference)
+{
+    if ((reference == NULL) || (strlen(reference) == 0)) {
+        return NULL;
+    }
+    for (int i=0; i<accounts->count; i++) {
+        Account *a = &accounts->accounts[i];
+        // id == 0 means deleted or not initialized
+        if (a->id > 0 && !a->deleted) {
+            if (strcmp(reference, a->reference) == 0) {
+                return a;
+            }
+        }
+    }
+    return NULL;
+}
+
 bool
 accounts_copy(AccountList *dst, const AccountList *src)
 {

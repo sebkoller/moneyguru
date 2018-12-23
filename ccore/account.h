@@ -78,8 +78,13 @@ accounts_init(AccountList *accounts, int initial_count, Currency *default_curren
 Account*
 accounts_create(AccountList *accounts);
 
+// NOTE: can return a deleted account
 Account*
 accounts_find_by_name(const AccountList *accounts, const char *name);
+
+// Doesn't search in deleted accounts
+Account*
+accounts_find_by_reference(const AccountList *accounts, const char *reference);
 
 // dst must be uninitalized
 bool
