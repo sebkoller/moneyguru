@@ -46,6 +46,11 @@ typedef struct {
     Account **affected_accounts;
 } Transaction;
 
+typedef struct {
+    unsigned int count;
+    Transaction **txns;
+} TransactionList;
+
 void
 transaction_init(Transaction *txn, TransactionType type, time_t date);
 
@@ -206,3 +211,19 @@ transaction_remove_split(Transaction *txn, Split *split);
 // splits are initialized to NULL account and zero amount.
 void
 transaction_resize_splits(Transaction *txn, unsigned int newsize);
+
+void
+transactions_init(TransactionList *txns);
+
+void
+transactions_deinit(TransactionList *txns);
+
+// Result is not initialized (but zeroed out)
+Transaction*
+transactions_create(TransactionList *txns);
+
+bool
+transactions_remove(TransactionList *txns, Transaction *txn);
+
+void
+transactions_sort(TransactionList *txns);
