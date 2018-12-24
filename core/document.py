@@ -1177,7 +1177,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         except FileFormatError:
             raise FileFormatError(tr('"%s" is not a moneyGuru file') % filename)
         loader.load()
-        self._clear()
+        self.clear()
         self._document_id = loader.document_id
         for propname in self._properties:
             if propname in loader.properties:
