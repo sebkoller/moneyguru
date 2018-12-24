@@ -23,7 +23,7 @@ def copydoc(doc):
     # listeners. What we do is a shallow copy of it, *then* a deepcopy of stuff we compare
     # afterwards.
     newdoc = copy.copy(doc)
-    newdoc.accounts = [copy.copy(a) for a in doc.accounts]
+    newdoc.accounts = [a.copy() for a in doc.accounts]
     newdoc.entrycounts = {}
     for a in doc.accounts:
         entries = doc.accounts.entries_for_account(a)

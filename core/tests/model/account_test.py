@@ -4,7 +4,6 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import copy
 from datetime import date
 
 import pytest
@@ -105,7 +104,7 @@ def test_accountlist_contains():
     al = AccountList('CAD')
     a1 = al.create('foo', 'CAD', AccountType.Asset)
     assert a1 in al
-    a2 = copy.copy(a1)
+    a2 = a1.copy()
     assert a2 in al
     # we can also remove by with another PyAccount instance
     al.remove(a2)

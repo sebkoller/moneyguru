@@ -6,7 +6,7 @@
 static void test_accounts_find()
 {
     AccountList al;
-    accounts_init(&al, 3, NULL);
+    accounts_init(&al, NULL);
 
     Account *a1 = accounts_create(&al);
     account_init(a1, "fOo", NULL, ACCOUNT_ASSET);
@@ -33,7 +33,7 @@ static void test_accounts_find()
 static void test_accounts_find_account_number()
 {
     AccountList al;
-    accounts_init(&al, 1, NULL);
+    accounts_init(&al, NULL);
 
     Account *a1 = accounts_create(&al);
     account_init(a1, "foo", NULL, ACCOUNT_ASSET);
@@ -44,6 +44,26 @@ static void test_accounts_find_account_number()
     accounts_deinit(&al);
 }
 
+static void test_accounts_remove()
+{
+    AccountList al;
+
+    accounts_init(&al, NULL);
+    Account *a1 = accounts_create(&al);
+    account_init(a1, "one", NULL, ACCOUNT_ASSET);
+    Account *a2 = accounts_create(&al);
+    account_init(a2, "two", NULL, ACCOUNT_ASSET);
+    Account *a3 = accounts_create(&al);
+    account_init(a3, "three", NULL, ACCOUNT_ASSET);
+
+    CU_ASSERT_EQUAL(al.count, 3);
+    accounts_remove(&al, a2);
+    CU_ASSERT_EQUAL(al.count, 2);
+    CU_ASSERT_PTR_EQUAL(al.accounts[0], a1);
+    CU_ASSERT_PTR_EQUAL(al.accounts[1], a3);
+    accounts_deinit(&al);
+}
+
 void test_account_init()
 {
     CU_pSuite s;
@@ -51,5 +71,6 @@ void test_account_init()
     s = CU_add_suite("Account", NULL, NULL);
     CU_ADD_TEST(s, test_accounts_find);
     CU_ADD_TEST(s, test_accounts_find_account_number);
+    CU_ADD_TEST(s, test_accounts_remove);
 }
 

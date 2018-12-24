@@ -64,7 +64,7 @@ class Action:
         """Record imminent changes to ``accounts``."""
         for a in accounts:
             if a not in self.changed_accounts:
-                self.changed_accounts[a] = copy.copy(a)
+                self.changed_accounts[a] = a.copy()
 
     def change_groups(self, groups):
         """Record imminent changes to ``groups``."""
@@ -146,7 +146,7 @@ class Undoer:
 
     def _do_changes(self, action):
         for account, old in list(action.changed_accounts.items()):
-            newold = copy.copy(account)
+            newold = account.copy()
             if account.name != old.name:
                 self._accounts.rename_account(account, old.name)
             for attrname in ACCOUNT_SWAP_ATTRS:

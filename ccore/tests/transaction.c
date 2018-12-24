@@ -29,7 +29,7 @@ static void test_balance_currencies()
     Currency *USD = currency_get("USD");
     Currency *CAD = currency_get("CAD");
     AccountList al;
-    accounts_init(&al, 1, USD);
+    accounts_init(&al, USD);
     Account *a = accounts_create(&al);
     Transaction t;
     transaction_init(&t, TXN_TYPE_NORMAL, 42);
@@ -77,7 +77,7 @@ static void test_balance()
 {
     Currency *USD = currency_get("USD");
     AccountList al;
-    accounts_init(&al, 2, USD);
+    accounts_init(&al, USD);
     Account *a1 = accounts_create(&al);
     Account *a2 = accounts_create(&al);
     Transaction t;
@@ -117,7 +117,7 @@ static void test_affected_accounts()
 {
     Currency *USD = currency_get("USD");
     AccountList al;
-    accounts_init(&al, 2, USD);
+    accounts_init(&al, USD);
     Account *a1 = accounts_create(&al);
     Account *a2 = accounts_create(&al);
     Transaction t;

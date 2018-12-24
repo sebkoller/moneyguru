@@ -22,7 +22,6 @@ account_init(
     account->account_number = "";
     account->notes = "";
     account->autocreated = false;
-    account->deleted = false;
 }
 
 void
@@ -39,10 +38,6 @@ bool
 account_copy(Account *dst, const Account *src)
 {
     if (dst == src) {
-        // not supposed to be tried
-        return false;
-    }
-    if (src->id < 1) {
         // not supposed to be tried
         return false;
     }
@@ -65,7 +60,6 @@ account_copy(Account *dst, const Account *src)
         return false;
     }
     dst->autocreated = src->autocreated;
-    dst->deleted = src->deleted;
     return true;
 }
 
@@ -113,47 +107,89 @@ account_normalize_amount(Account *account, Amount *dst)
     }
 }
 
-/* AccountList private */
-static int
-_accounts_find_free_slot(AccountList *accounts)
-{
-    for (int i=0; i<accounts->count; i++) {
-        if (accounts->accounts[i].id <= 0) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 /* AccountList public */
 void
-accounts_init(AccountList *accounts, int initial_count, Currency *default_currency)
+accounts_init(AccountList *accounts, Currency *default_currency)
 {
     accounts->default_currency = default_currency;
-    accounts->count = initial_count;
-    int bytecount = sizeof(Account) * initial_count;
-    accounts->accounts = malloc(bytecount);
-    memset(accounts->accounts, 0, bytecount);
-    accounts->id_counter = 1;
+    accounts->accounts = NULL;
+    accounts->count = 0;
 }
 
-// TODO: test realloc conditions
+void
+accounts_deinit(AccountList *accounts)
+{
+    for (int i=0; i<accounts->count; i++) {
+        account_deinit(accounts->accounts[i]);
+        /* See accounts_remove() for reason why we don't free our accounts
+         * However, the case here is a bit different: theoretically, the cause
+         * for crashes caused by freeing accounts here can't be the Undoer. It's
+         * probably caused by the way we import and load accounts. We probably
+         * have some dangling account references somewhere that we shouldn't
+         * have.
+         * So, TODO: straigten out account management during import and load.
+         */
+        /*free(accounts->accounts[i]);*/
+    }
+    free(accounts->accounts);
+}
+
+bool
+accounts_copy(AccountList *dst, const AccountList *src)
+{
+    accounts_init(dst, src->default_currency);
+    for (int i=0; i<src->count; i++) {
+        Account *a = accounts_create(dst);
+        if (!account_copy(a, src->accounts[i])) {
+            accounts_deinit(dst);
+            return false;
+        }
+    }
+    return true;
+}
+
 Account*
 accounts_create(AccountList *accounts)
 {
-    int index = _accounts_find_free_slot(accounts);
-    if (index < 0) {
-        // Not enough free slots, reallocating
-        index = accounts->count;
-        accounts->count *= 2;
-        int bytecount = sizeof(Account) * accounts->count;
-        // initialize the second half
-        memset(&accounts->accounts[index], 0, bytecount/2);
-    }
-    Account *res = &accounts->accounts[index];
-    memset(res, 0, sizeof(Account));
-    res->id = accounts->id_counter++;
+    Account *res = calloc(1, sizeof(Account));
+    accounts->count++;
+    accounts->accounts = realloc(
+        accounts->accounts, sizeof(Account*) * accounts->count);
+    accounts->accounts[accounts->count-1] = res;
     return res;
+}
+
+bool
+accounts_remove(AccountList *accounts, Account *target)
+{
+    int index = -1;
+    for (int i=0; i<accounts->count; i++) {
+        if (accounts->accounts[i] == target) {
+            index = i;
+            break;
+        }
+    }
+    if (index == -1) {
+        // bad pointer
+        return false;
+    }
+    // we have to move memory around
+    memmove(
+        &accounts->accounts[index],
+        &accounts->accounts[index+1],
+        sizeof(Account*) * (accounts->count - index - 1));
+    accounts->count--;
+    accounts->accounts = realloc(
+        accounts->accounts, sizeof(Account*) * accounts->count);
+    /* Normally, we should be freeing our account here. However, because of the
+     * Undoer, we can't: it holds a reference to the deleted account and needs
+     * it around in case we need it again. The best option at this time is
+     * simply to never free our accounts. When the Undoer will be converted to
+     * C, we can revisit our memory management model to free Accounts when it's
+     * safe.
+     */
+    /*free(target);*/
+    return true;
 }
 
 Account *
@@ -171,17 +207,14 @@ accounts_find_by_name(const AccountList *accounts, const char *name)
         trimmed = name;
     }
     for (int i=0; i<accounts->count; i++) {
-        Account *a = &accounts->accounts[i];
-        // id == 0 means not initialized
-        if (a->id > 0) {
-            if (strcasecmp(trimmed, a->name) == 0) {
-                res = a;
-                break;
-            }
-            if (a->account_number != NULL && strcmp(trimmed, a->account_number) == 0) {
-                res = a;
-                break;
-            }
+        Account *a = accounts->accounts[i];
+        if (strcasecmp(trimmed, a->name) == 0) {
+            res = a;
+            break;
+        }
+        if (a->account_number != NULL && strcmp(trimmed, a->account_number) == 0) {
+            res = a;
+            break;
         }
     }
     if (dst != NULL) {
@@ -197,38 +230,10 @@ accounts_find_by_reference(const AccountList *accounts, const char *reference)
         return NULL;
     }
     for (int i=0; i<accounts->count; i++) {
-        Account *a = &accounts->accounts[i];
-        // id == 0 means deleted or not initialized
-        if (a->id > 0 && !a->deleted) {
-            if (strcmp(reference, a->reference) == 0) {
-                return a;
-            }
+        Account *a = accounts->accounts[i];
+        if (strcmp(reference, a->reference) == 0) {
+            return a;
         }
     }
     return NULL;
-}
-
-bool
-accounts_copy(AccountList *dst, const AccountList *src)
-{
-    accounts_init(dst, src->count, src->default_currency);
-    dst->id_counter = src->id_counter;
-    for (int i=0; i<dst->count; i++) {
-        if (src->accounts[i].id < 1) continue;
-        if (!account_copy(&dst->accounts[i], &src->accounts[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-void
-accounts_deinit(AccountList *accounts)
-{
-    for (int i=0; i<accounts->count; i++) {
-        if (accounts->accounts[i].id > 0) {
-            account_deinit(&accounts->accounts[i]);
-        }
-    }
-    free(accounts->accounts);
 }

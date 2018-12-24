@@ -12,9 +12,6 @@ typedef enum {
 } AccountType;
 
 typedef struct {
-    // unique ID within an AccountList. Will not be reused. If 0, it means
-    // that the account is invalid (deleted)
-    int id;
     AccountType type;
     // Default currency of the account. Mostly determines how amounts are
     // displayed when viewing its entries listing.
@@ -36,17 +33,12 @@ typedef struct {
     bool inactive;
     // Was auto created through txn editing. Might be auto-purged
     bool autocreated;
-    // Was deleted. Not the same thing as having id=0 because a deleted account
-    // is not a free slot. We want to keep information in it intact for various
-    // reasons.
-    bool deleted;
 } Account;
 
 typedef struct {
     Currency *default_currency;
-    int id_counter;
     int count;
-    Account *accounts;
+    Account **accounts;
 } AccountList;
 
 void
@@ -83,10 +75,20 @@ void
 account_normalize_amount(Account *account, Amount *dst);
 
 void
-accounts_init(AccountList *accounts, int initial_count, Currency *default_currency);
+accounts_init(AccountList *accounts, Currency *default_currency);
+
+void
+accounts_deinit(AccountList *accounts);
+
+// dst must be uninitalized
+bool
+accounts_copy(AccountList *dst, const AccountList *src);
 
 Account*
 accounts_create(AccountList *accounts);
+
+bool
+accounts_remove(AccountList *accounts, Account *todelete);
 
 /* Returns the first account that matches `name`.
  *
@@ -100,10 +102,3 @@ accounts_find_by_name(const AccountList *accounts, const char *name);
 // Doesn't search in deleted accounts
 Account*
 accounts_find_by_reference(const AccountList *accounts, const char *reference);
-
-// dst must be uninitalized
-bool
-accounts_copy(AccountList *dst, const AccountList *src);
-
-void
-accounts_deinit(AccountList *accounts);

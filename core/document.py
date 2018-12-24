@@ -632,7 +632,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         # Recording the "Remove account" action into the Undoer is quite something...
         action = Action(tr('Remove account'))
         accounts = set(accounts)
-        action.deleted_accounts |= accounts
+        action.deleted_accounts |= set(a.copy() for a in accounts)
         all_entries = flatten(self.accounts.entries_for_account(a) for a in accounts)
         if reassign_to is None:
             transactions = {e.transaction for e in all_entries if not isinstance(e.transaction, Spawn)}
@@ -683,7 +683,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         account = self.accounts.create(name, self.default_currency, type)
         account.groupname = group.name if group else None
         action = Action(tr('Add account'))
-        action.added_accounts.add(account)
+        action.added_accounts.add(account.copy())
         self._undoer.record(action)
         self.notify('account_added')
         return account
@@ -1257,8 +1257,8 @@ class Document(BaseDocument, Repeater, GUIObject):
             if found:
                 return found
             else:
-                result = self.accounts.create_from(account)
-                added_accounts.add(result)
+                result = self.accounts.create_from(account.copy())
+                added_accounts.add(result.copy())
                 return result
 
         if target_account == ref_account and target_account not in self.accounts:

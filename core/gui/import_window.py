@@ -4,7 +4,6 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import copy
 from collections import defaultdict
 
 # To avoid clashing with "first" in the "first/second" pattern being all over the place in this
@@ -556,7 +555,7 @@ class ImportWindow(MainWindowGUIObject):
             if acct is None:
                 return None
             if acct.name not in name2account:
-                copied_account = copy.copy(acct)
+                copied_account = acct.copy()
                 copied_account.reference = acct.reference
                 name2account[acct.name] = copied_account
                 return copied_account

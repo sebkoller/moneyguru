@@ -1026,7 +1026,7 @@ PyAccount_repr(PyAccount *self)
 static Py_hash_t
 PyAccount_hash(PyAccount *self)
 {
-    return self->account->id;
+    return (Py_hash_t)self->account;
 }
 
 static PyObject *
@@ -1036,7 +1036,6 @@ PyAccount_richcompare(PyAccount *a, PyObject *b, int op)
         Py_RETURN_NOTIMPLEMENTED;
     }
     if ((op == Py_EQ) || (op == Py_NE)) {
-        // TODO: change this to name comparison
         bool match = a->account == ((PyAccount *)b)->account;
         if (op == Py_NE) {
             match = !match;
@@ -1123,7 +1122,6 @@ PyAccount_copy(PyAccount *self)
     r->account = malloc(sizeof(Account));
     memset(r->account, 0, sizeof(Account));
     account_copy(r->account, self->account);
-    r->account->id = self->account->id;
     return (PyObject *)r;
 }
 
@@ -2537,7 +2535,7 @@ PyAccountList_init(PyAccountList *self, PyObject *args, PyObject *kwds)
     if (c == NULL) {
         return -1;
     }
-    accounts_init(&self->alist, 100, c);
+    accounts_init(&self->alist, c);
     self->entries = PyDict_New();
     return 0;
 }
@@ -2555,16 +2553,16 @@ PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
         from_account = ((PyAccount *)from_account_p)->account;
     }
     int len = self->alist.count;
-    for (int i=len-1; i>=0; i--) {
-        Account *a = &self->alist.accounts[i];
-        if (a->id < 1 || a->deleted || !a->autocreated || a == from_account) {
+    for (int i=0; i<len; i++) {
+        Account *a = self->alist.accounts[i];
+        if (!a->autocreated || a == from_account) {
             continue;
         }
         PyObject *entries = PyDict_GetItemString(self->entries, a->name);
         if (PySequence_Length(entries) > 0) {
             continue;
         }
-        a->deleted = true;
+        accounts_remove(&self->alist, a);
     }
     Py_RETURN_NONE;
 }
@@ -2572,12 +2570,9 @@ PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
 static PyObject*
 PyAccountList_clear(PyAccountList *self, PyObject *args)
 {
-    for (int i=0; i<self->alist.count; i++) {
-        Account *a = &self->alist.accounts[i];
-        if (a->id > 0 && !a->deleted) {
-            a->deleted = true;
-        }
-    }
+    Currency *c = self->alist.default_currency;
+    accounts_deinit(&self->alist);
+    accounts_init(&self->alist, c);
     Py_RETURN_NONE;
 }
 
@@ -2623,23 +2618,12 @@ PyAccountList_create_from(PyAccountList *self, PyAccount *account)
     if (!Account_Check(account)) {
         return NULL;
     }
-    if (account->account->name == NULL) {
-        // Trying to copy from a deleted owned account. We should always copy
-        // accounts when storing it "outside" (in an undoer, for example...)
-        PyErr_SetString(PyExc_ValueError, "owned account was deleted! can't use.");
-        return NULL;
-    }
-    if (PySequence_Contains((PyObject *)self, (PyObject *)account)) {
-        Py_INCREF(account);
-        return (PyObject *)account;
-    }
     Account *found = accounts_find_by_reference(
         &self->alist, account->account->reference);
     if (found != NULL) {
         return (PyObject *)_PyAccount_from_account(found);
     }
-    // if an account (deleted or not) with the same name is present, let's
-    // reuse the instance.
+    // if an account with the same name is present, let's reuse the instance.
     Account *a = accounts_find_by_name(&self->alist, account->account->name);
     if (a == NULL) {
         // no account with the same name, we create a new account.
@@ -2652,9 +2636,6 @@ PyAccountList_create_from(PyAccountList *self, PyAccount *account)
         account_deinit(a);
         account_copy(a, account->account);
     }
-    // if we ended up finding a deleted account, let's undelete it. It's coming
-    // back into service!
-    a->deleted = false;
     PyAccount *res = _PyAccount_from_account(a);
     return (PyObject *)res;
 }
@@ -2695,10 +2676,7 @@ PyAccountList_filter(PyAccountList *self, PyObject *args, PyObject *kwds)
     }
     PyObject *res = PyList_New(0);
     for (int i=0; i<self->alist.count; i++) {
-        Account *a = &self->alist.accounts[i];
-        if (a->id <= 0 || a->deleted) {
-            continue;
-        }
+        Account *a = self->alist.accounts[i];
         if (groupname != NULL) {
             if (groupname[0] == '\0') {
                 // empty string means "find accounts with no group"
@@ -2764,11 +2742,9 @@ static PyObject*
 PyAccountList_has_multiple_currencies(PyAccountList *self, PyObject *args)
 {
     for (int i=0; i<self->alist.count; i++) {
-        Account *a = &self->alist.accounts[i];
-        if (a->id > 0 && !a->deleted) {
-            if (a->currency != self->alist.default_currency) {
-                Py_RETURN_TRUE;
-            }
+        Account *a = self->alist.accounts[i];
+        if (a->currency != self->alist.default_currency) {
+            Py_RETURN_TRUE;
         }
     }
     Py_RETURN_FALSE;
@@ -2812,22 +2788,11 @@ PyAccountList_remove(PyAccountList *self, PyAccount *account)
         PyErr_SetString(PyExc_ValueError, "account not in list");
         return NULL;
     }
-    if (a->deleted) {
-        PyErr_SetString(PyExc_ValueError, "account already deleted");
+    if (!accounts_remove(&self->alist, a)) {
+        PyErr_SetString(PyExc_ValueError, "something went wrong");
         return NULL;
     }
-    a->deleted = true;
     Py_RETURN_NONE;
-    // If account is owned, it will take care of its deallocation. If it's not
-    // owned, we should deallocate it now to free a slot in its AccountList.
-    /* if (!account->owned) {
-     *   account_deinit(account->account);
-     * }
-     */
-    // Actually, we don't do it. When considering the need for undo/redo, we
-    // end up with tons of references to accounts that might have been deleted.
-    // In the near future, I hope to straigten out this situation, bur for now,
-    // we simply don't delete them.
 }
 
 static PyObject*
@@ -2858,29 +2823,16 @@ PyAccountList_rename_account(PyAccountList *self, PyObject *args)
 static Py_ssize_t
 PyAccountList_len(PyAccountList *self)
 {
-    Py_ssize_t res = 0;
-    for (int i=0; i<self->alist.count; i++) {
-        Account *a = &self->alist.accounts[i];
-        if (a->id > 0 && !a->deleted) {
-            res++;
-        }
-    }
-    return res;
-    /*return PyList_Size(self->accounts);*/
+    return self->alist.count;
 }
 
 static PyObject*
 PyAccountList_iter(PyAccountList *self)
 {
-    Py_ssize_t len = PyAccountList_len(self);
-    PyObject *tmplist = PyList_New(len);
-    int index = 0;
+    PyObject *tmplist = PyList_New(self->alist.count);
     for (int i=0; i<self->alist.count; i++) {
-        Account *a = &self->alist.accounts[i];
-        if (a->id > 0 && !a->deleted) {
-            PyList_SetItem(tmplist, index, (PyObject *)_PyAccount_from_account(a));
-            index++;
-        }
+        Account *a = self->alist.accounts[i];
+        PyList_SetItem(tmplist, i, (PyObject *)_PyAccount_from_account(a));
     }
     PyObject *res = PyObject_GetIter(tmplist);
     Py_DECREF(tmplist);
@@ -2898,7 +2850,7 @@ PyAccountList_contains(PyAccountList *self, PyObject *account)
         return 0;
     }
     Account *a = accounts_find_by_name(&self->alist, name);
-    if ((a != NULL) && !a->deleted){
+    if ((a != NULL)){
         return 1;
     } else {
         return 0;
@@ -3026,8 +2978,11 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
         const char *aname = PyUnicode_AsUTF8(k);
         Account *account = accounts_find_by_name(&accounts->alist, aname);
         if (account == NULL) {
-            PyErr_SetString(PyExc_ValueError, "integrity error in split accounts");
-            return NULL;
+            return PyErr_Format(
+                PyExc_ValueError,
+                "Split account '%s' not found",
+                aname
+            );
         }
         PyEntryList *entries = (PyEntryList *)PyDict_GetItemString(
             accounts->entries, aname); // borrowed
@@ -3357,7 +3312,7 @@ PyType_Spec EntryList_Type_Spec = {
 };
 
 static PyMethodDef PyAccount_methods[] = {
-    {"__copy__", (PyCFunction)PyAccount_copy, METH_NOARGS, ""},
+    {"copy", (PyCFunction)PyAccount_copy, METH_NOARGS, ""},
     {"normalize_amount", (PyCFunction)PyAccount_normalize_amount, METH_O, ""},
     {"is_balance_sheet_account", (PyCFunction)PyAccount_is_balance_sheet_account, METH_NOARGS, ""},
     {"is_credit_account", (PyCFunction)PyAccount_is_credit_account, METH_NOARGS, ""},
