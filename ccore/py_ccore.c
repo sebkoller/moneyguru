@@ -2033,6 +2033,7 @@ PyTransaction_replicate(PyTransaction *self, PyObject *noarg)
     res->owned = true;
     res->ref = NULL;
     res->recurrence = NULL;
+    res->recurrence_date = NULL;
     PyTransaction_copy_from(res, self);
     return (PyObject *)res;
 }
@@ -2061,6 +2062,7 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
     self->owned = true;
     self->ref = NULL;
     self->recurrence = NULL;
+    self->recurrence_date = NULL;
     transaction_init(self->txn, txntype, date);
     PyTransaction_description_set(self, description);
     PyTransaction_payee_set(self, payee);
@@ -2084,9 +2086,18 @@ static void
 PyTransaction_dealloc(PyTransaction *self)
 {
     if (self->owned) {
-        transaction_deinit(self->txn);
-        free(self->txn);
+        /* Note on non-deallocation:
+         *
+         * Normally, we're supposed to deallocate our transaction here, but we
+         * don't for the same reason we don't deallocate Account in AccountList:
+         * the Undoer. See account.c for details.
+         */
+        /*transaction_deinit(self->txn);*/
+        /*free(self->txn);              */
     }
+    Py_XDECREF(self->ref);
+    Py_XDECREF(self->recurrence);
+    Py_XDECREF(self->recurrence_date);
 }
 
 /* Entry Methods */
@@ -2228,8 +2239,25 @@ PyEntry_splits(PyEntry *self)
 static PyObject *
 PyEntry_transaction(PyEntry *self)
 {
-    Py_INCREF(self->heldtxn);
-    return (PyObject *)self->heldtxn;
+    PyTransaction *res = (PyTransaction *)PyType_GenericAlloc((PyTypeObject *)Transaction_Type, 0);
+    res->txn = self->entry.txn;
+    res->owned = false;
+    res->ref = NULL;
+    res->recurrence = NULL;
+    res->recurrence_date = NULL;
+    if (self->heldtxn->ref != NULL) {
+        res->ref = self->heldtxn->ref;
+        Py_INCREF(res->ref);
+    }
+    if (self->heldtxn->recurrence != NULL) {
+        res->recurrence = self->heldtxn->recurrence;
+        Py_INCREF(res->recurrence);
+    }
+    if (self->heldtxn->recurrence_date != NULL) {
+        res->recurrence_date = self->heldtxn->recurrence_date;
+        Py_INCREF(res->recurrence_date);
+    }
+    return (PyObject *)res;
 }
 
 static PyObject *
