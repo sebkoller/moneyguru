@@ -53,7 +53,6 @@ static PyObject *Account_Type;
 typedef struct {
     PyObject_HEAD
     AccountList alist;
-    PyObject *accounts;
     // accountname: PyEntryList mapping
     PyObject *entries;
 } PyAccountList;
@@ -2522,20 +2521,6 @@ PyEntryList_dealloc(PyEntryList *self)
 }
 
 /* PyAccountList */
-// Borrowed
-static PyAccount*
-_PyAccountList_find_by_inner_pointer(PyAccountList *self, Account *p)
-{
-    Py_ssize_t len = PyList_Size(self->accounts);
-    for (int i=0; i<len; i++) {
-        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
-        if (account->account == p) {
-            return account;
-        }
-    }
-    return NULL;
-}
-
 static int
 PyAccountList_init(PyAccountList *self, PyObject *args, PyObject *kwds)
 {
@@ -2553,7 +2538,6 @@ PyAccountList_init(PyAccountList *self, PyObject *args, PyObject *kwds)
         return -1;
     }
     accounts_init(&self->alist, 100, c);
-    self->accounts = PyList_New(0);
     self->entries = PyDict_New();
     return 0;
 }
@@ -2581,9 +2565,6 @@ PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
             continue;
         }
         a->deleted = true;
-        if (PyList_SetSlice(self->accounts, i, i+1, NULL) == -1) {
-            return NULL;
-        }
     }
     Py_RETURN_NONE;
 }
@@ -2591,13 +2572,11 @@ PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
 static PyObject*
 PyAccountList_clear(PyAccountList *self, PyObject *args)
 {
-    Py_ssize_t len = PyList_Size(self->accounts);
-    for (int i=len-1; i>=0; i--) {
-        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
-        account->account->deleted = true;
-    }
-    if (PyList_SetSlice(self->accounts, 0, len, NULL) == -1) {
-        return NULL;
+    for (int i=0; i<self->alist.count; i++) {
+        Account *a = &self->alist.accounts[i];
+        if (a->id > 0 && !a->deleted) {
+            a->deleted = true;
+        }
     }
     Py_RETURN_NONE;
 }
@@ -2610,7 +2589,6 @@ _PyAccountList_create(PyAccountList *self, char *name, Currency *cur, AccountTyp
     Account *a = accounts_create(&self->alist);
     account->account = a;
     account_init(a, name, cur, type);
-    PyList_Append(self->accounts, (PyObject *)account);
     return account;
 }
 
@@ -2678,7 +2656,6 @@ PyAccountList_create_from(PyAccountList *self, PyAccount *account)
     // back into service!
     a->deleted = false;
     PyAccount *res = _PyAccount_from_account(a);
-    PyList_Append(self->accounts, (PyObject *)res);
     return (PyObject *)res;
 }
 
@@ -2786,11 +2763,12 @@ PyAccountList_find_reference(PyAccountList *self, PyObject *reference)
 static PyObject*
 PyAccountList_has_multiple_currencies(PyAccountList *self, PyObject *args)
 {
-    Py_ssize_t len = PyList_Size(self->accounts);
-    for (int i=0; i<len; i++) {
-        PyAccount *account = (PyAccount *)PyList_GetItem(self->accounts, i); // borrowed
-        if (account->account->currency != self->alist.default_currency) {
-            Py_RETURN_TRUE;
+    for (int i=0; i<self->alist.count; i++) {
+        Account *a = &self->alist.accounts[i];
+        if (a->id > 0 && !a->deleted) {
+            if (a->currency != self->alist.default_currency) {
+                Py_RETURN_TRUE;
+            }
         }
     }
     Py_RETURN_FALSE;
@@ -2838,14 +2816,6 @@ PyAccountList_remove(PyAccountList *self, PyAccount *account)
         PyErr_SetString(PyExc_ValueError, "account already deleted");
         return NULL;
     }
-    PyAccount *todelete = _PyAccountList_find_by_inner_pointer(self, a); // borrowed
-    if (todelete == NULL) {
-        PyErr_SetString(PyExc_ValueError, "something's wrong");
-        return NULL;
-    }
-    if (PyObject_CallMethod(self->accounts, "remove", "O", todelete) == NULL) {
-        return NULL;
-    }
     a->deleted = true;
     Py_RETURN_NONE;
     // If account is owned, it will take care of its deallocation. If it's not
@@ -2885,16 +2855,36 @@ PyAccountList_rename_account(PyAccountList *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static PyObject*
-PyAccountList_iter(PyAccountList *self)
-{
-    return PyObject_GetIter(self->accounts);
-}
-
 static Py_ssize_t
 PyAccountList_len(PyAccountList *self)
 {
-    return PyList_Size(self->accounts);
+    Py_ssize_t res = 0;
+    for (int i=0; i<self->alist.count; i++) {
+        Account *a = &self->alist.accounts[i];
+        if (a->id > 0 && !a->deleted) {
+            res++;
+        }
+    }
+    return res;
+    /*return PyList_Size(self->accounts);*/
+}
+
+static PyObject*
+PyAccountList_iter(PyAccountList *self)
+{
+    Py_ssize_t len = PyAccountList_len(self);
+    PyObject *tmplist = PyList_New(len);
+    int index = 0;
+    for (int i=0; i<self->alist.count; i++) {
+        Account *a = &self->alist.accounts[i];
+        if (a->id > 0 && !a->deleted) {
+            PyList_SetItem(tmplist, index, (PyObject *)_PyAccount_from_account(a));
+            index++;
+        }
+    }
+    PyObject *res = PyObject_GetIter(tmplist);
+    Py_DECREF(tmplist);
+    return res;
 }
 
 static int
@@ -2942,7 +2932,6 @@ PyAccountList_default_currency_set(PyAccountList *self, PyObject *value)
 static void
 PyAccountList_dealloc(PyAccountList *self)
 {
-    Py_DECREF(self->accounts);
     Py_DECREF(self->entries);
     accounts_deinit(&self->alist);
 }
