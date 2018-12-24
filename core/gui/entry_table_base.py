@@ -13,7 +13,6 @@ from core.trans import tr
 from ..model._ccore import Entry
 from ..model.amount import convert_amount
 from ..model.date import ONE_DAY
-from ..model.recurrence import Spawn
 from ..model.transaction import Transaction
 from .table import Row, RowWithDebitAndCreditMixIn, RowWithDateMixIn, rowattr
 from .transaction_table_base import TransactionTableBase
@@ -210,8 +209,8 @@ class EntryTableRow(BaseEntryTableRow):
         self._balance = entry.balance_with_budget
         self._reconciled_balance = entry.reconciled_balance if entry.reconciled else None
         self._reconciled = entry.reconciled
-        self._recurrent = isinstance(entry.transaction, Spawn)
-        self._is_budget = getattr(entry.transaction, 'is_budget', False)
+        self._recurrent = entry.transaction.is_spawn
+        self._is_budget = entry.transaction.is_budget
 
     def save(self):
         entry = self.entry

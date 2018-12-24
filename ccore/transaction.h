@@ -17,6 +17,19 @@ typedef enum {
  * 
  * Whenever a potentially unbalancing operation is made on the splits, call
  * `transaction_balance()` to balance the transaction out.
+ *
+ * SPAWNS
+ *
+ * Transactions of type RECURRENCE and BUDGET are called "spawns". Spawns are
+ * instances of a recurrent transaction at a specific date.
+ *
+ * Recurrences are transactions that are repeated multiple times. Spawns are
+ * specific occurrences of a schedule. It's the spawn, not the schedule, that
+ * will end up showing up in the transaction list with the little clock icon
+ * next to it.
+ *
+ * Other than holding a reference to its recurrence, it behaves pretty much
+ * like a normal transaction.
  */
 typedef struct {
     TransactionType type;

@@ -30,7 +30,6 @@ from .model.date import (
     AllTransactionsRange, CustomDateRange, inc_month
 )
 from .model.oven import Oven
-from .model.recurrence import Spawn
 from .model.transaction_list import TransactionList
 from .model.undo import Undoer, Action
 from .saver.native import save as save_native
@@ -134,7 +133,7 @@ class BaseDocument:
         # needlessly complexifying the code. Some day, we'll have to find an elegant solution to
         # this. In fact, it's the same thing with all these `global_scope` flags we have to
         # propagate everywhere. No easy solution right now.
-        if isinstance(transaction, Spawn):
+        if transaction.is_spawn:
             if global_scope:
                 transaction.recurrence.change_globally(transaction)
             else:
@@ -254,7 +253,7 @@ class BaseDocument:
         :param bool global_scope: Whether this changes affect the whole recurrence (if applicable)
         """
         for txn in transactions:
-            if isinstance(txn, Spawn):
+            if txn.is_spawn:
                 if global_scope:
                     txn.recurrence.stop_before(txn)
                 else:
@@ -464,7 +463,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         self.oven.cook(from_date=from_date, until_date=self.date_range.end)
 
     def _get_action_from_changed_transactions(self, transactions, global_scope=False):
-        if len(transactions) == 1 and not isinstance(transactions[0], Spawn) \
+        if len(transactions) == 1 and not transactions[0].is_spawn \
                 and transactions[0] not in self.transactions:
             action = Action(tr('Add transaction'))
             action.added_transactions.add(transactions[0])
@@ -472,7 +471,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             action = Action(tr('Change transaction'))
             action.change_transactions(transactions)
         if global_scope:
-            spawns, txns = extract(lambda x: isinstance(x, Spawn), transactions)
+            spawns, txns = extract(lambda x: x.is_spawn, transactions)
             for schedule in {spawn.recurrence for spawn in spawns}:
                 action.change_schedule(schedule)
         return action
@@ -483,7 +482,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         Returns whether the chosen scope is global
         Raises OperationAborted if the user cancels the operation.
         """
-        if any(isinstance(txn, Spawn) for txn in transactions):
+        if any(txn.is_spawn for txn in transactions):
             scope = self.view.query_for_schedule_scope()
             if scope == ScheduleScope.Cancel:
                 raise OperationAborted()
@@ -635,7 +634,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         action.deleted_accounts |= set(a.copy() for a in accounts)
         all_entries = flatten(self.accounts.entries_for_account(a) for a in accounts)
         if reassign_to is None:
-            transactions = {e.transaction for e in all_entries if not isinstance(e.transaction, Spawn)}
+            transactions = {e.transaction for e in all_entries if not e.transaction.is_spawn}
             transactions = {t for t in transactions if not t.affected_accounts() - accounts}
             action.deleted_transactions |= transactions
         action.change_entries(all_entries)
@@ -783,7 +782,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         :rtype: ``bool``
         """
         assert transactions
-        if any(isinstance(txn, Spawn) for txn in transactions):
+        if any(txn.is_spawn for txn in transactions):
             return False
         if not allsame(txn.date for txn in transactions):
             return False
@@ -857,7 +856,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         :param from_account: the :class:`.Account` from which the operation takes place, if any.
         """
         action = Action(tr('Remove transaction'))
-        spawns, txns = extract(lambda x: isinstance(x, Spawn), transactions)
+        spawns, txns = extract(lambda x: x.is_spawn, transactions)
         global_scope = self._query_for_scope_if_needed(spawns)
         schedules = set(spawn.recurrence for spawn in spawns)
         action.deleted_transactions |= set(txns)
@@ -935,7 +934,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             global_scope = False # It doesn't make sense to set a reconciliation date globally
         action = self._get_action_from_changed_transactions([entry.transaction], global_scope)
         self._undoer.record(action)
-        if reconciliation_date is not NOEDIT and isinstance(entry.transaction, Spawn):
+        if reconciliation_date is not NOEDIT and entry.transaction.is_spawn:
             newtxn, newsplit = self._reconcile_spawn_split(entry, reconciliation_date)
             entry = Entry(newsplit, newtxn)
             action.added_transactions.add(newtxn)
@@ -961,7 +960,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         action = Action(tr('Change reconciliation'))
         action.change_entries(entries)
         min_date = min(entry.date for entry in entries)
-        spawns, entries = extract(lambda e: isinstance(e.transaction, Spawn), entries)
+        spawns, entries = extract(lambda e: e.transaction.is_spawn, entries)
         for spawn in spawns:
             action.change_schedule(spawn.transaction.recurrence)
         self._undoer.record(action)

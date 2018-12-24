@@ -99,43 +99,25 @@ class DateCounter:
         return new_date
 
 
-class Spawn(Transaction):
-    """Instance of a recurrent transaction at a specific date.
-
-    :class:`Recurrence` (schedules) are transactions that are repeated multiple times. Spawns are
-    specific occurrences of a schedule. It's the spawn, not the schedule, that will end up showing
-    up in the transaction list with the little clock icon next to it.
-
-    Other than holding a reference to its recurrence, it behaves pretty much like a normal
-    transaction.
-
-    All initialisation arguments directly set attributes of the same name. If ``date`` isn't set,
-    ``recurrence_date`` is used.
-
-    Subclasses :class:`.Transaction`.
-    """
-
-    TYPE = 2 # Used in CCore
-
-    def __init__(self, recurrence, ref, recurrence_date, date=None):
-        date = date or recurrence_date
-        Transaction.__init__(
-            self, self.TYPE, date, ref.description, ref.payee, ref.checkno,
-            None, None)
-        #: ``datetime.date``. Date at which the spawn is "supposed to happen", which can be
-        #: overridden by the ``date`` argument, if we're in an "exception" situation. We need to
-        #: keep track of this date because it's used as a kind of ID (oh, the spawn
-        #: ``schedule42@03-04-2014``? Yeah, there's an exception for that one) in the save file.
-        self.recurrence_date = recurrence_date
-        #: :class:`.Transaction`. Template transaction for our spawn. Most of the time, it's the
-        #: same as :attr:`Recurrence.ref`, unless we have an "exception" in our schedule.
-        self.ref = ref
-        #: :class:`Recurrence`. The schedule that created the spawn.
-        self.recurrence = recurrence
-        self.change(splits=ref.splits)
-        for split in self.splits:
-            split.reconciliation_date = None
-        self.balance()
+def Spawn(recurrence, ref, recurrence_date, date=None, txntype=2):
+    date = date or recurrence_date
+    res = Transaction(
+        txntype, date, ref.description, ref.payee, ref.checkno, None, None)
+    #: ``datetime.date``. Date at which the spawn is "supposed to happen", which can be
+    #: overridden by the ``date`` argument, if we're in an "exception" situation. We need to
+    #: keep track of this date because it's used as a kind of ID (oh, the spawn
+    #: ``schedule42@03-04-2014``? Yeah, there's an exception for that one) in the save file.
+    res.recurrence_date = recurrence_date
+    #: :class:`.Transaction`. Template transaction for our spawn. Most of the time, it's the
+    #: same as :attr:`Recurrence.ref`, unless we have an "exception" in our schedule.
+    res.ref = ref
+    #: :class:`Recurrence`. The schedule that created the spawn.
+    res.recurrence = recurrence
+    res.change(splits=ref.splits)
+    for split in res.splits:
+        split.reconciliation_date = None
+    res.balance()
+    return res
 
 
 class Recurrence:

@@ -11,7 +11,6 @@ from core.model.transaction import splitted_splits
 from core.trans import trget, tr
 from .column import Column
 from ..model.amount import convert_amount
-from ..model.recurrence import Spawn
 from ..model.transaction import Transaction
 from .table import Row, RowWithDateMixIn, rowattr
 from .transaction_table_base import TransactionTableBase
@@ -169,9 +168,9 @@ class TransactionTableRow(Row, RowWithDateMixIn):
             self._mtime_fmt = self._mtime.strftime('%Y/%m/%d %H:%M')
         else:
             self._mtime_fmt = ''
-        self._recurrent = isinstance(transaction, Spawn)
+        self._recurrent = transaction.is_spawn
         self._reconciled = any(split.reconciled for split in splits)
-        self._is_budget = getattr(transaction, 'is_budget', False)
+        self._is_budget = transaction.is_budget
         self._can_set_amount = transaction.can_set_amount
 
     def save(self):

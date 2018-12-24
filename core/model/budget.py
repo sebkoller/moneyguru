@@ -13,13 +13,8 @@ from .date import DateRange, ONE_DAY
 from .recurrence import Recurrence, Spawn, DateCounter, RepeatType
 from .transaction import Transaction
 
-class BudgetSpawn(Spawn):
-    """:class:`.Spawn`, but for budgets.
-
-    The only difference with a normal spawn is that its ``is_budget`` attribute is true.
-    """
-    TYPE = 3 # Used in CCore
-    is_budget = True
+def BudgetSpawn(*args, **kwargs):
+    return Spawn(*args, txntype=3, **kwargs)
 
 class Budget(Recurrence):
     """Regular budget for a specific account.

@@ -8,8 +8,6 @@ import copy
 
 from core.util import extract
 
-from ..model.recurrence import Spawn
-
 ACCOUNT_SWAP_ATTRS = ['currency', 'type', 'groupname', 'account_number', 'notes']
 GROUP_SWAP_ATTRS = ['name', 'type']
 SPLIT_SWAP_ATTRS = ['account', 'amount', 'reconciliation_date']
@@ -88,7 +86,7 @@ class Action:
         If any of the transactions are a :class:`.Spawn`, also record a change to their related
         schedule.
         """
-        spawns, normal = extract(lambda t: isinstance(t, Spawn), transactions)
+        spawns, normal = extract(lambda t: t.is_spawn, transactions)
         for t in normal:
             if t not in self.changed_transactions:
                 self.changed_transactions[t] = t.replicate()
