@@ -66,7 +66,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
 
     # --- Protected
     def _node_of_account(self, account):
-        return self.find(lambda n: getattr(n, 'account', None) is account)
+        return self.find(lambda n: getattr(n, 'account', None) == account)
 
     def _prune_invalid_expanded_paths(self):
         newpaths = set()
@@ -226,7 +226,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
         node.is_type = True
         for group in sorted(self.document.groups.filter(type=type)):
             node.append(self.make_group_node(group))
-        accounts = self.document.accounts.filter(type=type, groupname=None)
+        accounts = self.document.accounts.filter(type=type, groupname='')
         for account in sorted(accounts, key=ACCOUNT_SORT_KEY):
             node.append(self.make_account_node(account))
         accounts = self.document.accounts.filter(type=type)

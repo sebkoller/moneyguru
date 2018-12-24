@@ -2702,57 +2702,42 @@ PyAccountList_entries_for_account(PyAccountList *self, PyAccount *account)
 static PyObject*
 PyAccountList_filter(PyAccountList *self, PyObject *args, PyObject *kwds)
 {
-    PyObject *groupname = NULL;
-    char *type = NULL;
+    char *groupname = NULL;
+    char *type_s = NULL;
     static char *kwlist[] = {"groupname", "type", NULL};
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|Os", kwlist, &groupname, &type)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "|ss", kwlist, &groupname, &type_s)) {
         return NULL;
     }
-    PyObject *res = PySequence_List(self->accounts);
-    if (groupname != NULL) {
-        const char *tomatch;
-        if (groupname == Py_None) {
-            tomatch = NULL;
-        } else {
-            tomatch = PyUnicode_AsUTF8(groupname);
-            if (tomatch == NULL) {
-                return NULL;
-            }
-        }
-        PyObject *newres = PyList_New(0);
-        Py_ssize_t len = PyList_Size(res);
-        for (int i=0; i<len; i++) {
-            PyAccount *account = (PyAccount *)PyList_GetItem(res, i); // borrowed
-            char *g = account->account->groupname;
-            if (tomatch == NULL) {
-                if (g == NULL) {
-                    PyList_Append(newres, (PyObject *)account);
-                }
-            } else {
-                if (g != NULL && (strcmp(g, tomatch) == 0)) {
-                    PyList_Append(newres, (PyObject *)account);
-                }
-            }
-        }
-        Py_DECREF(res);
-        res = newres;
-    }
-    if (type != NULL) {
-        int t = _PyAccount_str2type(type);
-        if (t < 0) {
+    int type = -1;
+    if (type_s != NULL) {
+        type = _PyAccount_str2type(type_s);
+        if (type < 0) {
             return NULL;
         }
-        PyObject *newres = PyList_New(0);
-        Py_ssize_t len = PyList_Size(res);
-        for (int i=0; i<len; i++) {
-            PyAccount *account = (PyAccount *)PyList_GetItem(res, i); // borrowed
-            if (account->account->type == (AccountType)t) {
-                PyList_Append(newres, (PyObject *)account);
+    }
+    PyObject *res = PyList_New(0);
+    for (int i=0; i<self->alist.count; i++) {
+        Account *a = &self->alist.accounts[i];
+        if (a->id <= 0 || a->deleted) {
+            continue;
+        }
+        if (groupname != NULL) {
+            if (groupname[0] == '\0') {
+                // empty string means "find accounts with no group"
+                if (a->groupname != NULL) {
+                    continue;
+                }
+            } else {
+                if (a->groupname == NULL || strcmp(groupname, a->groupname) != 0) {
+                    continue;
+                }
             }
         }
-        Py_DECREF(res);
-        res = newres;
+        if (type >= 0 && (int)a->type != type) {
+            continue;
+        }
+        PyList_Append(res, (PyObject *)_PyAccount_from_account(a));
     }
     return res;
 }

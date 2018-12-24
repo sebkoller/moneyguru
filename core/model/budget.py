@@ -171,7 +171,7 @@ class BudgetList(list):
         :type target: :class:`.Account`
         :rtype: List of :class:`Budget`
         """
-        return [b for b in self if b.target is target]
+        return [b for b in self if b.target == target]
 
     def normal_amount_for_account(self, account, date_range, currency=None):
         """Normalized version of :meth:`amount_for_account`.
