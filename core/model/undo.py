@@ -80,7 +80,7 @@ class Action:
         if budget not in self.changed_budgets:
             self.changed_budgets[budget] = budget.replicate()
 
-    def change_transactions(self, transactions):
+    def change_transactions(self, transactions, schedules):
         """Record imminent changes to ``transactions``.
 
         If any of the transactions are a :class:`.Spawn`, also record a change to their related
@@ -90,12 +90,14 @@ class Action:
         for t in normal:
             if t not in self.changed_transactions:
                 self.changed_transactions[t] = t.replicate()
-        for schedule in set(spawn.recurrence for spawn in spawns):
-            self.change_schedule(schedule)
+        for spawn in spawns:
+            for schedule in schedules:
+                if schedule.contains_ref(spawn.ref):
+                    self.change_schedule(schedule)
 
-    def change_entries(self, entries):
+    def change_entries(self, entries, schedules):
         """Record imminent changes to ``entries``."""
-        self.change_transactions({e.transaction for e in entries})
+        self.change_transactions({e.transaction for e in entries}, schedules)
 
 
 class Undoer:

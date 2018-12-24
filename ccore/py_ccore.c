@@ -79,7 +79,6 @@ typedef struct {
 
     // Recurrence-related
     PyObject *recurrence_date;
-    PyObject *recurrence;
     PyObject *ref;
 } PyTransaction;
 
@@ -1514,29 +1513,6 @@ PyTransaction_ref_set(PyTransaction *self, PyObject *value)
 }
 
 static PyObject *
-PyTransaction_recurrence(PyTransaction *self)
-{
-    if (self->recurrence != NULL) {
-        Py_INCREF(self->recurrence);
-        return self->recurrence;
-    } else {
-        Py_RETURN_NONE;
-    }
-}
-
-static int
-PyTransaction_recurrence_set(PyTransaction *self, PyObject *value)
-{
-    if (self->recurrence != NULL) {
-        // not supposed to happen
-        return 1;
-    }
-    self->recurrence = value;
-    Py_INCREF(self->recurrence);
-    return 0;
-}
-
-static PyObject *
 PyTransaction_recurrence_date(PyTransaction *self)
 {
     if (self->recurrence_date != NULL) {
@@ -1625,7 +1601,7 @@ PyTransaction_is_null(PyTransaction *self)
 static PyObject *
 PyTransaction_is_spawn(PyTransaction *self)
 {
-    if (self->recurrence == NULL) {
+    if (self->ref == NULL) {
         // When a spawn is materialized, it is with a replicate() call that
         // keeps its type intact, without giving it its spawn attributes. We
         // don't consider these replications as spawn.
@@ -1642,7 +1618,7 @@ PyTransaction_is_spawn(PyTransaction *self)
 static PyObject *
 PyTransaction_is_budget(PyTransaction *self)
 {
-    if (self->recurrence == NULL) {
+    if (self->ref == NULL) {
         Py_RETURN_FALSE;
     }
     if (self->txn->type == TXN_TYPE_BUDGET) {
@@ -2032,7 +2008,6 @@ PyTransaction_replicate(PyTransaction *self, PyObject *noarg)
     res->txn = calloc(1, sizeof(Transaction));
     res->owned = true;
     res->ref = NULL;
-    res->recurrence = NULL;
     res->recurrence_date = NULL;
     PyTransaction_copy_from(res, self);
     return (PyObject *)res;
@@ -2061,7 +2036,6 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
     self->txn = malloc(sizeof(Transaction));
     self->owned = true;
     self->ref = NULL;
-    self->recurrence = NULL;
     self->recurrence_date = NULL;
     transaction_init(self->txn, txntype, date);
     PyTransaction_description_set(self, description);
@@ -2096,7 +2070,6 @@ PyTransaction_dealloc(PyTransaction *self)
         /*free(self->txn);              */
     }
     Py_XDECREF(self->ref);
-    Py_XDECREF(self->recurrence);
     Py_XDECREF(self->recurrence_date);
 }
 
@@ -2243,15 +2216,10 @@ PyEntry_transaction(PyEntry *self)
     res->txn = self->entry.txn;
     res->owned = false;
     res->ref = NULL;
-    res->recurrence = NULL;
     res->recurrence_date = NULL;
     if (self->heldtxn->ref != NULL) {
         res->ref = self->heldtxn->ref;
         Py_INCREF(res->ref);
-    }
-    if (self->heldtxn->recurrence != NULL) {
-        res->recurrence = self->heldtxn->recurrence;
-        Py_INCREF(res->recurrence);
     }
     if (self->heldtxn->recurrence_date != NULL) {
         res->recurrence_date = self->heldtxn->recurrence_date;
@@ -3573,7 +3541,6 @@ static PyGetSetDef PyTransaction_getseters[] = {
     {"is_budget", (getter)PyTransaction_is_budget, NULL, NULL, NULL},
     // recurrence-related
     {"ref", (getter)PyTransaction_ref, (setter)PyTransaction_ref_set, NULL, NULL},
-    {"recurrence", (getter)PyTransaction_recurrence, (setter)PyTransaction_recurrence_set, NULL, NULL},
     {"recurrence_date", (getter)PyTransaction_recurrence_date, (setter)PyTransaction_recurrence_date_set, NULL, NULL},
     {0, 0, 0, 0, 0},
 };

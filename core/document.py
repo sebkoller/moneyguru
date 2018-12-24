@@ -32,6 +32,7 @@ from .model.date import (
 from .model.oven import Oven
 from .model.transaction_list import TransactionList
 from .model.undo import Undoer, Action
+from .model.recurrence import find_schedule_of_ref
 from .saver.native import save as save_native
 
 SELECTED_DATE_RANGE_PREFERENCE = 'SelectedDateRange'
@@ -134,10 +135,12 @@ class BaseDocument:
         # this. In fact, it's the same thing with all these `global_scope` flags we have to
         # propagate everywhere. No easy solution right now.
         if transaction.is_spawn:
+            schedule = find_schedule_of_ref(transaction.ref, self.schedules)
+            assert schedule is not None
             if global_scope:
-                transaction.recurrence.change_globally(transaction)
+                schedule.change_globally(transaction)
             else:
-                transaction.recurrence.delete(transaction)
+                schedule.delete(transaction)
                 materialized = transaction.replicate()
                 self.transactions.add(materialized)
         else:
@@ -254,10 +257,12 @@ class BaseDocument:
         """
         for txn in transactions:
             if txn.is_spawn:
+                schedule = find_schedule_of_ref(txn.ref, self.schedules)
+                assert schedule is not None
                 if global_scope:
-                    txn.recurrence.stop_before(txn)
+                    schedule.stop_before(txn)
                 else:
-                    txn.recurrence.delete(txn)
+                    schedule.delete(txn)
             else:
                 self.transactions.remove(txn)
         min_date = min(t.date for t in transactions)
@@ -469,11 +474,10 @@ class Document(BaseDocument, Repeater, GUIObject):
             action.added_transactions.add(transactions[0])
         else:
             action = Action(tr('Change transaction'))
-            action.change_transactions(transactions)
+            action.change_transactions(transactions, self.schedules)
         if global_scope:
             spawns, txns = extract(lambda x: x.is_spawn, transactions)
-            for schedule in {spawn.recurrence for spawn in spawns}:
-                action.change_schedule(schedule)
+            action.change_transactions(spawns, self.schedules)
         return action
 
     def _query_for_scope_if_needed(self, transactions):
@@ -492,7 +496,9 @@ class Document(BaseDocument, Repeater, GUIObject):
 
     def _reconcile_spawn_split(self, entry, reconciliation_date):
         # returns a reference to the corresponding materialized split
-        entry.transaction.recurrence.delete(entry.transaction)
+        schedule = find_schedule_of_ref(entry.transaction.ref, self.schedules)
+        assert schedule is not None
+        schedule.delete(entry.transaction)
         materialized = entry.transaction.replicate()
         self.transactions.add(materialized)
         split_index = entry.transaction.splits.index(entry.split)
@@ -637,7 +643,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             transactions = {e.transaction for e in all_entries if not e.transaction.is_spawn}
             transactions = {t for t in transactions if not t.affected_accounts() - accounts}
             action.deleted_transactions |= transactions
-        action.change_entries(all_entries)
+        action.change_entries(all_entries, self.schedules)
         affected_schedules = [s for s in self.schedules if accounts & s.affected_accounts()]
         for schedule in affected_schedules:
             action.change_schedule(schedule)
@@ -804,7 +810,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         """
         global_scope = self._query_for_scope_if_needed([original])
         action = Action(tr('Change transaction'))
-        action.change_transactions([original])
+        action.change_transactions([original], self.schedules)
         self._undoer.record(action)
         BaseDocument.change_transaction(self, original, new, global_scope=global_scope)
         if not self._adjust_date_range(original.date):
@@ -858,10 +864,8 @@ class Document(BaseDocument, Repeater, GUIObject):
         action = Action(tr('Remove transaction'))
         spawns, txns = extract(lambda x: x.is_spawn, transactions)
         global_scope = self._query_for_scope_if_needed(spawns)
-        schedules = set(spawn.recurrence for spawn in spawns)
+        action.change_transactions(spawns, self.schedules)
         action.deleted_transactions |= set(txns)
-        for schedule in schedules:
-            action.change_schedule(schedule)
         self._undoer.record(action)
         BaseDocument.delete_transactions(
             self, transactions, from_account=from_account, global_scope=global_scope
@@ -902,7 +906,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         affected_date = transactions[0].date
         affected |= set(self.transactions.transactions_at_date(affected_date))
         action = Action(tr('Move transaction'))
-        action.change_transactions(affected)
+        action.change_transactions(affected, self.schedules)
         self._undoer.record(action)
         BaseDocument.move_transactions(self, transactions, to_transaction)
         self.notify('transaction_changed')
@@ -958,11 +962,10 @@ class Document(BaseDocument, Repeater, GUIObject):
         all_reconciled = not entries or all(entry.reconciled for entry in entries)
         newvalue = not all_reconciled
         action = Action(tr('Change reconciliation'))
-        action.change_entries(entries)
+        action.change_entries(entries, self.schedules)
         min_date = min(entry.date for entry in entries)
         spawns, entries = extract(lambda e: e.transaction.is_spawn, entries)
-        for spawn in spawns:
-            action.change_schedule(spawn.transaction.recurrence)
+        action.change_transactions({e.transaction for e in spawns}, self.schedules)
         self._undoer.record(action)
         if newvalue:
             for entry in entries:
@@ -1278,7 +1281,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         action = Action(tr('Import'))
         action.added_accounts |= added_accounts
         action.added_transactions |= added_transactions
-        action.change_transactions(to_unreconcile)
+        action.change_transactions(to_unreconcile, self.schedules)
         self._undoer.record(action)
 
         for txn in to_unreconcile:

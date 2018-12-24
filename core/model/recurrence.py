@@ -9,13 +9,16 @@ import datetime
 from calendar import monthrange
 from itertools import chain
 
-from core.util import nonone
+from core.util import nonone, first
 from core.trans import tr
 
 from .date import (
     inc_day, inc_week, inc_month, inc_year, inc_weekday_in_month, inc_last_weekday_in_month
 )
 from ._ccore import Transaction
+
+def find_schedule_of_ref(ref, schedules):
+    return first(s for s in schedules if s.contains_ref(ref))
 
 class RepeatType:
     """Available repetition types for :class:`Recurrence`.
@@ -111,8 +114,6 @@ def Spawn(recurrence, ref, recurrence_date, date=None, txntype=2):
     #: :class:`.Transaction`. Template transaction for our spawn. Most of the time, it's the
     #: same as :attr:`Recurrence.ref`, unless we have an "exception" in our schedule.
     res.ref = ref
-    #: :class:`Recurrence`. The schedule that created the spawn.
-    res.recurrence = recurrence
     res.change(splits=ref.splits)
     for split in res.splits:
         split.reconciliation_date = None
@@ -253,6 +254,15 @@ class Recurrence:
                 del self.date2exception[date]
         self.date2globalchange[spawn.recurrence_date] = spawn
         self._update_ref()
+
+    def contains_ref(self, ref):
+        if self.ref == ref:
+            return True
+        if ref in self.date2globalchange.values():
+            return True
+        if ref in self.date2instances.values():
+            return True
+        return False
 
     def delete(self, spawn):
         """Create an exception that prevents ``spawn`` from spawning again.
