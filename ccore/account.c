@@ -121,15 +121,7 @@ accounts_deinit(AccountList *accounts)
 {
     for (int i=0; i<accounts->count; i++) {
         account_deinit(accounts->accounts[i]);
-        /* See accounts_remove() for reason why we don't free our accounts
-         * However, the case here is a bit different: theoretically, the cause
-         * for crashes caused by freeing accounts here can't be the Undoer. It's
-         * probably caused by the way we import and load accounts. We probably
-         * have some dangling account references somewhere that we shouldn't
-         * have.
-         * So, TODO: straigten out account management during import and load.
-         */
-        /*free(accounts->accounts[i]);*/
+        free(accounts->accounts[i]);
     }
     free(accounts->accounts);
 }
