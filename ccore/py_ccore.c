@@ -2630,16 +2630,22 @@ PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
         from_account = ((PyAccount *)from_account_p)->account;
     }
     int len = self->alist.count;
-    for (int i=0; i<len; i++) {
+    for (int i=len-1; i>=0; i--) {
         Account *a = self->alist.accounts[i];
         if (!a->autocreated || a == from_account) {
             continue;
         }
         PyObject *entries = PyDict_GetItemString(self->entries, a->name);
+        if (entries == NULL) {
+            return NULL;
+        }
         if (PySequence_Length(entries) > 0) {
             continue;
         }
-        accounts_remove(&self->alist, a);
+        if (!accounts_remove(&self->alist, a)) {
+            PyErr_SetString(PyExc_RuntimeError, "couldn't remove account");
+            return NULL;
+        }
     }
     Py_RETURN_NONE;
 }
