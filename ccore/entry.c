@@ -9,7 +9,6 @@ entry_init(Entry *entry, Split *split, Transaction *txn)
     amount_copy(&entry->balance, amount_zero());
     amount_copy(&entry->reconciled_balance, amount_zero());
     amount_copy(&entry->balance_with_budget, amount_zero());
-    entry->index = -1;
 }
 
 bool
@@ -69,7 +68,6 @@ entry_copy(Entry *dst, const Entry *src)
     amount_copy(&dst->balance, &src->balance);
     amount_copy(&dst->reconciled_balance, &src->reconciled_balance);
     amount_copy(&dst->balance_with_budget, &src->balance_with_budget);
-    dst->index = src->index;
 }
 
 int
@@ -178,8 +176,8 @@ _entry_qsort_cmp(const void *a, const void *b)
     if (e1->txn->position != e2->txn->position) {
         return e1->txn->position < e2->txn->position ? -1 : 1;
     }
-    if (e1->index != e2->index) {
-        return e1->index < e2->index ? -1 : 1;
+    if (e1->split->index != e2->split->index) {
+        return e1->split->index < e2->split->index ? -1 : 1;
     }
     return 0;
 }
@@ -210,7 +208,6 @@ entries_cook(const EntryList *ref, EntryList *tocook, Currency *currency)
     rel.entries = malloc(sizeof(Entry *) * rel.count);
     for (int i=0; i<tocook->count; i++) {
         Entry *entry = tocook->entries[i];
-        entry->index = i;
 
         Split *split = entry->split;
         if (!amount_convert(&amount, &split->amount, entry->txn->date)) {

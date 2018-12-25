@@ -16,9 +16,6 @@ typedef struct {
     Amount reconciled_balance;
     // Running balance which includes all Budget spawns.
     Amount balance_with_budget;
-    // Index in the EntryList. Set by `EntryList.add_entry` and used as a tie
-    // breaker in case we have more than one entry from the same transaction.
-    int index;
 } Entry;
 
 typedef struct {

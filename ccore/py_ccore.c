@@ -2349,7 +2349,7 @@ _PyEntryList_maybe_set_last_reconciled(PyEntryList *self, Entry *entry)
                 if (entry->txn->position > old->txn->position) {
                     replace = true;
                 }
-            } else if (entry->index > old->index) {
+            } else if (entry->split->index > old->split->index) {
                 replace = true;
             }
             if (replace) {
