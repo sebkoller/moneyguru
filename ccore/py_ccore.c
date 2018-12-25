@@ -76,10 +76,6 @@ typedef struct {
     Transaction *txn;
     // If true, we own the Transaction instance and have to free it.
     bool owned;
-
-    // Recurrence-related
-    PyObject *recurrence_date;
-    PyObject *ref;
 } PyTransaction;
 
 static PyObject *Transaction_Type;
@@ -97,11 +93,6 @@ static PyObject *Transaction_Type;
 typedef struct {
     PyObject_HEAD
     Entry entry;
-    // We never actually use heldtxn, but for the time being, we need to keep
-    // PyTransaction instances static (same PyTransaction instance referring to
-    // the same Transaction pointer), otherwise all hell breaks loose. So, we
-    // keep this around...
-    PyTransaction *heldtxn;
 } PyEntry;
 
 static PyObject *Entry_Type;
@@ -1387,6 +1378,15 @@ PySplit_richcompare(PySplit *a, PyObject *b, int op)
 
 
 /* Transaction */
+static PyTransaction*
+_PyTransaction_from_txn(Transaction *txn)
+{
+    PyTransaction *res = (PyTransaction *)PyType_GenericAlloc((PyTypeObject *)Transaction_Type, 0);
+    res->txn = txn;
+    res->owned = false;
+    return res;
+}
+
 static PyObject *
 PyTransaction_date(PyTransaction *self)
 {
@@ -1492,9 +1492,8 @@ PyTransaction_mtime_set(PyTransaction *self, PyObject *value)
 static PyObject *
 PyTransaction_ref(PyTransaction *self)
 {
-    if (self->ref != NULL) {
-        Py_INCREF(self->ref);
-        return self->ref;
+    if (self->txn->ref != NULL) {
+        return (PyObject *)_PyTransaction_from_txn(self->txn->ref);
     } else {
         Py_RETURN_NONE;
     }
@@ -1503,36 +1502,30 @@ PyTransaction_ref(PyTransaction *self)
 static int
 PyTransaction_ref_set(PyTransaction *self, PyObject *value)
 {
-    if (self->ref != NULL) {
+    if (self->txn->ref != NULL) {
         // not supposed to happen
         return 1;
     }
-    self->ref = value;
-    Py_INCREF(self->ref);
+    self->txn->ref = ((PyTransaction *)value)->txn;
     return 0;
 }
 
 static PyObject *
 PyTransaction_recurrence_date(PyTransaction *self)
 {
-    if (self->recurrence_date != NULL) {
-        Py_INCREF(self->recurrence_date);
-        return self->recurrence_date;
-    } else {
-        Py_RETURN_NONE;
-    }
+    return time2pydate(self->txn->recurrence_date);
 }
 
 static int
 PyTransaction_recurrence_date_set(PyTransaction *self, PyObject *value)
 {
-    if (self->recurrence_date != NULL) {
-        // not supposed to happen
-        return 1;
+    time_t res = pydate2time(value);
+    if (res == 1) {
+        return -1;
+    } else {
+        self->txn->recurrence_date = res;
+        return 0;
     }
-    self->recurrence_date = value;
-    Py_INCREF(self->recurrence_date);
-    return 0;
 }
 
 static PyObject *
@@ -1601,7 +1594,7 @@ PyTransaction_is_null(PyTransaction *self)
 static PyObject *
 PyTransaction_is_spawn(PyTransaction *self)
 {
-    if (self->ref == NULL) {
+    if (self->txn->ref == NULL) {
         // When a spawn is materialized, it is with a replicate() call that
         // keeps its type intact, without giving it its spawn attributes. We
         // don't consider these replications as spawn.
@@ -1618,7 +1611,7 @@ PyTransaction_is_spawn(PyTransaction *self)
 static PyObject *
 PyTransaction_is_budget(PyTransaction *self)
 {
-    if (self->ref == NULL) {
+    if (self->txn->ref == NULL) {
         Py_RETURN_FALSE;
     }
     if (self->txn->type == TXN_TYPE_BUDGET) {
@@ -2007,8 +2000,6 @@ PyTransaction_replicate(PyTransaction *self, PyObject *noarg)
     PyTransaction *res = (PyTransaction *)PyType_GenericAlloc((PyTypeObject *)Transaction_Type, 0);
     res->txn = calloc(1, sizeof(Transaction));
     res->owned = true;
-    res->ref = NULL;
-    res->recurrence_date = NULL;
     PyTransaction_copy_from(res, self);
     return (PyObject *)res;
 }
@@ -2035,8 +2026,6 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
     }
     self->txn = malloc(sizeof(Transaction));
     self->owned = true;
-    self->ref = NULL;
-    self->recurrence_date = NULL;
     transaction_init(self->txn, txntype, date);
     PyTransaction_description_set(self, description);
     PyTransaction_payee_set(self, payee);
@@ -2069,8 +2058,6 @@ PyTransaction_dealloc(PyTransaction *self)
         /*transaction_deinit(self->txn);*/
         /*free(self->txn);              */
     }
-    Py_XDECREF(self->ref);
-    Py_XDECREF(self->recurrence_date);
 }
 
 /* Entry Methods */
@@ -2094,8 +2081,6 @@ PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
         PyErr_SetString(PyExc_TypeError, "not a txn");
         return -1;
     }
-    self->heldtxn = transaction_p;
-    Py_INCREF(self->heldtxn);
     entry_init(&self->entry, split_p->split, transaction_p->txn);
     return 0;
 }
@@ -2212,20 +2197,7 @@ PyEntry_splits(PyEntry *self)
 static PyObject *
 PyEntry_transaction(PyEntry *self)
 {
-    PyTransaction *res = (PyTransaction *)PyType_GenericAlloc((PyTypeObject *)Transaction_Type, 0);
-    res->txn = self->entry.txn;
-    res->owned = false;
-    res->ref = NULL;
-    res->recurrence_date = NULL;
-    if (self->heldtxn->ref != NULL) {
-        res->ref = self->heldtxn->ref;
-        Py_INCREF(res->ref);
-    }
-    if (self->heldtxn->recurrence_date != NULL) {
-        res->recurrence_date = self->heldtxn->recurrence_date;
-        Py_INCREF(res->recurrence_date);
-    }
-    return (PyObject *)res;
+    return (PyObject *)_PyTransaction_from_txn(self->entry.txn);
 }
 
 static PyObject *
@@ -2318,9 +2290,6 @@ PyEntry_repr(PyEntry *self)
 static void
 PyEntry_dealloc(PyEntry *self)
 {
-    if (self->heldtxn != NULL) {
-        Py_DECREF(self->heldtxn);
-    }
 }
 
 /* EntryList */
@@ -3020,8 +2989,6 @@ _py_oven_cook_splits(
             Py_DECREF(newentries);
             return NULL;
         }
-        entry->heldtxn = txn_p;
-        Py_INCREF(entry->heldtxn);
         entry_init(&entry->entry, split_p->split, txn_p->txn);
         tocook.entries[i] = &entry->entry;
         PyList_SetItem(newentries, i, (PyObject *)entry); // stolen

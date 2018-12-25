@@ -138,6 +138,9 @@ transaction_init(Transaction *txn, TransactionType type, time_t date)
     txn->splits = malloc(0);
     txn->splitcount = 0;
     txn->affected_accounts = NULL;
+
+    txn->ref = NULL;
+    txn->recurrence_date = 0;
 }
 
 void

@@ -31,7 +31,7 @@ typedef enum {
  * Other than holding a reference to its recurrence, it behaves pretty much
  * like a normal transaction.
  */
-typedef struct {
+typedef struct _Transaction {
     TransactionType type;
     // Date at which the transation occurs.
     time_t date;
@@ -57,6 +57,10 @@ typedef struct {
     // Used to hold the result of transaction_affected_accounts(). Is
     // reinitialized on each call and freed on transaction_deinit().
     Account **affected_accounts;
+
+    // Recurrence-related fields
+    struct _Transaction *ref;
+    time_t recurrence_date;
 } Transaction;
 
 typedef struct {
