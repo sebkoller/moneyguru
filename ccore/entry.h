@@ -20,6 +20,7 @@ typedef struct {
 
 typedef struct {
     int count;
+    int cooked_until;
     Entry **entries;
     Entry *last_reconciled;
 } EntryList;
@@ -47,8 +48,8 @@ entries_init(EntryList *entries);
 void
 entries_deinit(EntryList *entries);
 
-void
-entries_add(EntryList *entries, Entry *entry);
+Entry*
+entries_create(EntryList *entries, Split *split, Transaction *txn);
 
 void
 entries_clear(EntryList *entries, time_t fromdate);
@@ -62,12 +63,5 @@ entries_balance(const EntryList *entries, Amount *dst, time_t date, bool with_bu
 bool
 entries_balance_of_reconciled(const EntryList *entries, Amount *dst);
 
-/* Cook entries in `tocook` in preparation to adding then in `ref`
- *
- * `ref` is a list of entries that are already cooked and `tocook` are freshly
- * created entries that will be appended to it.
- *
- * Tis function only cooks (compute running balances), it doesn't touch ref.
- */
 bool
-entries_cook(const EntryList *ref, EntryList *tocook, Currency *currency);
+entries_cook(EntryList *entries, Currency *currency);

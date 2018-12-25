@@ -133,6 +133,7 @@ void
 entries_init(EntryList *entries)
 {
     entries->count = 0;
+    entries->cooked_until = 0;
     entries->entries = NULL;
     entries->last_reconciled = NULL;
 }
@@ -143,15 +144,17 @@ entries_deinit(EntryList *entries)
     free(entries->entries);
 }
 
-void
-entries_add(EntryList *entries, Entry *entry)
+Entry*
+entries_create(EntryList *entries, Split *split, Transaction *txn)
 {
     entries->count++;
     entries->entries = realloc(
         entries->entries,
         sizeof(Entry*) * entries->count);
-    entries->entries[entries->count-1] = entry;
-    _entries_maybe_set_last_reconciled(entries, entry);
+    Entry *res = malloc(sizeof(Entry));
+    entry_init(res, split, txn);
+    entries->entries[entries->count-1] = res;
+    return res;
 }
 
 void
@@ -168,6 +171,7 @@ entries_clear(EntryList *entries, time_t fromdate)
         }
     }
     entries->count = index;
+    entries->cooked_until = index;
     entries->entries = realloc(
         entries->entries,
         sizeof(Entry*) * entries->count);
@@ -216,19 +220,19 @@ entries_find_date(const EntryList *entries, time_t date, bool equal)
 bool
 entries_balance(const EntryList *entries, Amount *dst, time_t date, bool with_budget)
 {
-    if (entries->count == 0) {
+    if (entries->cooked_until == 0) {
         dst->val = 0;
         return true;
     }
     int index;
     if (date == 0) {
-        index = entries->count;
+        index = entries->cooked_until;
     } else {
         index = entries_find_date(entries, date, true);
     }
     // We want the entry *before* the threshold
     index--;
-    if (index >= entries->count) {
+    if (index >= entries->cooked_until) {
         // Something's wrong
         return false;
     }
@@ -264,32 +268,35 @@ entries_balance_of_reconciled(const EntryList *entries, Amount *dst)
 }
 
 bool
-entries_cook(const EntryList *ref, EntryList *tocook, Currency *currency)
+entries_cook(EntryList *entries, Currency *currency)
 {
+    int cookcount = entries->count - entries->cooked_until;
+    if (!cookcount) {
+        // nothing to cook
+        return true;
+    }
     Amount amount;
     Amount balance;
     Amount balance_with_budget;
     Amount reconciled_balance;
 
+    if (!entries_balance(entries, &balance, 0, false)) {
+        return false;
+    }
+    if (!entries_balance(entries, &balance_with_budget, 0, true)) {
+        return false;
+    }
+    entries_balance_of_reconciled(entries, &reconciled_balance);
     balance.currency = currency;
     balance_with_budget.currency = balance.currency;
     reconciled_balance.currency = balance.currency;
     amount.currency = balance.currency;
 
-    if (!entries_balance(ref, &balance, 0, false)) {
-        return false;
-    }
-    if (!entries_balance(ref, &balance_with_budget, 0, true)) {
-        return false;
-    }
-    entries_balance_of_reconciled(ref, &reconciled_balance);
     // Entries in reconciliation order
-    EntryList rel;
-    rel.count = tocook->count;
-    rel.entries = malloc(sizeof(Entry *) * rel.count);
-    for (int i=0; i<tocook->count; i++) {
-        Entry *entry = tocook->entries[i];
-
+    Entry** rel;
+    rel = malloc(sizeof(Entry *) * cookcount);
+    for (int i=0; i<cookcount; i++) {
+        Entry *entry = entries->entries[entries->cooked_until+i];
         Split *split = entry->split;
         if (!amount_convert(&amount, &split->amount, entry->txn->date)) {
             return false;
@@ -301,18 +308,20 @@ entries_cook(const EntryList *ref, EntryList *tocook, Currency *currency)
         balance_with_budget.val += amount.val;
         amount_copy(&entry->balance_with_budget, &balance_with_budget);
 
-        rel.entries[i] = entry;
+        rel[i] = entry;
     }
 
-    qsort(rel.entries, rel.count, sizeof(Entry *), _entry_qsort_cmp);
+    qsort(rel, cookcount, sizeof(Entry *), _entry_qsort_cmp);
 
-    for (int i=0; i<rel.count; i++) {
-        Entry *entry = rel.entries[i];
+    for (int i=0; i<cookcount; i++) {
+        Entry *entry = rel[i];
         if (entry->split->reconciliation_date != 0) {
             reconciled_balance.val += entry->split->amount.val;
+            entries->last_reconciled = entry;
         }
         amount_copy(&entry->reconciled_balance, &reconciled_balance);
     }
-    free(rel.entries);
+    free(rel);
+    entries->cooked_until = entries->count;
     return true;
 }

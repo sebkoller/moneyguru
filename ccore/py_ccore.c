@@ -2304,13 +2304,6 @@ _PyEntryList_new(Account *account)
     return res;
 }
 
-static void
-_PyEntryList_add_entry(PyEntryList *self, PyEntry *entry)
-{
-    entries_add(&self->entries, entry->entry);
-    PyList_Append(self->pyentries, (PyObject *)entry);
-}
-
 static PyObject*
 PyEntryList_last_entry(PyEntryList *self, PyObject *args)
 {
@@ -2902,41 +2895,26 @@ _py_oven_cook_splits(
     PyObject *splitpairs, PyEntryList *entries)
 {
     Py_ssize_t len = PySequence_Length(splitpairs);
-    PyObject *newentries = PyList_New(len);
-    EntryList tocook;
-    tocook.count = len;
-    tocook.entries = malloc(sizeof(Entry *) * len);
     for (int i=0; i<len; i++) {
         PyObject *item = PySequence_GetItem(splitpairs, i);
-        PyEntry *entry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
-        entry->entry = malloc(sizeof(Entry));
-        entry->owned = true;
         PyTransaction *txn_p = (PyTransaction *)PyTuple_GetItem(item, 0); // borrowed
         if (txn_p == NULL) {
             Py_DECREF(item);
-            Py_DECREF(entry);
-            Py_DECREF(newentries);
             return false;
         }
         PySplit *split_p = (PySplit *)PyTuple_GetItem(item, 1); // borrowed
         if (split_p == NULL) {
             Py_DECREF(item);
-            Py_DECREF(entry);
-            Py_DECREF(newentries);
             return NULL;
         }
-        entry_init(entry->entry, split_p->split, txn_p->txn);
-        tocook.entries[i] = entry->entry;
-        PyList_SetItem(newentries, i, (PyObject *)entry); // stolen
+        Entry *entry = entries_create(
+            &entries->entries, split_p->split, txn_p->txn);
+        PyEntry *pyentry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
+        pyentry->entry = entry;
+        pyentry->owned = false;
+        PyList_Append(entries->pyentries, (PyObject *)pyentry);
     }
-    EntryList *ref = &entries->entries;
-    entries_cook(ref, &tocook, entries->account->currency);
-    free(tocook.entries);
-    for (int i=0; i<len; i++) {
-        PyEntry *entry = (PyEntry *)PyList_GetItem(newentries, i); // borrowed
-        _PyEntryList_add_entry(entries, entry);
-    }
-    Py_DECREF(newentries);
+    entries_cook(&entries->entries, entries->account->currency);
     return true;
 }
 
