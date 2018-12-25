@@ -70,6 +70,113 @@ entry_copy(Entry *dst, const Entry *src)
     amount_copy(&dst->balance_with_budget, &src->balance_with_budget);
 }
 
+/* EntryList Private */
+static int
+_entry_qsort_cmp(const void *a, const void *b)
+{
+    Entry *e1 = *((Entry **)a);
+    Entry *e2 = *((Entry **)b);
+
+    time_t date1 = e1->split->reconciliation_date;
+    time_t date2 = e2->split->reconciliation_date;
+    if (!date1) {
+        date1 = e1->txn->date;
+    }
+    if (!date2) {
+        date2 = e2->txn->date;
+    }
+    if (date1 != date2) {
+        return date1 < date2 ? -1 : 1;
+    }
+    if (e1->txn->position != e2->txn->position) {
+        return e1->txn->position < e2->txn->position ? -1 : 1;
+    }
+    if (e1->split->index != e2->split->index) {
+        return e1->split->index < e2->split->index ? -1 : 1;
+    }
+    return 0;
+}
+
+static void
+_entries_maybe_set_last_reconciled(EntryList *entries, Entry *entry)
+{
+    if (entry->split->reconciliation_date != 0) {
+        if (entries->last_reconciled == NULL) {
+            entries->last_reconciled = entry;
+        } else {
+            bool replace = false;
+            Entry *old = entries->last_reconciled;
+            if (entry->split->reconciliation_date != old->split->reconciliation_date) {
+                if (entry->split->reconciliation_date > old->split->reconciliation_date) {
+                    replace = true;
+                }
+            } else if (entry->txn->date != old->txn->date) {
+                if (entry->txn->date > old->txn->date) {
+                    replace = true;
+                }
+            } else if (entry->txn->position != old->txn->position) {
+                if (entry->txn->position > old->txn->position) {
+                    replace = true;
+                }
+            } else if (entry->split->index > old->split->index) {
+                replace = true;
+            }
+            if (replace) {
+                entries->last_reconciled = entry;
+            }
+        }
+    }
+}
+
+/* EntryList Public*/
+void
+entries_init(EntryList *entries)
+{
+    entries->count = 0;
+    entries->entries = NULL;
+    entries->last_reconciled = NULL;
+}
+
+void
+entries_deinit(EntryList *entries)
+{
+    free(entries->entries);
+}
+
+void
+entries_add(EntryList *entries, Entry *entry)
+{
+    entries->count++;
+    entries->entries = realloc(
+        entries->entries,
+        sizeof(Entry*) * entries->count);
+    entries->entries[entries->count-1] = entry;
+    _entries_maybe_set_last_reconciled(entries, entry);
+}
+
+void
+entries_clear(EntryList *entries, time_t fromdate)
+{
+    int index;
+    if (fromdate == 0) {
+        index = 0;
+    } else {
+        index = entries_find_date(entries, fromdate, false);
+        if (index >= entries->count) {
+            // Everything is smaller, don't clear anything.
+            return;
+        }
+    }
+    entries->count = index;
+    entries->entries = realloc(
+        entries->entries,
+        sizeof(Entry*) * entries->count);
+    entries->last_reconciled = NULL;
+    for (int i=0; i<index; i++) {
+        _entries_maybe_set_last_reconciled(entries, entries->entries[i]);
+    }
+}
+
 int
 entries_find_date(const EntryList *entries, time_t date, bool equal)
 {
@@ -154,32 +261,6 @@ entries_balance_of_reconciled(const EntryList *entries, Amount *dst)
         amount_copy(dst, &entries->last_reconciled->reconciled_balance);
         return true;
     }
-}
-
-static int
-_entry_qsort_cmp(const void *a, const void *b)
-{
-    Entry *e1 = *((Entry **)a);
-    Entry *e2 = *((Entry **)b);
-
-    time_t date1 = e1->split->reconciliation_date;
-    time_t date2 = e2->split->reconciliation_date;
-    if (!date1) {
-        date1 = e1->txn->date;
-    }
-    if (!date2) {
-        date2 = e2->txn->date;
-    }
-    if (date1 != date2) {
-        return date1 < date2 ? -1 : 1;
-    }
-    if (e1->txn->position != e2->txn->position) {
-        return e1->txn->position < e2->txn->position ? -1 : 1;
-    }
-    if (e1->split->index != e2->split->index) {
-        return e1->split->index < e2->split->index ? -1 : 1;
-    }
-    return 0;
 }
 
 bool

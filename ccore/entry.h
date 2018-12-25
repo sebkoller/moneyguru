@@ -41,6 +41,18 @@ entry_amount_set(Entry *entry, const Amount *amount);
 void
 entry_copy(Entry *dst, const Entry *src);
 
+void
+entries_init(EntryList *entries);
+
+void
+entries_deinit(EntryList *entries);
+
+void
+entries_add(EntryList *entries, Entry *entry);
+
+void
+entries_clear(EntryList *entries, time_t fromdate);
+
 int
 entries_find_date(const EntryList *entries, time_t date, bool equal);
 

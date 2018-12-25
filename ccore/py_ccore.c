@@ -102,11 +102,8 @@ static PyObject *Entry_Type;
 typedef struct {
     PyObject_HEAD
     Account *account;
-    PyObject *entries;
-    Entry *last_reconciled;
-    // This is a temporary buffer created on the fly by _PyEntryList_entries
-    // and only to be used to short-term stuff.
-    EntryList tmplist;
+    PyObject *pyentries;
+    EntryList entries;
 } PyEntryList;
 
 static PyObject *EntryList_Type;
@@ -2302,66 +2299,16 @@ _PyEntryList_new(Account *account)
 {
     PyEntryList *res = (PyEntryList *)PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
     res->account = account;
-    res->entries = PyList_New(0);
-    res->last_reconciled = NULL;
-    res->tmplist.count = 0;
-    res->tmplist.entries = NULL;
+    res->pyentries = PyList_New(0);
+    entries_init(&res->entries);
     return res;
-}
-
-static EntryList*
-_PyEntryList_entries(PyEntryList *self)
-{
-    if (self->tmplist.entries != NULL) {
-        free(self->tmplist.entries);
-    }
-    Py_ssize_t len = PyList_Size(self->entries);
-    self->tmplist.count = len;
-    self->tmplist.entries = malloc(sizeof(Entry *) * len);
-    for (int i=0; i<len; i++) {
-        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
-        self->tmplist.entries[i] = entry->entry;
-    }
-    self->tmplist.last_reconciled = self->last_reconciled;
-    return &self->tmplist;
-}
-
-static void
-_PyEntryList_maybe_set_last_reconciled(PyEntryList *self, Entry *entry)
-{
-    if (entry->split->reconciliation_date != 0) {
-        if (self->last_reconciled == NULL) {
-            self->last_reconciled = entry;
-        } else {
-            bool replace = false;
-            Entry *old = self->last_reconciled;
-            if (entry->split->reconciliation_date != old->split->reconciliation_date) {
-                if (entry->split->reconciliation_date > old->split->reconciliation_date) {
-                    replace = true;
-                }
-            } else if (entry->txn->date != old->txn->date) {
-                if (entry->txn->date > old->txn->date) {
-                    replace = true;
-                }
-            } else if (entry->txn->position != old->txn->position) {
-                if (entry->txn->position > old->txn->position) {
-                    replace = true;
-                }
-            } else if (entry->split->index > old->split->index) {
-                replace = true;
-            }
-            if (replace) {
-                self ->last_reconciled = entry;
-            }
-        }
-    }
 }
 
 static void
 _PyEntryList_add_entry(PyEntryList *self, PyEntry *entry)
 {
-    PyList_Append(self->entries, (PyObject *)entry);
-    _PyEntryList_maybe_set_last_reconciled(self, entry->entry);
+    entries_add(&self->entries, entry->entry);
+    PyList_Append(self->pyentries, (PyObject *)entry);
 }
 
 static PyObject*
@@ -2372,7 +2319,7 @@ PyEntryList_last_entry(PyEntryList *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O", &date_p)) {
         return NULL;
     }
-    Py_ssize_t len = PyList_Size(self->entries);
+    Py_ssize_t len = PyList_Size(self->pyentries);
     if (!len) {
         Py_RETURN_NONE;
     }
@@ -2384,14 +2331,13 @@ PyEntryList_last_entry(PyEntryList *self, PyObject *args)
         if (date == 1) {
             return NULL;
         }
-        EntryList *el = _PyEntryList_entries(self);
-        index = entries_find_date(el, date, true);
+        index = entries_find_date(&self->entries, date, true);
     }
     // We want the entry *before* the threshold
     index--;
     PyObject *res;
     if (index >= 0) {
-        res = PyList_GetItem(self->entries, index);
+        res = PyList_GetItem(self->pyentries, index);
         if (res == NULL) {
             return NULL;
         }
@@ -2410,29 +2356,11 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O", &date_p)) {
         return NULL;
     }
-    Py_ssize_t len = PyList_Size(self->entries);
-    int index;
-    if (date_p == Py_None) {
-        index = 0;
-    } else {
-        time_t date = pydate2time(date_p);
-        if (date == 1) {
-            return NULL;
-        }
-        EntryList *el = _PyEntryList_entries(self);
-        index = entries_find_date(el, date, false);
-        if (index >= len) {
-            // Everything is smaller, don't clear anything.
-            Py_RETURN_NONE;
-        }
-    }
-    if (PyList_SetSlice(self->entries, index, len, NULL) == -1) {
+    Py_ssize_t len = PyList_Size(self->pyentries);
+    time_t date = pydate2time(date_p);
+    entries_clear(&self->entries, date);
+    if (PyList_SetSlice(self->pyentries, self->entries.count, len, NULL) == -1) {
         return NULL;
-    }
-    self->last_reconciled = NULL;
-    for (int i=0; i<index; i++) {
-        _PyEntryList_maybe_set_last_reconciled(
-            self, ((PyEntry *)PyList_GetItem(self->entries, i))->entry);
     }
     Py_RETURN_NONE;
 }
@@ -2457,8 +2385,7 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
     if (date == 1) {
         return NULL;
     }
-    EntryList *el = _PyEntryList_entries(self);
-    if (!entries_balance(el, &dst, date, with_budget)) {
+    if (!entries_balance(&self->entries, &dst, date, with_budget)) {
         return NULL;
     } else {
         return pyamount(&dst);
@@ -2469,9 +2396,9 @@ static bool
 _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
 {
     dst->val = 0;
-    Py_ssize_t len = PyList_Size(self->entries);
+    Py_ssize_t len = PyList_Size(self->pyentries);
     for (int i=0; i<len; i++) {
-        PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
+        PyEntry *entry = (PyEntry *)PyList_GetItem(self->pyentries, i); // borrowed
         if (entry->entry->txn->type == TXN_TYPE_BUDGET) {
             continue;
         }
@@ -2539,8 +2466,7 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
     if (date == 1) {
         return NULL;
     }
-    EntryList *el = _PyEntryList_entries(self);
-    if (!entries_balance(el, &res, date, false)) {
+    if (!entries_balance(&self->entries, &res, date, false)) {
         return NULL;
     } else {
         account_normalize_amount(self->account, &res);
@@ -2577,22 +2503,20 @@ PyEntryList_normal_cash_flow(PyEntryList *self, PyObject *args)
 static PyObject*
 PyEntryList_iter(PyEntryList *self)
 {
-    return PyObject_GetIter(self->entries);
+    return PyObject_GetIter(self->pyentries);
 }
 
 static Py_ssize_t
 PyEntryList_len(PyEntryList *self)
 {
-    return PyList_Size(self->entries);
+    return PyList_Size(self->pyentries);
 }
 
 static void
 PyEntryList_dealloc(PyEntryList *self)
 {
-    Py_DECREF(self->entries);
-    if (self->tmplist.entries != NULL) {
-        free(self->tmplist.entries);
-    }
+    Py_DECREF(self->pyentries);
+    entries_deinit(&self->entries);
 }
 
 /* PyAccountList */
@@ -3005,7 +2929,7 @@ _py_oven_cook_splits(
         tocook.entries[i] = entry->entry;
         PyList_SetItem(newentries, i, (PyObject *)entry); // stolen
     }
-    EntryList *ref = _PyEntryList_entries(entries);
+    EntryList *ref = &entries->entries;
     entries_cook(ref, &tocook, entries->account->currency);
     free(tocook.entries);
     for (int i=0; i<len; i++) {
