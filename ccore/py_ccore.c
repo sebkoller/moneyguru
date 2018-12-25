@@ -2206,21 +2206,19 @@ PyEntry_transaction(PyEntry *self)
 static PyObject *
 PyEntry_transfer(PyEntry *self)
 {
-    PyObject *splits = PyEntry_splits(self);
-    if (splits == NULL) {
-        return NULL;
-    }
-    Py_ssize_t len = PyList_Size(splits);
-    PyObject *r = PyList_New(0);
-    for (int i=0; i<len; i++) {
-        PySplit *split = (PySplit *)PyList_GetItem(splits, i); // borrowed
-        if (split->split->account != NULL) {
-            PyObject *account = PySplit_account(split);
-            PyList_Append(r, account);
+    PyObject *res = PyList_New(0);
+    for (unsigned int i=0; i<self->entry->txn->splitcount; i++) {
+        Split *s = &self->entry->txn->splits[i];
+        if (s == self->entry->split) {
+            continue;
+        }
+        if (s->account != NULL) {
+            PyObject *account = (PyObject *)_PyAccount_from_account(s->account);
+            PyList_Append(res, account);
             Py_DECREF(account);
         }
     }
-    return r;
+    return res;
 }
 
 static PyObject*
