@@ -92,7 +92,8 @@ static PyObject *Transaction_Type;
  */
 typedef struct {
     PyObject_HEAD
-    Entry entry;
+    Entry *entry;
+    bool owned;
 } PyEntry;
 
 static PyObject *Entry_Type;
@@ -2081,14 +2082,16 @@ PyEntry_init(PyEntry *self, PyObject *args, PyObject *kwds)
         PyErr_SetString(PyExc_TypeError, "not a txn");
         return -1;
     }
-    entry_init(&self->entry, split_p->split, transaction_p->txn);
+    self->entry = malloc(sizeof(Entry));
+    self->owned = true;
+    entry_init(self->entry, split_p->split, transaction_p->txn);
     return 0;
 }
 
 static PyObject *
 PyEntry_account(PyEntry *self)
 {
-    Split *split = self->entry.split;
+    Split *split = self->entry->split;
     if (split->account == NULL) {
         Py_RETURN_NONE;
     } else {
@@ -2099,55 +2102,55 @@ PyEntry_account(PyEntry *self)
 static PyObject *
 PyEntry_amount(PyEntry *self)
 {
-    return pyamount(&self->entry.split->amount);
+    return pyamount(&self->entry->split->amount);
 }
 
 static PyObject *
 PyEntry_balance(PyEntry *self)
 {
-    return pyamount(&self->entry.balance);
+    return pyamount(&self->entry->balance);
 }
 
 static PyObject *
 PyEntry_balance_with_budget(PyEntry *self)
 {
-    return pyamount(&self->entry.balance_with_budget);
+    return pyamount(&self->entry->balance_with_budget);
 }
 
 static PyObject *
 PyEntry_checkno(PyEntry *self)
 {
-    return _strget(self->entry.txn->checkno);
+    return _strget(self->entry->txn->checkno);
 }
 
 static PyObject *
 PyEntry_date(PyEntry *self)
 {
-    return time2pydate(self->entry.txn->date);
+    return time2pydate(self->entry->txn->date);
 }
 
 static PyObject *
 PyEntry_description(PyEntry *self)
 {
-    return _strget(self->entry.txn->description);
+    return _strget(self->entry->txn->description);
 }
 
 static PyObject *
 PyEntry_payee(PyEntry *self)
 {
-    return _strget(self->entry.txn->payee);
+    return _strget(self->entry->txn->payee);
 }
 
 static PyObject *
 PyEntry_mtime(PyEntry *self)
 {
-    return PyLong_FromLong(self->entry.txn->mtime);
+    return PyLong_FromLong(self->entry->txn->mtime);
 }
 
 static PyObject *
 PyEntry_reconciled(PyEntry *self)
 {
-    if (self->entry.split->reconciliation_date == 0) {
+    if (self->entry->split->reconciliation_date == 0) {
         Py_RETURN_FALSE;
     } else {
         Py_RETURN_TRUE;
@@ -2157,37 +2160,37 @@ PyEntry_reconciled(PyEntry *self)
 static PyObject *
 PyEntry_reconciled_balance(PyEntry *self)
 {
-    return pyamount(&self->entry.reconciled_balance);
+    return pyamount(&self->entry->reconciled_balance);
 }
 
 static PyObject *
 PyEntry_reconciliation_date(PyEntry *self)
 {
-    return time2pydate(self->entry.split->reconciliation_date);
+    return time2pydate(self->entry->split->reconciliation_date);
 }
 
 static PyObject *
 PyEntry_reference(PyEntry *self)
 {
-    return _strget(self->entry.split->reference);
+    return _strget(self->entry->split->reference);
 }
 
 static PyObject *
 PyEntry_split(PyEntry *self)
 {
-    return (PyObject *)_PySplit_proxy(self->entry.split);
+    return (PyObject *)_PySplit_proxy(self->entry->split);
 }
 
 static PyObject *
 PyEntry_splits(PyEntry *self)
 {
-    PyObject *res = PyList_New(self->entry.txn->splitcount - 1);
+    PyObject *res = PyList_New(self->entry->txn->splitcount - 1);
     int j = 0;
-    for (unsigned int i=0; i<self->entry.txn->splitcount; i++) {
-        if (i == self->entry.split->index) {
+    for (unsigned int i=0; i<self->entry->txn->splitcount; i++) {
+        if (i == self->entry->split->index) {
             continue;
         }
-        PySplit *split = _PySplit_proxy(&self->entry.txn->splits[i]);
+        PySplit *split = _PySplit_proxy(&self->entry->txn->splits[i]);
         PyList_SetItem(res, j, (PyObject *)split); // stolen
         j++;
     }
@@ -2197,7 +2200,7 @@ PyEntry_splits(PyEntry *self)
 static PyObject *
 PyEntry_transaction(PyEntry *self)
 {
-    return (PyObject *)_PyTransaction_from_txn(self->entry.txn);
+    return (PyObject *)_PyTransaction_from_txn(self->entry->txn);
 }
 
 static PyObject *
@@ -2223,7 +2226,7 @@ PyEntry_transfer(PyEntry *self)
 static PyObject*
 PyEntry_change_amount(PyEntry *self, PyObject *amount)
 {
-    if (!entry_amount_set(&self->entry, get_amount(amount))) {
+    if (!entry_amount_set(self->entry, get_amount(amount))) {
         PyErr_SetString(PyExc_ValueError, "not a two-way txn");
         return NULL;
     }
@@ -2234,8 +2237,8 @@ static PyObject*
 PyEntry_normal_balance(PyEntry *self, PyObject *args)
 {
     Amount amount;
-    amount_copy(&amount, &self->entry.balance);
-    Account *a = self->entry.split->account;
+    amount_copy(&amount, &self->entry->balance);
+    Account *a = self->entry->split->account;
     if (a != NULL) {
         if (account_is_credit(a)) {
             amount.val *= -1;
@@ -2251,7 +2254,7 @@ PyEntry_richcompare(PyEntry *a, PyObject *b, int op)
         Py_RETURN_NOTIMPLEMENTED;
     }
     if (op == Py_EQ) {
-        if (a->entry.split == ((PyEntry *)b)->entry.split) {
+        if (a->entry->split == ((PyEntry *)b)->entry->split) {
             Py_RETURN_TRUE;
         } else {
             Py_RETURN_FALSE;
@@ -2271,18 +2274,18 @@ PyEntry_richcompare(PyEntry *a, PyObject *b, int op)
 static Py_hash_t
 PyEntry_hash(PyEntry *self)
 {
-    return (Py_hash_t)self->entry.split;
+    return (Py_hash_t)self->entry->split;
 }
 
 static PyObject *
 PyEntry_repr(PyEntry *self)
 {
-    PyObject *tdate =  time2pydate(self->entry.txn->date);
+    PyObject *tdate =  time2pydate(self->entry->txn->date);
     if (tdate == NULL) {
         return NULL;
     }
     PyObject *res = PyUnicode_FromFormat(
-        "Entry(%S %s)", tdate, self->entry.txn->description);
+        "Entry(%S %s)", tdate, self->entry->txn->description);
     Py_DECREF(tdate);
     return res;
 }
@@ -2290,6 +2293,9 @@ PyEntry_repr(PyEntry *self)
 static void
 PyEntry_dealloc(PyEntry *self)
 {
+    if (self->owned) {
+        free(self->entry);
+    }
 }
 
 /* EntryList */
@@ -2316,7 +2322,7 @@ _PyEntryList_entries(PyEntryList *self)
     self->tmplist.entries = malloc(sizeof(Entry *) * len);
     for (int i=0; i<len; i++) {
         PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
-        self->tmplist.entries[i] = &entry->entry;
+        self->tmplist.entries[i] = entry->entry;
     }
     self->tmplist.last_reconciled = self->last_reconciled;
     return &self->tmplist;
@@ -2357,7 +2363,7 @@ static void
 _PyEntryList_add_entry(PyEntryList *self, PyEntry *entry)
 {
     PyList_Append(self->entries, (PyObject *)entry);
-    _PyEntryList_maybe_set_last_reconciled(self, &entry->entry);
+    _PyEntryList_maybe_set_last_reconciled(self, entry->entry);
 }
 
 static PyObject*
@@ -2428,7 +2434,7 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
     self->last_reconciled = NULL;
     for (int i=0; i<index; i++) {
         _PyEntryList_maybe_set_last_reconciled(
-            self, &((PyEntry *)PyList_GetItem(self->entries, i))->entry);
+            self, ((PyEntry *)PyList_GetItem(self->entries, i))->entry);
     }
     Py_RETURN_NONE;
 }
@@ -2468,7 +2474,7 @@ _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
     Py_ssize_t len = PyList_Size(self->entries);
     for (int i=0; i<len; i++) {
         PyEntry *entry = (PyEntry *)PyList_GetItem(self->entries, i); // borrowed
-        if (entry->entry.txn->type == TXN_TYPE_BUDGET) {
+        if (entry->entry->txn->type == TXN_TYPE_BUDGET) {
             continue;
         }
         PyObject *date_p = PyEntry_date(entry);
@@ -2478,7 +2484,7 @@ _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
         if (PySequence_Contains(daterange, date_p)) {
             Amount a;
             a.currency = dst->currency;
-            Amount *src = &entry->entry.split->amount;
+            Amount *src = &entry->entry->split->amount;
             time_t date = pydate2time(date_p);
             if (date == 1) {
                 return false;
@@ -2975,6 +2981,8 @@ _py_oven_cook_splits(
     for (int i=0; i<len; i++) {
         PyObject *item = PySequence_GetItem(splitpairs, i);
         PyEntry *entry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
+        entry->entry = malloc(sizeof(Entry));
+        entry->owned = true;
         PyTransaction *txn_p = (PyTransaction *)PyTuple_GetItem(item, 0); // borrowed
         if (txn_p == NULL) {
             Py_DECREF(item);
@@ -2989,8 +2997,8 @@ _py_oven_cook_splits(
             Py_DECREF(newentries);
             return NULL;
         }
-        entry_init(&entry->entry, split_p->split, txn_p->txn);
-        tocook.entries[i] = &entry->entry;
+        entry_init(entry->entry, split_p->split, txn_p->txn);
+        tocook.entries[i] = entry->entry;
         PyList_SetItem(newentries, i, (PyObject *)entry); // stolen
     }
     EntryList *ref = _PyEntryList_entries(entries);
