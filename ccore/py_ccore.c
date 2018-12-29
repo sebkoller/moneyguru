@@ -101,7 +101,6 @@ static PyObject *Entry_Type;
 
 typedef struct {
     PyObject_HEAD
-    Account *account;
     EntryList entries;
 } PyEntryList;
 
@@ -2306,8 +2305,7 @@ static PyEntryList*
 _PyEntryList_new(Account *account)
 {
     PyEntryList *res = (PyEntryList *)PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
-    res->account = account;
-    entries_init(&res->entries);
+    entries_init(&res->entries, account);
     return res;
 }
 
@@ -2439,7 +2437,7 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
     }
     Amount res;
     if (currency == NULL) {
-        res.currency = self->account->currency;
+        res.currency = self->entries.account->currency;
     } else {
         res.currency = getcur(currency);
         if (res.currency == NULL) {
@@ -2453,7 +2451,7 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
     if (!entries_balance(&self->entries, &res, date, false)) {
         return NULL;
     } else {
-        account_normalize_amount(self->account, &res);
+        account_normalize_amount(self->entries.account, &res);
         return pyamount(&res);
     }
 }
@@ -2469,7 +2467,7 @@ PyEntryList_normal_cash_flow(PyEntryList *self, PyObject *args)
     }
     Amount res;
     if (currency == NULL) {
-        res.currency = self->account->currency;
+        res.currency = self->entries.account->currency;
     } else {
         res.currency = getcur(currency);
         if (res.currency == NULL) {
@@ -2479,7 +2477,7 @@ PyEntryList_normal_cash_flow(PyEntryList *self, PyObject *args)
     if (!_PyEntryList_cash_flow(self, &res, daterange)) {
         return NULL;
     } else {
-        account_normalize_amount(self->account, &res);
+        account_normalize_amount(self->entries.account, &res);
         return pyamount(&res);
     }
 }
@@ -2887,33 +2885,6 @@ PyAccountList_dealloc(PyAccountList *self)
 
 /* Oven functions */
 
-static bool
-_py_oven_cook_splits(
-    PyObject *splitpairs, PyEntryList *entries)
-{
-    Py_ssize_t len = PySequence_Length(splitpairs);
-    for (int i=0; i<len; i++) {
-        PyObject *item = PySequence_GetItem(splitpairs, i);
-        PyTransaction *txn_p = (PyTransaction *)PyTuple_GetItem(item, 0); // borrowed
-        if (txn_p == NULL) {
-            Py_DECREF(item);
-            return false;
-        }
-        PySplit *split_p = (PySplit *)PyTuple_GetItem(item, 1); // borrowed
-        if (split_p == NULL) {
-            Py_DECREF(item);
-            return NULL;
-        }
-        Entry *entry = entries_create(
-            &entries->entries, split_p->split, txn_p->txn);
-        PyEntry *pyentry = (PyEntry *)PyType_GenericAlloc((PyTypeObject *)Entry_Type, 0);
-        pyentry->entry = entry;
-        pyentry->owned = false;
-    }
-    entries_cook(&entries->entries, entries->account->currency);
-    return true;
-}
-
 /* "Cook" txns into Entry with running balances
  *
  * This takes a list of transactions to cook. Adds entries directly in the
@@ -2929,7 +2900,6 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
         return NULL;
     }
     Py_ssize_t len = PySequence_Length(txns);
-    PyObject *a2s = PyDict_New();
     for (int i=0; i<len; i++) {
         PyTransaction *txn = (PyTransaction *)PyList_GetItem(txns, i); // borrowed
         int slen = txn->txn->splitcount;
@@ -2938,44 +2908,27 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
             if (split->account == NULL) {
                 continue;
             }
-            PyObject *splitpairs = PyDict_GetItemString(
-                a2s, split->account->name); // borrowed
-            if (splitpairs == NULL) {
-                splitpairs = PyList_New(0);
-                PyDict_SetItemString(a2s, split->account->name, splitpairs);
-                Py_DECREF(splitpairs);
+            PyEntryList *entries = (PyEntryList *)PyDict_GetItemString(
+                accounts->entries, split->account->name); // borrowed
+            if (entries == NULL) {
+                entries = _PyEntryList_new(split->account);
+                PyDict_SetItemString(
+                    accounts->entries,
+                    split->account->name,
+                    (PyObject *)entries);
+                Py_DECREF(entries);
             }
-            PySplit *split_p = _PySplit_proxy(split);
-            PyObject *pair = PyTuple_Pack(2, txn, split_p);
-            Py_DECREF(split_p);
-            PyList_Append(splitpairs, pair);
-            Py_DECREF(pair);
+            entries_create(&entries->entries, split, txn->txn);
         }
     }
 
-    Py_ssize_t pos = 0;
-    PyObject *k, *v;
-    while (PyDict_Next(a2s, &pos, &k, &v)) {
-        const char *aname = PyUnicode_AsUTF8(k);
-        Account *account = accounts_find_by_name(&accounts->alist, aname);
-        if (account == NULL) {
-            return PyErr_Format(
-                PyExc_ValueError,
-                "Split account '%s' not found",
-                aname
-            );
-        }
-        PyEntryList *entries = (PyEntryList *)PyDict_GetItemString(
-            accounts->entries, aname); // borrowed
-        if (entries == NULL) {
-            entries = _PyEntryList_new(account);
-            PyDict_SetItemString(accounts->entries, aname, (PyObject *)entries);
-            Py_DECREF(entries);
-        }
-        if (!_py_oven_cook_splits(v, entries)) {
-            return NULL;
-        }
+    PyObject *allentries = PyDict_Values(accounts->entries);
+    len = PyList_Size(allentries);
+    for (int i=0; i<len; i++) {
+        PyEntryList *entries = (PyEntryList *)PyList_GetItem(allentries, i); // borrowed
+        entries_cook(&entries->entries);
     }
+    Py_DECREF(allentries);
     Py_RETURN_NONE;
 }
 

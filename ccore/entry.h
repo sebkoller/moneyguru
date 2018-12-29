@@ -23,6 +23,7 @@ typedef struct {
     int cooked_until;
     Entry **entries;
     Entry *last_reconciled;
+    Account *account;
 } EntryList;
 
 void
@@ -43,7 +44,7 @@ void
 entry_copy(Entry *dst, const Entry *src);
 
 void
-entries_init(EntryList *entries);
+entries_init(EntryList *entries, Account *account);
 
 void
 entries_deinit(EntryList *entries);
@@ -64,4 +65,4 @@ bool
 entries_balance_of_reconciled(const EntryList *entries, Amount *dst);
 
 bool
-entries_cook(EntryList *entries, Currency *currency);
+entries_cook(EntryList *entries);

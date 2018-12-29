@@ -130,12 +130,13 @@ _entries_maybe_set_last_reconciled(EntryList *entries, Entry *entry)
 
 /* EntryList Public*/
 void
-entries_init(EntryList *entries)
+entries_init(EntryList *entries, Account *account)
 {
     entries->count = 0;
     entries->cooked_until = 0;
     entries->entries = NULL;
     entries->last_reconciled = NULL;
+    entries->account = account;
 }
 
 void
@@ -268,7 +269,7 @@ entries_balance_of_reconciled(const EntryList *entries, Amount *dst)
 }
 
 bool
-entries_cook(EntryList *entries, Currency *currency)
+entries_cook(EntryList *entries)
 {
     int cookcount = entries->count - entries->cooked_until;
     if (!cookcount) {
@@ -287,7 +288,7 @@ entries_cook(EntryList *entries, Currency *currency)
         return false;
     }
     entries_balance_of_reconciled(entries, &reconciled_balance);
-    balance.currency = currency;
+    balance.currency = entries->account->currency;
     balance_with_budget.currency = balance.currency;
     reconciled_balance.currency = balance.currency;
     amount.currency = balance.currency;
