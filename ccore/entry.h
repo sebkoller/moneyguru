@@ -49,15 +49,6 @@ entries_init(EntryList *entries, Account *account);
 void
 entries_deinit(EntryList *entries);
 
-Entry*
-entries_create(EntryList *entries, Split *split, Transaction *txn);
-
-void
-entries_clear(EntryList *entries, time_t fromdate);
-
-int
-entries_find_date(const EntryList *entries, time_t date, bool equal);
-
 bool
 entries_balance(const EntryList *entries, Amount *dst, time_t date, bool with_budget);
 
@@ -65,4 +56,23 @@ bool
 entries_balance_of_reconciled(const EntryList *entries, Amount *dst);
 
 bool
+entries_cash_flow(
+    const EntryList *entries,
+    Amount *dst,
+    time_t from,
+    time_t to);
+
+void
+entries_clear(EntryList *entries, time_t fromdate);
+
+bool
 entries_cook(EntryList *entries);
+
+Entry*
+entries_create(EntryList *entries, Split *split, Transaction *txn);
+
+int
+entries_find_date(const EntryList *entries, time_t date, bool equal);
+
+Entry*
+entries_last_entry(const EntryList *entries, time_t date);

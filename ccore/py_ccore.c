@@ -2317,23 +2317,13 @@ PyEntryList_last_entry(PyEntryList *self, PyObject *args)
     if (!PyArg_ParseTuple(args, "O", &date_p)) {
         return NULL;
     }
-    if (!self->entries.count) {
-        Py_RETURN_NONE;
+    time_t date = pydate2time(date_p);
+    if (date == 1) {
+        return NULL;
     }
-    int index;
-    if (date_p == Py_None) {
-        index = self->entries.count;
-    } else {
-        time_t date = pydate2time(date_p);
-        if (date == 1) {
-            return NULL;
-        }
-        index = entries_find_date(&self->entries, date, true);
-    }
-    // We want the entry *before* the threshold
-    index--;
-    if (index >= 0) {
-        return (PyObject *)_PyEntry_from_entry(self->entries.entries[index]);
+    Entry *entry = entries_last_entry(&self->entries, date);
+    if (entry != NULL) {
+        return (PyObject *)_PyEntry_from_entry(entry);
     } else {
         Py_RETURN_NONE;
     }
@@ -2348,6 +2338,9 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
         return NULL;
     }
     time_t date = pydate2time(date_p);
+    if (date == 1) {
+        return NULL;
+    }
     entries_clear(&self->entries, date);
     Py_RETURN_NONE;
 }
@@ -2382,28 +2375,12 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
 static bool
 _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
 {
-    dst->val = 0;
-    for (int i=0; i<self->entries.count; i++) {
-        Entry *entry = self->entries.entries[i];
-        if (entry->txn->type == TXN_TYPE_BUDGET) {
-            continue;
-        }
-        PyObject *date_p = time2pydate(entry->txn->date);
-        if (date_p == NULL) {
-            return false;
-        }
-        if (PySequence_Contains(daterange, date_p)) {
-            Amount a;
-            a.currency = dst->currency;
-            Amount *src = &entry->split->amount;
-            if (!amount_convert(&a, src, entry->txn->date)) {
-                return false;
-            }
-            dst->val += a.val;
-        }
-        Py_DECREF(date_p);
+    time_t from = pydate2time(PyObject_GetAttrString(daterange, "start"));
+    time_t to = pydate2time(PyObject_GetAttrString(daterange, "end"));
+    if (from == 1 || to == 1) {
+        return false;
     }
-    return true;
+    return entries_cash_flow(&self->entries, dst, from, to);
 }
 
 static PyObject*

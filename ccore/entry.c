@@ -142,80 +142,23 @@ entries_init(EntryList *entries, Account *account)
 void
 entries_deinit(EntryList *entries)
 {
+    entries->count = 0;
+    entries->cooked_until = 0;
+    entries->last_reconciled = NULL;
+    entries->account = NULL;
     free(entries->entries);
 }
 
-Entry*
-entries_create(EntryList *entries, Split *split, Transaction *txn)
+bool
+entries_balance_of_reconciled(const EntryList *entries, Amount *dst)
 {
-    entries->count++;
-    entries->entries = realloc(
-        entries->entries,
-        sizeof(Entry*) * entries->count);
-    Entry *res = malloc(sizeof(Entry));
-    entry_init(res, split, txn);
-    entries->entries[entries->count-1] = res;
-    return res;
-}
-
-void
-entries_clear(EntryList *entries, time_t fromdate)
-{
-    int index;
-    if (fromdate == 0) {
-        index = 0;
+    if (entries->last_reconciled == NULL) {
+        dst->val = 0;
+        return false;
     } else {
-        index = entries_find_date(entries, fromdate, false);
-        if (index >= entries->count) {
-            // Everything is smaller, don't clear anything.
-            return;
-        }
+        amount_copy(dst, &entries->last_reconciled->reconciled_balance);
+        return true;
     }
-    entries->count = index;
-    entries->cooked_until = index;
-    entries->entries = realloc(
-        entries->entries,
-        sizeof(Entry*) * entries->count);
-    entries->last_reconciled = NULL;
-    for (int i=0; i<index; i++) {
-        _entries_maybe_set_last_reconciled(entries, entries->entries[i]);
-    }
-}
-
-int
-entries_find_date(const EntryList *entries, time_t date, bool equal)
-{
-    // equal=true: find index with closest smaller-or-equal date to "date"
-    // equal=false: find smaller only
-    // Returns the index *following* the nearest result. Returned index goes
-    // over the threshold.
-    if (entries->count == 0) {
-        return 0;
-    }
-    int low = 0;
-    int high = entries->count - 1;
-    bool matched_once = false;
-    while ((high > low) || ((high == low) && !matched_once)) {
-        int mid = ((high - low) / 2) + low;
-        Entry *entry = entries->entries[mid];
-        time_t tdate = entry->txn->date;
-        // operator *look* like they're inverted, but they're not.
-        bool match = equal ? tdate > date : tdate >= date;
-        if (match) {
-            matched_once = true;
-            high = mid;
-        } else {
-            low = mid + 1;
-        }
-    }
-    if (matched_once) {
-        // we have at least one entry with a higher date than "date"
-        return (int)high;
-    } else {
-        // All entries have a smaller date than "date". Return len.
-        return entries->count;
-    }
-
 }
 
 bool
@@ -257,14 +200,53 @@ entries_balance(const EntryList *entries, Amount *dst, time_t date, bool with_bu
 }
 
 bool
-entries_balance_of_reconciled(const EntryList *entries, Amount *dst)
+entries_cash_flow(
+    const EntryList *entries,
+    Amount *dst,
+    time_t from,
+    time_t to)
 {
-    if (entries->last_reconciled == NULL) {
-        dst->val = 0;
-        return false;
+    dst->val = 0;
+    for (int i=0; i<entries->count; i++) {
+        Entry *entry = entries->entries[i];
+        Transaction *txn = entry->txn;
+        if (txn->type == TXN_TYPE_BUDGET) {
+            continue;
+        }
+        if (txn->date >= from && txn->date <= to) {
+            Amount a;
+            a.currency = dst->currency;
+            Amount *src = &entry->split->amount;
+            if (!amount_convert(&a, src, entry->txn->date)) {
+                return false;
+            }
+            dst->val += a.val;
+        }
+    }
+    return true;
+}
+
+void
+entries_clear(EntryList *entries, time_t fromdate)
+{
+    int index;
+    if (fromdate == 0) {
+        index = 0;
     } else {
-        amount_copy(dst, &entries->last_reconciled->reconciled_balance);
-        return true;
+        index = entries_find_date(entries, fromdate, false);
+        if (index >= entries->count) {
+            // Everything is smaller, don't clear anything.
+            return;
+        }
+    }
+    entries->count = index;
+    entries->cooked_until = index;
+    entries->entries = realloc(
+        entries->entries,
+        sizeof(Entry*) * entries->count);
+    entries->last_reconciled = NULL;
+    for (int i=0; i<index; i++) {
+        _entries_maybe_set_last_reconciled(entries, entries->entries[i]);
     }
 }
 
@@ -325,4 +307,74 @@ entries_cook(EntryList *entries)
     free(rel);
     entries->cooked_until = entries->count;
     return true;
+}
+
+Entry*
+entries_create(EntryList *entries, Split *split, Transaction *txn)
+{
+    entries->count++;
+    entries->entries = realloc(
+        entries->entries,
+        sizeof(Entry*) * entries->count);
+    Entry *res = malloc(sizeof(Entry));
+    entry_init(res, split, txn);
+    entries->entries[entries->count-1] = res;
+    return res;
+}
+
+int
+entries_find_date(const EntryList *entries, time_t date, bool equal)
+{
+    // equal=true: find index with closest smaller-or-equal date to "date"
+    // equal=false: find smaller only
+    // Returns the index *following* the nearest result. Returned index goes
+    // over the threshold.
+    if (entries->count == 0) {
+        return 0;
+    }
+    int low = 0;
+    int high = entries->count - 1;
+    bool matched_once = false;
+    while ((high > low) || ((high == low) && !matched_once)) {
+        int mid = ((high - low) / 2) + low;
+        Entry *entry = entries->entries[mid];
+        time_t tdate = entry->txn->date;
+        // operator *look* like they're inverted, but they're not.
+        bool match = equal ? tdate > date : tdate >= date;
+        if (match) {
+            matched_once = true;
+            high = mid;
+        } else {
+            low = mid + 1;
+        }
+    }
+    if (matched_once) {
+        // we have at least one entry with a higher date than "date"
+        return (int)high;
+    } else {
+        // All entries have a smaller date than "date". Return len.
+        return entries->count;
+    }
+
+}
+
+Entry*
+entries_last_entry(const EntryList *entries, time_t date)
+{
+    if (!entries->count) {
+        return NULL;
+    }
+    int index;
+    if (date == 0) {
+        index = entries->count;
+    } else {
+        index = entries_find_date(entries, date, true);
+    }
+    // We want the entry *before* the threshold
+    index--;
+    if (index >= 0) {
+        return entries->entries[index];
+    } else {
+        return NULL;
+    }
 }
