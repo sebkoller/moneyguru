@@ -119,6 +119,7 @@ part of this repo as git submodules:
 * Python 3.4+
 * PyQt5
 * SQLite 3 (as a library)
+* Glib
 * GNU build environment
 
 On Ubuntu, the apt-get command to install all pre-requisites is:

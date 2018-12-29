@@ -35,12 +35,6 @@ typedef struct {
     bool autocreated;
 } Account;
 
-typedef struct {
-    Currency *default_currency;
-    int count;
-    Account **accounts;
-} AccountList;
-
 void
 account_init(
     Account *account,
@@ -73,32 +67,3 @@ account_name_set(Account *account, const char *name);
 
 void
 account_normalize_amount(Account *account, Amount *dst);
-
-void
-accounts_init(AccountList *accounts, Currency *default_currency);
-
-void
-accounts_deinit(AccountList *accounts);
-
-// dst must be uninitalized
-bool
-accounts_copy(AccountList *dst, const AccountList *src);
-
-Account*
-accounts_create(AccountList *accounts);
-
-bool
-accounts_remove(AccountList *accounts, Account *todelete);
-
-/* Returns the first account that matches `name`.
- *
- * If `name` matches the account's `account_number`, we consider this a match.
- *
- * NOTE: can return a deleted account
- */
-Account*
-accounts_find_by_name(const AccountList *accounts, const char *name);
-
-// Doesn't search in deleted accounts
-Account*
-accounts_find_by_reference(const AccountList *accounts, const char *reference);

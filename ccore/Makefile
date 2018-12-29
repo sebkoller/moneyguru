@@ -1,6 +1,6 @@
 PYTHON ?= python
 
-SRCS = currency.c amount.c account.c split.c transaction.c entry.c util.c
+SRCS = currency.c amount.c account.c accounts.c split.c transaction.c entry.c util.c
 OBJS = $(SRCS:%.c=%.o)
 TEST_SRCS = $(addprefix tests/, amount.c account.c transaction.c util.c main.c)
 TEST_OBJS = $(TEST_SRCS:%.c=%.o)
@@ -16,10 +16,11 @@ PY_CCORE = py_ccore.c
 PY_CCORE_OBJ = py_ccore.$(SOABI).o
 TARGET = _ccore.$(SOABI).so
 
-DEFAULT_CFLAGS = -std=c99 -Wall $(CFLAGSFORSHARED)
+USED_PKGS = sqlite3 glib-2.0
+DEFAULT_CFLAGS = -std=c99 -Wall $(CFLAGSFORSHARED) $(shell pkg-config --cflags $(USED_PKGS))
 CFLAGS ?= $(DEFAULT_CFLAGS)
-LDFLAGS = `pkg-config --libs sqlite3` $(BLDLIBRARY)
-LDFLAGS_TEST = `pkg-config --libs cunit sqlite3` -lm
+LDFLAGS = $(shell pkg-config --libs $(USED_PKGS)) $(BLDLIBRARY)
+LDFLAGS_TEST = $(shell pkg-config --libs cunit $(USED_PKGS)) -lm
 
 .PHONY: all
 all: $(TARGET)

@@ -1,6 +1,6 @@
 #include <CUnit/CUnit.h>
 #include "../transaction.h"
-#include "../account.h"
+#include "../accounts.h"
 #include "../currency.h"
 
 static void test_remove_split()

@@ -6,7 +6,7 @@
 #include "entry.h"
 #include "split.h"
 #include "transaction.h"
-#include "account.h"
+#include "accounts.h"
 #include "util.h"
 
 // NOTE ABOUT DECREF AND ERRORS
@@ -53,8 +53,6 @@ static PyObject *Account_Type;
 typedef struct {
     PyObject_HEAD
     AccountList alist;
-    // accountname: PyEntryList mapping
-    PyObject *entries;
 } PyAccountList;
 
 static PyObject *AccountList_Type;
@@ -101,7 +99,7 @@ static PyObject *Entry_Type;
 
 typedef struct {
     PyObject_HEAD
-    EntryList entries;
+    EntryList *entries;
 } PyEntryList;
 
 static PyObject *EntryList_Type;
@@ -2302,10 +2300,10 @@ _PyEntry_from_entry(Entry *entry)
 
 /* EntryList */
 static PyEntryList*
-_PyEntryList_new(Account *account)
+_PyEntryList_proxy(EntryList *entries)
 {
     PyEntryList *res = (PyEntryList *)PyType_GenericAlloc((PyTypeObject *)EntryList_Type, 0);
-    entries_init(&res->entries, account);
+    res->entries = entries;
     return res;
 }
 
@@ -2321,7 +2319,7 @@ PyEntryList_last_entry(PyEntryList *self, PyObject *args)
     if (date == 1) {
         return NULL;
     }
-    Entry *entry = entries_last_entry(&self->entries, date);
+    Entry *entry = entries_last_entry(self->entries, date);
     if (entry != NULL) {
         return (PyObject *)_PyEntry_from_entry(entry);
     } else {
@@ -2341,7 +2339,7 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
     if (date == 1) {
         return NULL;
     }
-    entries_clear(&self->entries, date);
+    entries_clear(self->entries, date);
     Py_RETURN_NONE;
 }
 
@@ -2365,7 +2363,7 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
     if (date == 1) {
         return NULL;
     }
-    if (!entries_balance(&self->entries, &dst, date, with_budget)) {
+    if (!entries_balance(self->entries, &dst, date, with_budget)) {
         return NULL;
     } else {
         return pyamount(&dst);
@@ -2380,7 +2378,7 @@ _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
     if (from == 1 || to == 1) {
         return false;
     }
-    return entries_cash_flow(&self->entries, dst, from, to);
+    return entries_cash_flow(self->entries, dst, from, to);
 }
 
 static PyObject*
@@ -2414,7 +2412,7 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
     }
     Amount res;
     if (currency == NULL) {
-        res.currency = self->entries.account->currency;
+        res.currency = self->entries->account->currency;
     } else {
         res.currency = getcur(currency);
         if (res.currency == NULL) {
@@ -2425,10 +2423,10 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
     if (date == 1) {
         return NULL;
     }
-    if (!entries_balance(&self->entries, &res, date, false)) {
+    if (!entries_balance(self->entries, &res, date, false)) {
         return NULL;
     } else {
-        account_normalize_amount(self->entries.account, &res);
+        account_normalize_amount(self->entries->account, &res);
         return pyamount(&res);
     }
 }
@@ -2444,7 +2442,7 @@ PyEntryList_normal_cash_flow(PyEntryList *self, PyObject *args)
     }
     Amount res;
     if (currency == NULL) {
-        res.currency = self->entries.account->currency;
+        res.currency = self->entries->account->currency;
     } else {
         res.currency = getcur(currency);
         if (res.currency == NULL) {
@@ -2454,7 +2452,7 @@ PyEntryList_normal_cash_flow(PyEntryList *self, PyObject *args)
     if (!_PyEntryList_cash_flow(self, &res, daterange)) {
         return NULL;
     } else {
-        account_normalize_amount(self->entries.account, &res);
+        account_normalize_amount(self->entries->account, &res);
         return pyamount(&res);
     }
 }
@@ -2462,9 +2460,9 @@ PyEntryList_normal_cash_flow(PyEntryList *self, PyObject *args)
 static PyObject*
 PyEntryList_iter(PyEntryList *self)
 {
-    PyObject *list = PyList_New(self->entries.count);
-    for (int i=0; i<self->entries.count; i++) {
-        Entry *entry = self->entries.entries[i];
+    PyObject *list = PyList_New(self->entries->count);
+    for (int i=0; i<self->entries->count; i++) {
+        Entry *entry = self->entries->entries[i];
         PyList_SetItem(list, i, (PyObject *)_PyEntry_from_entry(entry));
     }
     PyObject *res = PyObject_GetIter(list);
@@ -2475,13 +2473,12 @@ PyEntryList_iter(PyEntryList *self)
 static Py_ssize_t
 PyEntryList_len(PyEntryList *self)
 {
-    return self->entries.count;
+    return self->entries->count;
 }
 
 static void
 PyEntryList_dealloc(PyEntryList *self)
 {
-    entries_deinit(&self->entries);
 }
 
 /* PyAccountList */
@@ -2502,7 +2499,6 @@ PyAccountList_init(PyAccountList *self, PyObject *args, PyObject *kwds)
         return -1;
     }
     accounts_init(&self->alist, c);
-    self->entries = PyDict_New();
     return 0;
 }
 
@@ -2524,11 +2520,8 @@ PyAccountList_clean_empty_categories(PyAccountList *self, PyObject *args)
         if (!a->autocreated || a == from_account) {
             continue;
         }
-        PyObject *entries = PyDict_GetItemString(self->entries, a->name);
-        if (entries == NULL) {
-            return NULL;
-        }
-        if (PySequence_Length(entries) > 0) {
+        EntryList *entries = accounts_entries_for_account(&self->alist, a);
+        if (entries->count > 0) {
             continue;
         }
         if (!accounts_remove(&self->alist, a)) {
@@ -2619,14 +2612,9 @@ PyAccountList_entries_for_account(PyAccountList *self, PyAccount *account)
         PyErr_SetString(PyExc_TypeError, "not an account");
         return NULL;
     }
-    PyObject *res = PyDict_GetItemString(self->entries, account->account->name);
-    if (res == NULL) {
-        res = (PyObject *)_PyEntryList_new(account->account);
-        PyDict_SetItemString(self->entries, account->account->name, res);
-        Py_DECREF(res);
-    }
-    Py_INCREF(res);
-    return res;
+    EntryList *entries = accounts_entries_for_account(
+        &self->alist, account->account);
+    return (PyObject *)_PyEntryList_proxy(entries);
 }
 
 static PyObject*
@@ -2771,24 +2759,15 @@ static PyObject*
 PyAccountList_rename_account(PyAccountList *self, PyObject *args)
 {
     PyAccount *account;
-    PyObject *newname;
+    char *newname;
 
-    if (!PyArg_ParseTuple(args, "OO", &account, &newname)) {
+    if (!PyArg_ParseTuple(args, "Os", &account, &newname)) {
         return NULL;
     }
 
     // TODO handle name clash
     Account *a = account->account;
-    PyObject *entries = PyDict_GetItemString(self->entries, a->name);
-    if (entries == NULL) {
-        return NULL;
-    }
-    PyDict_SetItem(self->entries, newname, entries);
-    PyDict_DelItemString(self->entries, a->name);
-    char *s = NULL;
-    _strset(&s, newname);
-    account_name_set(a, s);
-    strfree(&s);
+    accounts_rename(&self->alist, a, newname);
     Py_RETURN_NONE;
 }
 
@@ -2856,7 +2835,6 @@ PyAccountList_default_currency_set(PyAccountList *self, PyObject *value)
 static void
 PyAccountList_dealloc(PyAccountList *self)
 {
-    Py_DECREF(self->entries);
     accounts_deinit(&self->alist);
 }
 
@@ -2885,27 +2863,19 @@ py_oven_cook_txns(PyObject *self, PyObject *args)
             if (split->account == NULL) {
                 continue;
             }
-            PyEntryList *entries = (PyEntryList *)PyDict_GetItemString(
-                accounts->entries, split->account->name); // borrowed
-            if (entries == NULL) {
-                entries = _PyEntryList_new(split->account);
-                PyDict_SetItemString(
-                    accounts->entries,
-                    split->account->name,
-                    (PyObject *)entries);
-                Py_DECREF(entries);
-            }
-            entries_create(&entries->entries, split, txn->txn);
+            EntryList *entries = accounts_entries_for_account(
+                &accounts->alist, split->account);
+            entries_create(entries, split, txn->txn);
         }
     }
 
-    PyObject *allentries = PyDict_Values(accounts->entries);
-    len = PyList_Size(allentries);
-    for (int i=0; i<len; i++) {
-        PyEntryList *entries = (PyEntryList *)PyList_GetItem(allentries, i); // borrowed
-        entries_cook(&entries->entries);
+    GHashTableIter iter;
+    g_hash_table_iter_init(&iter, accounts->alist.a2entries);
+
+    gpointer _, entries;
+    while (g_hash_table_iter_next(&iter, &_, &entries)) {
+        entries_cook(entries);
     }
-    Py_DECREF(allentries);
     Py_RETURN_NONE;
 }
 
