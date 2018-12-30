@@ -1,4 +1,5 @@
 #include <CUnit/CUnit.h>
+#include <locale.h>
 #include "../accounts.h"
 #include "../currency.h"
 #include "../util.h"
@@ -13,6 +14,9 @@ static void test_accounts_find()
     Account *a2 = accounts_create(&al);
     account_init(a2, " baR ", NULL, ACCOUNT_ASSET);
     Account *a3 = accounts_create(&al);
+    // "école" under a C locale will not work properly. However, this value is
+    // there to make sure that all hell doesn't break lose either when adding
+    // this broken value.
     account_init(a3, "école", NULL, ACCOUNT_ASSET);
 
     Account *found = accounts_find_by_name(&al, "not there");
@@ -21,15 +25,36 @@ static void test_accounts_find()
     CU_ASSERT_PTR_EQUAL(found, a1);
     found = accounts_find_by_name(&al, "BAR");
     CU_ASSERT_PTR_EQUAL(found, a2);
-    // TODO: properly support locales or bring in ICU or something.
-    /*found = accounts_find_by_name(&al, "ÉCOLE");*/
-    /*CU_ASSERT_PTR_EQUAL(found, a3);              */
-    account_deinit(a1);
-    account_deinit(a2);
-    account_deinit(a3);
     accounts_deinit(&al);
 }
 
+static void test_accounts_find_locale()
+{
+    char *locales[] = {"fr_CA.UTF-8", "fr_FR.UTF-8", NULL};
+    char *loc = NULL;
+    int lindex = 0;
+    while (loc == NULL && locales[lindex] != NULL) {
+        loc = setlocale(LC_ALL, locales[lindex]);
+        lindex++;
+    }
+
+    if (loc == NULL) {
+        printf("Can't run the test_accounts_find_locale() test: no fr locale. Skipping\n");
+        return;
+    }
+    printf("Running test with %s\n", loc);
+    AccountList al;
+    accounts_init(&al, NULL);
+
+    Account *a1 = accounts_create(&al);
+    account_init(a1, "fOo", NULL, ACCOUNT_ASSET);
+    Account *a2 = accounts_create(&al);
+    account_init(a2, "école", NULL, ACCOUNT_ASSET);
+    Account *found = accounts_find_by_name(&al, "ÉCOLE");
+    CU_ASSERT_PTR_EQUAL(found, a2);
+    accounts_deinit(&al);
+    setlocale(LC_ALL, "C");
+}
 static void test_accounts_find_account_number()
 {
     AccountList al;
@@ -40,7 +65,6 @@ static void test_accounts_find_account_number()
     strset(&a1->account_number, "1234");
     Account *found = accounts_find_by_name(&al, "1234");
     CU_ASSERT_PTR_EQUAL(found, a1);
-    account_deinit(a1);
     accounts_deinit(&al);
 }
 
@@ -85,6 +109,8 @@ static void test_accounts_rename()
     CU_ASSERT_TRUE_FATAL(accounts_rename(&al, a1, "RENAMED"));
     CU_ASSERT_PTR_EQUAL(accounts_find_by_name(&al, "renamed"), a1);
     CU_ASSERT_PTR_EQUAL(accounts_find_by_name(&al, "RENAMED"), a1);
+
+    accounts_deinit(&al);
 }
 
 
@@ -94,6 +120,7 @@ void test_account_init()
 
     s = CU_add_suite("Account", NULL, NULL);
     CU_ADD_TEST(s, test_accounts_find);
+    CU_ADD_TEST(s, test_accounts_find_locale);
     CU_ADD_TEST(s, test_accounts_find_account_number);
     CU_ADD_TEST(s, test_accounts_remove);
     CU_ADD_TEST(s, test_accounts_rename);

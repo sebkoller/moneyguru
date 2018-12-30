@@ -14,6 +14,7 @@ account_init(
     AccountType type)
 {
     account->name = NULL;
+    account->name_key = NULL;
     account_name_set(account, name);
     account->currency = currency;
     account->type = type;
@@ -31,6 +32,8 @@ account_deinit(Account *account)
     strfree(&account->groupname);
     strfree(&account->account_number);
     strfree(&account->notes);
+    g_free(account->name_key);
+    account->name_key = NULL;
 }
 
 bool
@@ -45,6 +48,7 @@ account_copy(Account *dst, const Account *src)
     if (!strclone(&dst->name, src->name)) {
         return false;
     }
+    dst->name_key = g_strdup(src->name_key);
     dst->inactive = src->inactive;
     if (!strclone(&dst->reference, src->reference)) {
         return false;
@@ -96,6 +100,10 @@ account_name_set(Account *account, const char *name)
     } else {
         strset(&account->name, name);
     }
+    g_free(account->name_key);
+    gchar *s = g_utf8_casefold(account->name, -1);
+    account->name_key = g_utf8_collate_key(s, -1);
+    g_free(s);
 }
 
 void

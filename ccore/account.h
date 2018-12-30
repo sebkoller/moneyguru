@@ -1,5 +1,6 @@
 #pragma once
 
+#include <glib.h>
 #include <stdbool.h>
 #include "amount.h"
 #include "currency.h"
@@ -18,6 +19,8 @@ typedef struct {
     Currency *currency;
     // Name of the account. Must be unique in the whole document.
     char *name;
+    // Collation key to be used in find_by_name()
+    gchar *name_key;
     // External reference number (like, for example, a reference given by a
     // bank). Used to uniquely match an account in moneyGuru to one being
     // imported from another source.

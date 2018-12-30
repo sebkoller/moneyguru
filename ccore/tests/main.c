@@ -11,6 +11,7 @@ int main()
 {
     currency_global_init(":memory:");
     CU_initialize_registry();
+    CU_basic_set_mode(CU_BRM_VERBOSE);
     test_util_init();
     test_amount_init();
     test_account_init();

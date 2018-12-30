@@ -134,9 +134,12 @@ accounts_find_by_name(const AccountList *accounts, const char *name)
     } else {
         trimmed = name;
     }
+    gchar *casefold = g_utf8_casefold(trimmed, -1);
+    gchar *key = g_utf8_collate_key(casefold, -1);
+    g_free(casefold);
     for (int i=0; i<accounts->count; i++) {
         Account *a = accounts->accounts[i];
-        if (strcasecmp(trimmed, a->name) == 0) {
+        if (strcmp(key, a->name_key) == 0) {
             res = a;
             break;
         }
@@ -148,6 +151,7 @@ accounts_find_by_name(const AccountList *accounts, const char *name)
     if (dst != NULL) {
         free(dst);
     }
+    g_free(key);
     return res;
 }
 
