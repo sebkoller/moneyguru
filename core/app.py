@@ -4,15 +4,12 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import sys
 import os
 import os.path as op
-import logging
 import datetime
 import threading
 from collections import namedtuple
 import re
-import importlib
 
 from core.notify import Broadcaster
 from core.util import nonone
@@ -182,7 +179,6 @@ class Application(Broadcaster):
         # User plugins are disabled by default.
         self._enabled_plugins = set(self.get_default(PreferenceNames.EnabledUserPlugins, []))
         self._load_core_plugins()
-        self._load_user_plugins()
         self._hook_currency_plugins()
         self._update_autosave_timer()
         self._update_date_entry_order()
@@ -227,23 +223,6 @@ class Application(Broadcaster):
     def _load_core_plugins(self):
         for mod in get_all_core_plugin_modules():
             self._load_plugin_module(mod)
-
-    def _load_user_plugins(self):
-        if not self.appdata_path:
-            return
-        plpath = op.join(self.appdata_path, 'moneyguru_plugins')
-        if not op.exists(plpath):
-            os.mkdir(plpath)
-        modulenames = [fn[:-3] for fn in os.listdir(plpath) if fn.endswith('.py') and fn != '__init__.py']
-        sys.path.insert(0, self.appdata_path)
-        for modulename in modulenames:
-            try:
-                mod = importlib.import_module('moneyguru_plugins.'+modulename)
-            except ImportError:
-                logging.warning("Couldn't import plugin %s", modulename)
-            else:
-                self._load_plugin_module(mod)
-        del sys.path[0]
 
     def _hook_currency_plugins(self):
         currency_plugins = [p for p in self.get_enabled_plugins() if issubclass(p, CurrencyProviderPlugin)]
