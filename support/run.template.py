@@ -41,9 +41,9 @@ def main():
     style = textStream.readAll()
     stylesheetFile.close()
     app.setStyleSheet(style)
-    lang = settings.value('Language')
     locale_folder = op.join('@SHAREPATH@', 'locale')
-    core.trans.install_gettext_trans_under_qt(locale_folder, lang)
+    core.trans.install_gettext_trans(locale_folder)
+    core.trans.install_qt_trans()
     # Many strings are translated at import time, so this is why we only import after the translator
     # has been installed
     from qt.app import MoneyGuru

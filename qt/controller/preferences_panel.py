@@ -6,7 +6,7 @@
 
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtWidgets import (
-    QDialog, QMessageBox, QVBoxLayout, QFormLayout, QLabel, QComboBox, QSpinBox, QCheckBox,
+    QDialog, QMessageBox, QVBoxLayout, QFormLayout, QLabel, QSpinBox, QCheckBox,
     QLineEdit, QDialogButtonBox
 )
 
@@ -16,28 +16,6 @@ from core.model.date import clean_format
 from ..util import verticalSpacer, horizontalWrap
 
 tr = trget('ui')
-
-def get_langnames():
-    return {
-        'en': tr("English"),
-        'fr': tr("French"),
-        'de': tr("German"),
-        'el': tr("Greek"),
-        'zh_CN': tr("Chinese (Simplified)"),
-        'cs': tr("Czech"),
-        'it': tr("Italian"),
-        'hy': tr("Armenian"),
-        'ko': tr("Korean"),
-        'ru': tr("Russian"),
-        'uk': tr("Ukrainian"),
-        'nl': tr('Dutch'),
-        'pl_PL': tr("Polish"),
-        'pt_BR': tr("Brazilian"),
-        'es': tr("Spanish"),
-        'vi': tr("Vietnamese"),
-    }
-
-SUPPORTED_LANGUAGES = ['en', 'fr', 'de', 'it', 'cs', 'nl', 'es', 'ru']
 
 class PreferencesPanel(QDialog):
     def __init__(self, parent, app):
@@ -73,12 +51,6 @@ class PreferencesPanel(QDialog):
         self.fontSizeSpinBox.setMaximumSize(QSize(70, 0xffffff))
         self.formLayout.addRow(tr("Font size:"), self.fontSizeSpinBox)
 
-        self.languageComboBox = QComboBox(self)
-        LANGNAMES = get_langnames()
-        for lang in SUPPORTED_LANGUAGES:
-            self.languageComboBox.addItem(LANGNAMES[lang])
-        self.languageComboBox.setMaximumSize(QSize(140, 0xffffff))
-        self.formLayout.addRow(tr("Language:"), self.languageComboBox)
         self.verticalLayout.addLayout(self.formLayout)
 
         self.scopeDialogCheckBox = QCheckBox(tr("Show scope dialog when modifying a scheduled transaction"), self)
@@ -87,8 +59,6 @@ class PreferencesPanel(QDialog):
         self.verticalLayout.addWidget(self.autoDecimalPlaceCheckBox)
         self.dateEntryBox = QCheckBox(tr("Enter dates in day → month → year order"), self)
         self.verticalLayout.addWidget(self.dateEntryBox)
-        self.debugModeCheckBox = QCheckBox(tr("Debug mode (restart required)"), self)
-        self.verticalLayout.addWidget(self.debugModeCheckBox)
         self.verticalLayout.addItem(verticalSpacer())
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -103,12 +73,6 @@ class PreferencesPanel(QDialog):
         self.scopeDialogCheckBox.setChecked(appm.show_schedule_scope_dialog)
         self.autoDecimalPlaceCheckBox.setChecked(appm.auto_decimal_place)
         self.dateEntryBox.setChecked(appm.day_first_date_entry)
-        self.debugModeCheckBox.setChecked(self.app.prefs.debugMode)
-        try:
-            langindex = SUPPORTED_LANGUAGES.index(self.app.prefs.language)
-        except ValueError:
-            langindex = 0
-        self.languageComboBox.setCurrentIndex(langindex)
 
     def save(self):
         restartRequired = False
@@ -121,14 +85,6 @@ class PreferencesPanel(QDialog):
         appm.show_schedule_scope_dialog = self.scopeDialogCheckBox.isChecked()
         appm.auto_decimal_place = self.autoDecimalPlaceCheckBox.isChecked()
         appm.day_first_date_entry = self.dateEntryBox.isChecked()
-        self.app.prefs.debugMode = self.debugModeCheckBox.isChecked()
-        lang = SUPPORTED_LANGUAGES[self.languageComboBox.currentIndex()]
-        oldlang = self.app.prefs.language
-        if oldlang not in SUPPORTED_LANGUAGES:
-            oldlang = 'en'
-        if lang != oldlang:
-            restartRequired = True
-        self.app.prefs.language = lang
         if restartRequired:
             QMessageBox.information(self, "", tr("moneyGuru has to restart for these changes to take effect"))
 
