@@ -1,4 +1,4 @@
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -25,7 +25,7 @@ def get_plugins_from_mod(mod):
 def get_all_core_plugin_modules():
     from . import (
         account_list, currency_rates, payee_breakdown, boc_currency_provider,
-        yahoo_currency_provider, stale_currency_provider,
+        stale_currency_provider,
         base_import_actions, base_import_bind,
         fuzzy_date_bind,
     )
@@ -34,7 +34,6 @@ def get_all_core_plugin_modules():
         currency_rates,
         payee_breakdown,
         boc_currency_provider,
-        yahoo_currency_provider,
         stale_currency_provider,
         base_import_actions,
         base_import_bind,
