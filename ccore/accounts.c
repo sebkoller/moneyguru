@@ -102,9 +102,13 @@ accounts_remove(AccountList *accounts, Account *target)
     return true;
 }
 
-void
+bool
 accounts_rename(AccountList *accounts, Account *target, const char *newname)
 {
+    Account *found = accounts_find_by_name(accounts, newname);
+    if (found != NULL && found != target) {
+        return false;
+    }
     EntryList *entries = g_hash_table_lookup(accounts->a2entries, target->name);
     if (entries != NULL) {
         g_hash_table_remove(accounts->a2entries, target->name);
@@ -113,6 +117,7 @@ accounts_rename(AccountList *accounts, Account *target, const char *newname)
     if (entries != NULL) {
         g_hash_table_insert(accounts->a2entries, target->name, entries);
     }
+    return true;
 }
 
 Account *

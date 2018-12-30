@@ -64,6 +64,30 @@ static void test_accounts_remove()
     accounts_deinit(&al);
 }
 
+static void test_accounts_rename()
+{
+    AccountList al;
+
+    accounts_init(&al, NULL);
+    Account *a1 = accounts_create(&al);
+    account_init(a1, "one", NULL, ACCOUNT_ASSET);
+    CU_ASSERT_TRUE_FATAL(accounts_rename(&al, a1, "renamed"));
+    CU_ASSERT_PTR_EQUAL(accounts_find_by_name(&al, "renamed"), a1);
+    CU_ASSERT_PTR_NULL(accounts_find_by_name(&al, "one"));
+    Account *a2 = accounts_create(&al);
+    account_init(a2, "two", NULL, ACCOUNT_ASSET);
+    // name clash, abort
+    CU_ASSERT_FALSE_FATAL(accounts_rename(&al, a2, "renamed"));
+    CU_ASSERT_PTR_EQUAL(accounts_find_by_name(&al, "renamed"), a1);
+    CU_ASSERT_PTR_EQUAL(accounts_find_by_name(&al, "two"), a2);
+
+    // We *can*, however, rename the same account with an "almost-same" name
+    CU_ASSERT_TRUE_FATAL(accounts_rename(&al, a1, "RENAMED"));
+    CU_ASSERT_PTR_EQUAL(accounts_find_by_name(&al, "renamed"), a1);
+    CU_ASSERT_PTR_EQUAL(accounts_find_by_name(&al, "RENAMED"), a1);
+}
+
+
 void test_account_init()
 {
     CU_pSuite s;
@@ -72,5 +96,6 @@ void test_account_init()
     CU_ADD_TEST(s, test_accounts_find);
     CU_ADD_TEST(s, test_accounts_find_account_number);
     CU_ADD_TEST(s, test_accounts_remove);
+    CU_ADD_TEST(s, test_accounts_rename);
 }
 

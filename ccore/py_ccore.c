@@ -2766,9 +2766,10 @@ PyAccountList_rename_account(PyAccountList *self, PyObject *args)
         return NULL;
     }
 
-    // TODO handle name clash
     Account *a = account->account;
-    accounts_rename(&self->alist, a, newname);
+    if (!accounts_rename(&self->alist, a, newname)) {
+        return NULL;
+    }
     Py_RETURN_NONE;
 }
 

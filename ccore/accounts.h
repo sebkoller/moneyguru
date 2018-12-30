@@ -30,7 +30,7 @@ accounts_entries_for_account(AccountList *accounts, Account *account);
 bool
 accounts_remove(AccountList *accounts, Account *todelete);
 
-void
+bool
 accounts_rename(AccountList *accounts, Account *target, const char *newname);
 
 /* Returns the first account that matches `name`.
