@@ -117,7 +117,3 @@ class MoneyGuru(QObject):
         url = QUrl(url)
         QDesktopServices.openUrl(url)
 
-    def reveal_path(self, path):
-        url = QUrl.fromLocalFile(str(path))
-        QDesktopServices.openUrl(url)
-

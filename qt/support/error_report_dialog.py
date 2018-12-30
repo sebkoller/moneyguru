@@ -6,7 +6,6 @@
 
 import traceback
 import sys
-import os
 
 from PyQt5.QtCore import Qt, QCoreApplication, QSize, QUrl
 from PyQt5.QtWidgets import (
@@ -27,8 +26,6 @@ class ErrorReportDialog(QDialog):
         name = QCoreApplication.applicationName()
         version = QCoreApplication.applicationVersion()
         errorText = "Application Name: {}\nVersion: {}\n\n{}".format(name, version, error)
-        # Under windows, we end up with an error report without linesep if we don't mangle it
-        errorText = errorText.replace('\n', os.linesep)
         self.errorTextEdit.setPlainText(errorText)
         self.github_url = github_url
 
