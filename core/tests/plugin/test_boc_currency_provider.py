@@ -24,3 +24,18 @@ def test_boc_currency_provider_EUR():
     ]
     eq_(rates, EXPECTED)
 
+@pytest.mark.needs_network
+def test_boc_currency_provider_historical_EUR():
+    # historical rates fetching work too (before 2017, rates are fetched
+    # differently)
+    provider = BOCProviderPlugin()
+    rates = provider.get_currency_rates('EUR', date(2016, 8, 6), date(2016, 8, 12))
+    EXPECTED = [
+        (date(2016, 8, 8), 1.4598),
+        (date(2016, 8, 9), 1.4572),
+        (date(2016, 8, 10), 1.4589),
+        (date(2016, 8, 11), 1.4526),
+        (date(2016, 8, 12), 1.4462),
+
+    ]
+    eq_(rates, EXPECTED)

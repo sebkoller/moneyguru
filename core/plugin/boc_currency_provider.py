@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,6 +11,63 @@ import json
 from core.model.currency import RateProviderUnavailable
 from core.plugin import CurrencyProviderPlugin
 
+CURRENCY2BOCID = {
+    'USD': 'IEXE0101',
+    'ARS': 'IEXE2702',
+    'AUD': 'IEXE1601',
+    'BSD': 'IEXE6001',
+    'BRL': 'IEXE2801',
+    'XAF': 'IEXE4501',
+    'XPF': 'IEXE4601',
+    'CLP': 'IEXE2901',
+    'CNY': 'IEXE2201',
+    'COP': 'IEXE3901',
+    'HRK': 'IEXE6101',
+    'CZK': 'IEXE2301',
+    'DKK': 'IEXE0301',
+    'XCD': 'IEXE4001',
+    'EUR': 'EUROCAE01',
+    'FJD': 'IEXE4101',
+    'GHS': 'IEXE4702',
+    'GTQ': 'IEXE6501',
+    'HNL': 'IEXE4301',
+    'HKD': 'IEXE1401',
+    'HUF': 'IEXE2501',
+    'ISK': 'IEXE4401',
+    'INR': 'IEXE3001',
+    'IDR': 'IEXE2601',
+    'ILS': 'IEXE5301',
+    'JMD': 'IEXE6401',
+    'JPY': 'IEXE0701',
+    'MYR': 'IEXE3201',
+    'MXN': 'IEXE2001',
+    'MAD': 'IEXE4801',
+    'MMK': 'IEXE3801',
+    'NZD': 'IEXE1901',
+    'NOK': 'IEXE0901',
+    'PKR': 'IEXE5001',
+    'PAB': 'IEXE5101',
+    'PEN': 'IEXE5201',
+    'PHP': 'IEXE3301',
+    'PLN': 'IEXE2401',
+    'RON': 'IEXE6505',
+    'RUB': 'IEXE2101',
+    'RSD': 'IEXE6504',
+    'SGD': 'IEXE3701',
+    'SKK': 'IEXE6201',
+    'ZAR': 'IEXE3401',
+    'KRW': 'IEXE3101',
+    'LKR': 'IEXE5501',
+    'SEK': 'IEXE1001',
+    'CHF': 'IEXE1101',
+    'TWD': 'IEXE3501',
+    'THB': 'IEXE3601',
+    'TND': 'IEXE5701',
+    'AED': 'IEXE6506',
+    'GBP': 'IEXE1201',
+    'VEF': 'IEXE5902',
+    'VND': 'IEXE6503',
+}
 
 class BOCProviderPlugin(CurrencyProviderPlugin):
     NAME = 'Bank of Canada currency rates fetcher'
@@ -178,30 +235,52 @@ class BOCProviderPlugin(CurrencyProviderPlugin):
             'XPF', 'CFP franc',
             exponent=0, start_date=date(1998, 1, 2), start_rate=0.01299, latest_rate=0.01114)
 
+    @staticmethod
+    def _load(url):
+        try:
+            with urlopen(url) as response:
+                contents = response.read().decode('ascii')
+                return json.loads(contents)
+        except Exception:
+            raise RateProviderUnavailable()
+
+    @staticmethod
+    def _parse(json_item, key):
+        date = datetime.strptime(json_item['d'], '%Y-%m-%d').date()
+        try:
+            value = float(json_item[key]['v'])
+        except (ValueError, KeyError):
+            # Cover our ass in cases where we don't have proper keys or values
+            value = None
+        return (date, value)
+
+    def get_historical_rates(self, currency_code, start_date, end_date):
+        boc_code = CURRENCY2BOCID[currency_code]
+        url = 'https://www.bankofcanada.ca/valet/observations/{}/json?start_date={}&end_date={}'.format(
+            boc_code,
+            start_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d'),
+        )
+        results = self._load(url)
+
+        try:
+            return [self._parse(item, boc_code) for item in results['observations']]
+        except Exception:
+            raise RateProviderUnavailable()
+
+
     def get_currency_rates(self, currency_code, start_date, end_date):
+        if start_date.year < 2017:
+            return self.get_historical_rates(currency_code, start_date, end_date)
         url = 'http://www.bankofcanada.ca/valet/observations/FX{}CAD/json?start_date={}&end_date={}'.format(
             currency_code,
             start_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d'),
         )
+        results = self._load(url)
+        key = 'FX{}CAD'.format(currency_code)
         try:
-            with urlopen(url) as response:
-                contents = response.read().decode('ascii')
-                results = json.loads(contents)
-        except Exception:
-            raise RateProviderUnavailable()
-
-        def parse(json_item):
-            date = datetime.strptime(json_item['d'], '%Y-%m-%d').date()
-            try:
-                value = float(json_item['FX{}CAD'.format(currency_code)]['v'])
-            except (ValueError, KeyError):
-                # Cover our ass in cases where we don't have proper keys or values
-                value = None
-            return (date, value)
-
-        try:
-            return [parse(item) for item in results['observations']]
+            return [self._parse(item, key) for item in results['observations']]
         except Exception:
             raise RateProviderUnavailable()
 
