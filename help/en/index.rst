@@ -43,7 +43,6 @@ Contents:
    cash
    reconciliation
    forecast
-   plugins
    faq
    developer/index
    changelog

@@ -29,11 +29,4 @@ Frequently Asked Questions
 
     When accounts are grayed out, it means that they're excluded. Excluded accounts are not counted in totals. To include accounts back, select it and click on the little |basics_account_in| icon.
 
-.. topic:: I have another question. What can I do?
-    
-    There's a `moneyGuru forum`_ which can probably help you. If it's a bug report or feature
-    request you have, you should head to `moneyGuru's issue tracker on GitHub`_.
-
-.. _moneyGuru forum: http://forum.hardcoded.net/
-.. _moneyGuru's issue tracker on GitHub: https://github.com/hsoft/moneyguru/issues
 .. |basics_account_in| image:: image/basics_account_in.png

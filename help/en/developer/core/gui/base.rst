@@ -17,4 +17,3 @@ core.gui.base
         GUIPanel
         MainWindowPanel
         BaseView
-        LinkedSelectableList

@@ -6,6 +6,14 @@ When looking at a non-trivial codebase for the first time, it's very difficult t
 anything of it until you get the "Big Picture". This page is meant to, hopefully, make you get
 moneyGuru's big picture.
 
+UI agnostic
+===========
+
+moneyGuru used to have two UI codebases: one in Cocoa and one in Qt. Now that
+moneyGuru is a GNU/Linux app, it doesn't matter much anymore, but much of its
+design stems from this. We have a very strong separation between ``qt`` code
+and ``core`` code.
+
 Model/View/Controller
 =====================
 

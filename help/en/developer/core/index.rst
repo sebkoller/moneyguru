@@ -10,6 +10,9 @@ keeping up with every little details of the API is not worth it, IMO. However, w
 documentation, it should normally be possible for someone new to the code to dig in it and figure
 out, from the code, what everything is about.
 
+**Code in ccore is not present in this documentation.** To see documentation of
+classes that have been rewritten to C, refer to source code directly.
+
 .. toctree::
     :maxdepth: 2
     :glob:

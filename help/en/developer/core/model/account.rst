@@ -6,8 +6,6 @@ core.model.account
     
     .. autosummary::
         
-        Account
         Group
-        AccountList
         GroupList
         AccountType
