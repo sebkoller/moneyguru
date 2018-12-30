@@ -1588,13 +1588,6 @@ PyTransaction_is_null(PyTransaction *self)
 static PyObject *
 PyTransaction_is_spawn(PyTransaction *self)
 {
-    if (self->txn->ref == NULL) {
-        // When a spawn is materialized, it is with a replicate() call that
-        // keeps its type intact, without giving it its spawn attributes. We
-        // don't consider these replications as spawn.
-        // TODO: straigten this out.
-        Py_RETURN_FALSE;
-    }
     if (self->txn->type != TXN_TYPE_NORMAL) {
         Py_RETURN_TRUE;
     } else {
@@ -1995,6 +1988,14 @@ PyTransaction_replicate(PyTransaction *self, PyObject *noarg)
     res->txn = calloc(1, sizeof(Transaction));
     res->owned = true;
     PyTransaction_copy_from(res, self);
+    return (PyObject *)res;
+}
+
+static PyObject *
+PyTransaction_materialize(PyTransaction *self, PyObject *noarg)
+{
+    PyTransaction *res = (PyTransaction *)PyTransaction_replicate(self, NULL);
+    res->txn->type = TXN_TYPE_NORMAL;
     return (PyObject *)res;
 }
 
@@ -3297,6 +3298,8 @@ static PyMethodDef PyTransaction_methods[] = {
     {"reassign_account", (PyCFunction)PyTransaction_reassign_account, METH_VARARGS, ""},
     {"remove_split", (PyCFunction)PyTransaction_remove_split, METH_O, ""},
     {"replicate", (PyCFunction)PyTransaction_replicate, METH_NOARGS, ""},
+    // Same as replicate(), but gets rid of the "spawn" attribute.
+    {"materialize", (PyCFunction)PyTransaction_materialize, METH_NOARGS, ""},
     {0, 0, 0, 0},
 };
 

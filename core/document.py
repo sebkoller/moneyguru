@@ -141,7 +141,7 @@ class BaseDocument:
                 schedule.change_globally(transaction)
             else:
                 schedule.delete(transaction)
-                materialized = transaction.replicate()
+                materialized = transaction.materialize()
                 self.transactions.add(materialized)
         else:
             if transaction not in self.transactions:
@@ -499,7 +499,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         schedule = find_schedule_of_ref(entry.transaction.ref, self.schedules)
         assert schedule is not None
         schedule.delete(entry.transaction)
-        materialized = entry.transaction.replicate()
+        materialized = entry.transaction.materialize()
         self.transactions.add(materialized)
         split_index = entry.transaction.splits.index(entry.split)
         materialized_split = materialized.splits[split_index]
