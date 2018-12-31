@@ -1,3 +1,16 @@
+=== 2.13.0 (2018-12-31)
+
+* Rewrite ``Account``, ``Split``, ``Entry``, ``Transaction``,
+  ``AccountList`` (partial), ``TransactionList`` (partial) to C.
+* Improve Makefile so it behaves more like a typical project.
+* Fix crash when moving tabs around. (#481)
+* Use system locale to determine active language.
+* Improve BOC currency provider to support historical rates. (#498)
+* Remove broken Yahoo currency provider.
+* Remove ability to load user plugins. (#401)
+* Fix selection glitch after spawn materialization.
+* Add shortcut to materialize spawns.
+
 === 2.12.0 (2018-11-29)
 
 * Drop Mac OS support. moneyGuru is now a GNU/Linux application. See README.
