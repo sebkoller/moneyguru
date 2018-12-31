@@ -6,7 +6,6 @@
 
 from datetime import date
 
-import pytest
 from ..testutil import eq_
 
 from ...model._ccore import AccountList
@@ -28,16 +27,6 @@ class TestAccountComparison:
         accounts = [bell, belarus, achigan]
         eq_(sorted(accounts, key=ACCOUNT_SORT_KEY), [achigan, belarus, bell])
 
-    @pytest.mark.skip(reason="TODO: write unit tests in C")
-    def test_equality(self):
-        # Two different account objects are never equal.
-        l = AccountList('USD')
-        zoo1 = l.create('Zoo', 'USD', AccountType.Asset)
-        zoo2 = l.create('Zoo', 'USD', AccountType.Asset)
-        zoo3 = l.create('Zoö', 'USD', AccountType.Asset)
-        eq_(zoo1, zoo1)
-        assert zoo1 != zoo2
-        assert zoo1 != zoo3
 
 class TestGroupComparison:
     def test_comparison(self):
