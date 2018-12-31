@@ -37,6 +37,20 @@ def test_delete_root_type_nodes(app):
     app.bsheet.selected = app.bsheet.assets[1] # blank node
     assert not app.bsheet.can_delete()
 
+@with_app(TestApp)
+def test_excluded_accounts_are_cleared_on_clear(app):
+    # we would have a bug where excluded accounts wouldn't be cleared when
+    # creating a new document, triggering a bad access to freed accounts on
+    # quit.
+    app.add_account()
+    app.bsheet.toggle_excluded()
+    print(app.doc.excluded_accounts)
+    app.doc.clear() # no segfault
+    app.doc.close() # no segfault
+    # The test doesn't segfault/fail reliably when it should, let's cheat a
+    # little bit on the API and confirm that excluded accounts are empty
+    assert not app.doc.excluded_accounts
+
 # --- One empty account
 def app_one_empty_account():
     app = TestApp()

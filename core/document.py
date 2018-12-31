@@ -476,6 +476,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         del self.budgets[:]
         self._undoer.clear()
         self._dirty_flag = False
+        self.excluded_accounts = set()
         BaseDocument._clear(self)
 
     def _cook(self, from_date=None):
