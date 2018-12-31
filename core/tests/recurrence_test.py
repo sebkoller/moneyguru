@@ -389,7 +389,7 @@ def test_press_return_twice_on_spawn_materializes_it(app):
     assert app.ttable[1].recurrent
 
 @with_app(app_daily_schedule)
-def test_toggle_debit_credit(app):
+def test_toggle_table_column(app):
     # We used to spuriously call save_edits() (instead of stop_editing()) on
     # column visibility changes, triggering unwanted materialization in cases
     # where an eligible spawn was selected. Don't do this.
