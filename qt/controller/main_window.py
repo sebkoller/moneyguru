@@ -626,9 +626,6 @@ class MainWindow(QMainWindow):
             return ExportPanel(model, self)
 
     def refresh_panes(self):
-        # Always remove the "new tab" tab
-        if self.tabBar.count() > 0:
-            self.tabBar.removeTab(self.tabBar.count()-1)
         while self.tabBar.count() < self.model.pane_count:
             self.tabBar.addTab('')
         for i in range(self.model.pane_count):
