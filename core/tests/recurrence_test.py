@@ -388,6 +388,16 @@ def test_press_return_twice_on_spawn_materializes_it(app):
         app.doc_gui, not_expected=['query_for_schedule_scope'])
     assert app.ttable[1].recurrent
 
+@with_app(app_daily_schedule)
+def test_toggle_debit_credit(app):
+    # We used to spuriously call save_edits() (instead of stop_editing()) on
+    # column visibility changes, triggering unwanted materialization in cases
+    # where an eligible spawn was selected. Don't do this.
+    app.ttable.select([0]) # This spawn happens today
+    app.mw.toggle_column_menu_item(0) # toggle any column
+    assert app.ttable[0].recurrent # nothing changed
+
+
 # --- One Schedule and one normal txn
 def app_one_schedule_and_one_normal_txn():
     app = TestApp()

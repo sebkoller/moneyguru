@@ -322,8 +322,7 @@ class GUITableBase(Table, GUIObject):
         mode.
         """
         self.view.stop_editing()
-        if self.edited is not None:
-            self.save_edits()
+        self.stop_editing()
         row, insert_index = self._do_add()
         self.insert(insert_index, row)
         self.select([insert_index])
@@ -402,7 +401,9 @@ class GUITableBase(Table, GUIObject):
     def save_edits(self):
         """Commit user edits to the model.
 
-        This is done by calling :meth:`Row.save`.
+        This is done by calling :meth:`Row.save`. Don't call this "randomly"
+        just to make sure we're not in edit mode: This can have unwanted side
+        effect. Call this at moments when we're really supposed to save edits.
         """
         if self.edited is None:
             return
@@ -424,6 +425,15 @@ class GUITableBase(Table, GUIObject):
         self._sort_descriptor = SortDescriptor(column_name, desc)
         self._update_selection()
         self.view.refresh()
+
+    def stop_editing(self):
+        """Save edits if needed.
+
+        Unlike save_edits(), this can be called "randomly" just to make sure
+        that we're not editing.
+        """
+        if self.edited is not None:
+            self.save_edits()
 
 
 class RowBase:
@@ -595,8 +605,7 @@ class GUITable(GUITableBase):
     # --- Event handlers
     def edition_must_stop(self):
         self.view.stop_editing()
-        if self.edited is not None:
-            self.save_edits()
+        self.stop_editing()
 
     def document_changed(self):
         self.refresh()

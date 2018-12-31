@@ -87,7 +87,7 @@ class Columns(GUIObject):
 
     :param table: The table the columns belong to. It's from there that we retrieve our column
                   configuration and it must have a ``COLUMNS`` attribute which is a list of
-                  :class:`Column`. We also call :meth:`~.GUITable.save_edits` on it from time to
+                  :class:`Column`. We also call :meth:`~.GUITable.stop_editing` on it from time to
                   time. Technically, this argument can also be a tree, but there's probably some
                   sorting in the code to do to support this option cleanly.
     :param prefaccess: An object giving access to user preferences for the currently running app.
@@ -253,7 +253,8 @@ class Columns(GUIObject):
     def set_column_visible(self, colname, visible):
         """Set the visibility of column ``colname``.
         """
-        self.table.save_edits() # the table on the GUI side will stop editing when the columns change
+        # the table on the GUI side will stop editing when the columns change
+        self.table.stop_editing()
         self._set_colname_attr(colname, 'visible', visible)
         self.view.set_column_visible(colname, visible)
 

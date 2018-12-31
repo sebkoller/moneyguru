@@ -92,7 +92,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
     # --- Public
     def add_account(self):
         self.view.stop_editing()
-        self.save_edits()
+        self.stop_editing()
         node = self.selected
         if isinstance(node, Node) and node.is_group:
             account_type = node.group.type
@@ -114,7 +114,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
 
     def add_account_group(self):
         self.view.stop_editing()
-        self.save_edits()
+        self.stop_editing()
         node = self.selected
         if isinstance(node, Node) and node.is_group:
             account_type = node.group.type
@@ -314,6 +314,10 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
         node = self.get_node(path)
         self.mainwindow.open_account(node.account)
 
+    def stop_editing(self):
+        if self.edited is not None:
+            self.save_edits()
+
     def toggle_excluded(self):
         nodes = self.selected_nodes
         affected_accounts = set()
@@ -355,7 +359,7 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
 
     def edition_must_stop(self):
         self.view.stop_editing()
-        self.save_edits()
+        self.stop_editing()
 
     # account might have been auto-created during import
     def transactions_imported(self):
