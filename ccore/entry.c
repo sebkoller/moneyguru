@@ -142,6 +142,7 @@ entries_init(EntryList *entries, Account *account)
 void
 entries_deinit(EntryList *entries)
 {
+    entries_clear(entries, 0);
     entries->count = 0;
     entries->cooked_until = 0;
     entries->last_reconciled = NULL;
@@ -229,6 +230,10 @@ entries_cash_flow(
 void
 entries_clear(EntryList *entries, time_t fromdate)
 {
+    if (!entries->count) {
+        // nothing to do
+        return;
+    }
     int index;
     if (fromdate == 0) {
         index = 0;
@@ -238,6 +243,9 @@ entries_clear(EntryList *entries, time_t fromdate)
             // Everything is smaller, don't clear anything.
             return;
         }
+    }
+    for (int i=index; i<entries->count; i++) {
+        free(entries->entries[i]);
     }
     entries->count = index;
     entries->cooked_until = index;
