@@ -77,11 +77,6 @@ class TransactionTable(TransactionTableBase):
         self.mainwindow.open_account(account_to_show)
 
     # --- Public
-    def select_transactions(self, transactions):
-        TransactionTableBase.select_transactions(self, transactions)
-        if self and not self.selected_indexes:
-            self.selected_indexes = [len(self) - 1]
-
     def show_from_account(self, row_index=None):
         self._show_account(row_index, use_to_column=False)
 

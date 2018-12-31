@@ -93,5 +93,6 @@ clean:
 	find locale -name *.mo -delete
 	-rm -f core/model/*.so
 	-rm -f run.py
+	-rm -f qt/mg_rc.py
 
 .PHONY : clean srcpkg normpo mergepot ccore i18n reqs run pyc install uninstall all

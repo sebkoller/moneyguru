@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-09-12
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -98,6 +96,9 @@ def test_change_spawn_materializes_it(app):
     app.ttable[1].description = 'changed'
     app.ttable.save_edits()
     eq_(app.ttable.row_count, 6)
+    # materializing a spawn keeps it selected, even though underneath it isn't
+    # the same Transaction instance.
+    eq_(app.ttable.selected_index, 1)
     assert not app.ttable[1].recurrent
     eq_(app.ttable[1].date, '17/09/2008')
     eq_(app.ttable[1].description, 'changed')
