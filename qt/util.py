@@ -80,6 +80,7 @@ class SysWrapper(io.IOBase):
 
 def setupQtLogging(level=logging.WARNING):
     log = logging.getLogger()
+    log.setLevel(level)
     handler = logging.StreamHandler()
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
