@@ -595,7 +595,8 @@ class GUITable(GUITableBase):
     # --- Event handlers
     def edition_must_stop(self):
         self.view.stop_editing()
-        self.save_edits()
+        if self.edited is not None:
+            self.save_edits()
 
     def document_changed(self):
         self.refresh()

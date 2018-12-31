@@ -72,6 +72,11 @@ class TableBase(QAbstractTableModel):
         self.model.view = self
         if hasattr(self.model, 'columns'):
             self.columns = Columns(self.model.columns, self.COLUMNS, view.horizontalHeader())
+        # We use this flag to avoid spurious calls to model.save_edits() during
+        # submit(). submit() is called *all the time*, even when no editing is
+        # involved and core doesn't expect save_edits() to be called unless
+        # there was at least a *tentative* to edit something.
+        self._is_editing = False
 
         self.view.selectionModel().selectionChanged[(QItemSelection, QItemSelection)].connect(self.selectionChanged)
 
@@ -116,6 +121,7 @@ class TableBase(QAbstractTableModel):
     # Virtual
     def _setData(self, row, column, value, role):
         if role == Qt.EditRole:
+            self._is_editing = True
             attrname = column.name
             if attrname == 'from':
                 attrname = 'from_'
@@ -154,6 +160,7 @@ class TableBase(QAbstractTableModel):
             return None
 
     def revert(self):
+        self._is_editing = False
         self.model.cancel_edits()
 
     def rowCount(self, index):
@@ -174,7 +181,9 @@ class TableBase(QAbstractTableModel):
         self.model.sort_by(attrname, desc=(order == Qt.DescendingOrder))
 
     def submit(self):
-        self.model.save_edits()
+        if self._is_editing:
+            self._is_editing = False
+            self.model.save_edits()
         return True
 
     # --- Events

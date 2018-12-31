@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-01-06
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -20,7 +18,6 @@ class TransactionSelectionMixin:
     explicitly selected by the user.  This selection set has to be "remembered" before
     a refresh of the table is conducted and therefore the selection will have changed.
     """
-
 
     def select_transactions(self, transactions):
         selected_indexes = []
@@ -88,6 +85,18 @@ class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, Table
 
     def _revalidate(self):
         self.refresh()
+
+    def save_edits(self):
+        if self.edited is None and len(self.selected_indexes) == 1:
+            # normally, with a `None` self.edited, we would do nothing. However,
+            # if what we have is a spawn and that it's in the past, we're going
+            # to materialize it.
+            row = self.selected_row
+            if hasattr(row, 'transaction'):
+                txn = row.transaction
+                if txn.is_spawn and txn.date <= datetime.date.today():
+                    self.document.materialize_spawn(txn)
+        super().save_edits()
 
     def show(self):
         ViewChild.show(self)

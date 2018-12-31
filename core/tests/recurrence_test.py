@@ -365,6 +365,29 @@ def test_delete_spawns_until_global_change(app):
     tview = app.show_tview()
     eq_(tview.ttable[0].description, 'changed again')
 
+@with_app(app_daily_schedule)
+def test_press_return_twice_on_spawn_materializes_it(app):
+    # For spawn with a date past today, we add a shortcut of pressing return
+    # twice to materialize it. This saves us the need to make a dummy change to
+    # the spawn and answer the "just this one" dialog. It's a frequent enough
+    # case to justify this exception to the rule.
+    app.ttable.select([0]) # This spawn happens today
+    # To simulate two returns, we call save_edits() on a "dry run", that is,
+    # without having changed a field in a row first. Normally, this would result
+    # in a noop: no edited row means nothing to save. However, we have a special
+    # condition in there to verify if the currently selected txn is an
+    # admissible spawn.
+    app.ttable.save_edits()
+    app.check_gui_calls_partial(
+        app.doc_gui, not_expected=['query_for_schedule_scope'])
+    assert not app.ttable[0].recurrent
+    eq_(app.ttable.selected_indexes, [0])
+    app.ttable.select([1]) # This spawn happens in the future
+    app.ttable.save_edits() # nothing happens
+    app.check_gui_calls_partial(
+        app.doc_gui, not_expected=['query_for_schedule_scope'])
+    assert app.ttable[1].recurrent
+
 # --- One Schedule and one normal txn
 def app_one_schedule_and_one_normal_txn():
     app = TestApp()

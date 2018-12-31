@@ -282,6 +282,20 @@ class BaseDocument:
         duplicated = [txn.replicate() for txn in transactions]
         self._add_transactions(duplicated)
 
+    def materialize_spawn(self, spawn):
+        assert spawn.is_spawn
+        schedule = find_schedule_of_ref(spawn.ref, self.schedules)
+        assert schedule is not None
+        action = Action(tr('Materialize transaction'))
+        action.change_schedule(schedule)
+        schedule.delete(spawn)
+        materialized = spawn.materialize()
+        action.added_transactions |= {materialized}
+        self._undoer.record(action)
+        self.transactions.add(materialized)
+        self._cook(from_date=materialized.date)
+        self.notify('transaction_changed')
+
     def move_transactions(self, transactions, to_transaction):
         """Re-orders ``transactions`` so that they are right before ``to_transaction``.
 
