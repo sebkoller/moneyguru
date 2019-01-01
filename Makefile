@@ -39,14 +39,16 @@ reqs:
 	@${PYTHON} -c 'import PyQt5' >/dev/null 2>&1 || \
 		{ echo "PyQt 5.4+ required. Install it and try again. Aborting"; exit 1; }
 
-help/en/changelog.rst: help/changelog help/en/changelog.head.rst
-	$(PYTHON) support/genchangelog.py help/changelog | cat help/en/changelog.head.rst - > $@
+help/%/changelog.rst: help/%/changelog.head.rst help/changelog 
+	$(PYTHON) support/genchangelog.py help/changelog | cat $< - > $@
 
-help/en/credits.rst: help/en/credits.head.rst help/credits.rst 
+help/%/credits.rst: help/%/credits.head.rst help/credits.rst 
 	cat $+ > $@
 
-build/help: help/en/changelog.rst help/en/credits.rst
-	$(PYTHON) -m sphinx help/en $@
+build/help/%: help/% help/%/changelog.rst help/%/credits.rst
+	$(PYTHON) -m sphinx $< $@
+
+alldocs: $(addprefix build/help/,en cs de fr it ru)
 
 qt/mg_rc.py : qt/mg.qrc
 	pyrcc5 $< > $@
@@ -83,7 +85,7 @@ srcpkg:
 install: all pyc
 	./support/install.sh "$(DESTDIR)" "$(PREFIX)" "$(DESTLIB)" "$(DESTSHARE)"
 
-installdocs: build/help
+installdocs: build/help/en
 	mkdir -p $(DESTDIR)$(DESTDOC)
 	cp -rf $^/* $(DESTDIR)$(DESTDOC)
 
@@ -95,4 +97,4 @@ clean:
 	-rm -f run.py
 	-rm -f qt/mg_rc.py
 
-.PHONY : clean srcpkg normpo mergepot ccore i18n reqs run pyc install uninstall all
+.PHONY : clean srcpkg normpo mergepot ccore i18n reqs run pyc install all alldocs
