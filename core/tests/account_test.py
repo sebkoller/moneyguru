@@ -313,6 +313,15 @@ def test_move_account_in_another_base_group(app):
     eq_(app.account_node_subaccount_count(app.bsheet.get_node([0, 0])), 0)
     eq_(app.account_node_subaccount_count(app.bsheet.get_node([1])), 1)
 
+@with_app(app_one_account_in_one_group)
+def test_other_group_same_name(app):
+    # When having another group (of another type) with the same name, moneyguru
+    # doesn't get confused.
+    app.add_group('group', account_type=AccountType.Liability)
+    eq_(app.account_node_subaccount_count(app.bsheet.assets[0]), 1)
+    # Don't put our asset account in there!
+    eq_(app.account_node_subaccount_count(app.bsheet.liabilities[0]), 0)
+
 # --- Two groups
 def app_two_groups():
     app = TestApp()

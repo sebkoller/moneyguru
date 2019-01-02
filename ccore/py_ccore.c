@@ -2640,6 +2640,13 @@ PyAccountList_filter(PyAccountList *self, PyObject *args, PyObject *kwds)
             return NULL;
         }
     }
+    if (groupname != NULL && type == -1) {
+        PyErr_SetString(
+            PyExc_ValueError,
+            "Can't specify a group name without also specifying a type");
+        return NULL;
+    }
+
     PyObject *res = PyList_New(0);
     for (int i=0; i<self->alist.count; i++) {
         Account *a = self->alist.accounts[i];

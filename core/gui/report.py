@@ -206,7 +206,8 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
         node.group = group
         node.is_group = True
         groupname = group.name if group else None
-        accounts = self.document.accounts.filter(groupname=groupname)
+        accounts = self.document.accounts.filter(
+            groupname=groupname, type=group.type)
         for account in sorted(accounts, key=ACCOUNT_SORT_KEY):
             node.append(self.make_account_node(account))
         node.is_excluded = bool(accounts) and set(accounts) <= self.document.excluded_accounts # all accounts excluded
@@ -325,7 +326,9 @@ class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
             if node.is_type:
                 affected_accounts |= set(self.document.accounts.filter(type=node.type))
             elif node.is_group:
-                affected_accounts |= set(self.document.accounts.filter(groupname=node.group.name))
+                accounts = self.document.accounts.filter(
+                    groupname=node.group.name, type=node.group.type)
+                affected_accounts |= set(accounts)
             elif node.is_account:
                 affected_accounts.add(node.account)
         if affected_accounts:
