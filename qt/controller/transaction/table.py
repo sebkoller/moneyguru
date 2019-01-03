@@ -30,10 +30,11 @@ class TransactionTableDelegate(TableDelegate):
         self._model.show_to_account(row_index=index.row())
 
     def _get_decorations(self, index, isSelected):
+        row = self._model[index.row()]
         column = self._model.columns.column_by_index(index.column())
-        if column.name == 'from':
+        if column.name == 'from' and row.from_:
             return [self._decoFromArrowSelected if isSelected else self._decoFromArrow]
-        elif column.name == 'to':
+        elif column.name == 'to' and row.to:
             return [self._decoToArrowSelected if isSelected else self._decoToArrow]
         else:
             return []

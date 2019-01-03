@@ -24,8 +24,9 @@ class EntryTableDelegate(TableDelegate):
         self._model.show_transfer_account(row_index=index.row())
 
     def _get_decorations(self, index, isSelected):
+        row = self._model[index.row()]
         column = self._model.columns.column_by_index(index.column())
-        if column.name == 'transfer':
+        if column.name == 'transfer' and row.transfer:
             return [self._decoArrowSelected if isSelected else self._decoArrow]
         else:
             return []
