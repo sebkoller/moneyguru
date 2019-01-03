@@ -114,6 +114,7 @@ class BaseDocument:
         self.schedules = []
         self.budgets = BudgetList()
         self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
+        self.step = 1
 
     # --- Private
     def _add_transactions(self, transactions):
@@ -158,6 +159,8 @@ class BaseDocument:
     def _cook(self, from_date=None):
         # Without date ranges and spawns, it's OK to pass `None` as an `until_date`.
         self.oven.cook(from_date=from_date, until_date=None)
+        # Whenever we cook, we touch. That saves us some touch() repetitions.
+        self.touch()
 
     # --- Public
     def change_transaction(self, original, new, global_scope=False):
@@ -388,6 +391,9 @@ class BaseDocument:
             return True
         return amount.currency_code == self.default_currency
 
+    def touch(self):
+        self.step += 1
+
     # --- Properties
     @property
     def default_currency(self):
@@ -481,6 +487,8 @@ class Document(BaseDocument, Repeater, GUIObject):
 
     def _cook(self, from_date=None):
         self.oven.cook(from_date=from_date, until_date=self.date_range.end)
+        # Whenever we cook, we touch. That saves us some touch() repetitions.
+        self.touch()
 
     def _get_action_from_changed_transactions(self, transactions, global_scope=False):
         if len(transactions) == 1 and not transactions[0].is_spawn \

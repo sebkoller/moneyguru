@@ -595,6 +595,7 @@ class MainWindow(Repeater, GUIObject):
     # --- Event callbacks
     def _undo_stack_changed(self):
         self.view.refresh_undo_actions()
+        self._current_pane.view.revalidate()
 
     account_added = _undo_stack_changed
 

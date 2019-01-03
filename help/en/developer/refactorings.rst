@@ -25,28 +25,30 @@ Eventually, ``core`` won't exist anymore and all we'll have is ``ccore`` with
 a Python test suite. We'll also keep ``qt`` intact, but I'm thinking about a
 possible new ``ncurses`` C UI code base to go alongside it.
 
-More responsibilities to the view classes
-=========================================
+De-notification
+===============
 
-With moneyGuru 2.0, a new view system is put in place. This will allow for new views to be more
-easily added. In the *before times*, a lot of code that was specific to a view would go in the
-:class:`.Document` because that was the only place it could go into. Shortly before the 2.0
-refactoring, view classes were added, but they had very few responsibilities other than holding
-references to their children. With 2.0, code is being pushed up to views to lighten up the
-:class:`.Document` class which is getting pretty heavy.
+The Document notification system is there to ensure that all GUI elements are
+properly refreshed when the document is changed. In retrospective, I find this
+system overly complicated. While it allows a fine level of granularity in the
+type of updates that we perform (so that we can theoretically refresh "just
+what we need" instead of performing a full refresh), in practice this isn't
+used and full refreshes on most notifications are the norm.
 
-Traditionally, all GUI elements were connected directly to the :class:`.Document` for notifications.
-Since they were all independent from each other, it worked well. During the big 2.0 re-factoring,
-more responsibilities were given to the view classes. Because most GUI elements are children to the
-view classes (and thus not independent from them), the notification system caused problems because
-in a lot of cases, when GUI would listen to the same notification as their view, the view needed to
-process the notification first. Because no order is guaranteed in the notification dispatches, all
-hell broke loose.
+I want to simplify this by scrapping all notifications and replace them with a
+"modification marker". Every time the document is modified, this marker is
+incremented. Base views then keep track of the markers value whenever they
+refresh. When the base view is shown, it checks whether it needs to refresh
+itself by comparing its modification marker with the document's.
 
-Most views only contain a handful of GUI elements. Therefore, moneyGuru's codebase is migrating to a
-system where GUI elements that are part of views don't listen to :class:`.Document` notifications
-anymore. The parent view takes the responsibility to call appropriate methods on their children when
-it gets notifications from the :class:`.Document`.
+When a view is the actor of a change (and therefore the active view), it knows
+what it does, so it can possibly bypass this system and perform more granular
+refresh operations when it makes sense.
 
-It's rather ugly for now and results in code duplication in views' event handlers, but once the
-re-factoring is over, some consolidation should be possible.
+There are some special notifications related to date range and filter bar
+changes. I don't know yet the implications of the refactoring for those
+notifications, but I suppose a similar and separate marker could be added for
+those two and used by relevant views.
+
+In short: let's simplify the view refresh system at the cost of a coarser
+granularity.

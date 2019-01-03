@@ -413,6 +413,119 @@ class MainWindowPanel(GUIPanel):
         self.mainwindow = mainwindow
 
 
+class BaseViewNG(GUIObject):
+    """ The next generation of BaseView.
+
+    Unlike BaseView, it doesn't listen or repeat document notifications at all. It's based on the
+    new, simpler mtime-based refresh system.
+
+    The goal is to completely replace BaseView before the next release (which will probably be
+    v3.0).
+    """
+    def __init__(self, mainwindow):
+        super().__init__()
+        self.mainwindow = mainwindow
+        self.document = mainwindow.document
+        self.app = mainwindow.document.app
+        self._status_line = ""
+        self._doc_step = 0
+
+    # --- Temporary stubs
+    def connect(self):
+        pass
+
+    def disconnect(self):
+        pass
+
+    def show(self):
+        self.revalidate()
+
+    def hide(self):
+        pass
+
+    # --- Virtual
+    def new_item(self):
+        """*Virtual*. Create a new item."""
+        raise NotImplementedError()
+
+    def edit_item(self):
+        """*Virtual*. Edit the selected item(s)."""
+        raise NotImplementedError()
+
+    def delete_item(self):
+        """*Virtual*. Delete the selected item(s)."""
+        raise NotImplementedError()
+
+    def duplicate_item(self):
+        """*Virtual*. Duplicate the selected item(s)."""
+        raise NotImplementedError()
+
+    def new_group(self):
+        """*Virtual*. Create a new group."""
+        raise NotImplementedError()
+
+    def navigate_back(self):
+        """*Virtual*. Navigate back from wherever the user is coming.
+
+        This may (will) result in the active tab changing.
+        """
+        raise NotImplementedError()
+
+    def move_up(self):
+        """*Virtual*. Move select item(s) up in the list, if possible."""
+        raise NotImplementedError()
+
+    def move_down(self):
+        """*Virtual*. Move select item(s) down in the list, if possible."""
+        raise NotImplementedError()
+
+    # --- Private
+    def _revalidate(self):
+        pass
+
+    # --- Public
+    def revalidate(self):
+        if self.document.step > self._doc_step:
+            self._revalidate()
+            self._doc_step = self.document.step
+
+    @classmethod
+    def can_perform(cls, action_name):
+        """Returns whether our view subclass can perform ``action_name``.
+
+        Base views have a specific set of actions they can perform, and the way they perform these
+        actions is defined by the subclasses. However, not all views can perform all actions.
+        You can use this method to determine whether a view can perform an action. It does so by
+        comparing the method of the view with our base method which we know is abstract and if
+        it's not the same, we know that the method was overridden and that we can perform the
+        action.
+        """
+        mymethod = getattr(cls, action_name, None)
+        assert mymethod is not None
+        return mymethod is not getattr(BaseView, action_name, None)
+
+    def restore_subviews_size(self):
+        """*Virtual*. Restore subviews size from preferences."""
+
+    def save_preferences(self):
+        """*Virtual*. Save subviews size to preferences."""
+
+    # --- Properties
+    @property
+    def status_line(self):
+        """*get/set*. A short textual description of the global status of the tab.
+
+        This is displayed at the bottom of the main window in the UI.
+        """
+        return self._status_line
+
+    @status_line.setter
+    def status_line(self, value):
+        self._status_line = value
+        if not self._hidden:
+            self.mainwindow.update_status_line()
+
+
 class BaseView(Repeater, GUIObject, HideableObject, DocumentNotificationsMixin, MainWindowNotificationsMixin):
     """Superclass for main "tabs" controllers.
 
@@ -449,6 +562,10 @@ class BaseView(Repeater, GUIObject, HideableObject, DocumentNotificationsMixin, 
         #: :class:`.Application`
         self.app = mainwindow.document.app
         self._status_line = ""
+
+    # --- Temporary stubs
+    def revalidate(self):
+        pass
 
     # --- Virtual
     def new_item(self):
