@@ -1,3 +1,10 @@
+=== 2.13.1 (2019-01-03)
+
+* Fix confusion with account groups with same name.
+* Show "Show account" arrows only when there's something to show. (#483)
+* Make OFX loader accept OFX v2 headers. (#423)
+* Serialize all settings to JSON. (#468)
+
 === 2.13.0 (2018-12-31)
 
 * Rewrite ``Account``, ``Split``, ``Entry``, ``Transaction``,
