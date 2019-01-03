@@ -113,7 +113,7 @@ class TransactionPanel(PanelWithTransaction):
 
         The currency of the new split is the currency of the currently selected split.
         """
-        self.split_table.edition_must_stop()
+        self.split_table._edition_must_stop()
         split = first(self._selected_splits)
         new_split_currency = self.document.default_currency
         if split is not None and split.amount != 0:

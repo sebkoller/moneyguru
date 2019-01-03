@@ -70,7 +70,7 @@ class GeneralLedgerTable(EntryTableBase):
         return isinstance(row, (TotalRow, PreviousBalanceRow))
 
     # --- Event Handlers
-    def date_range_changed(self):
+    def _date_range_changed(self):
         self.refresh(refresh_view=False)
         self._update_selection()
         self.view.refresh()

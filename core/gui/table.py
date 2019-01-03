@@ -603,17 +603,17 @@ class GUITable(GUITableBase):
         return fp.read()
 
     # --- Event handlers
-    def edition_must_stop(self):
+    def _edition_must_stop(self):
         self.view.stop_editing()
         self.stop_editing()
 
-    def document_changed(self):
+    def _document_changed(self):
         self.refresh()
 
-    def document_restoring_preferences(self):
+    def _document_restoring_preferences(self):
         self.columns.restore_columns()
 
-    def performed_undo_or_redo(self):
+    def _performed_undo_or_redo(self):
         self.refresh()
 
     # Plug these below to the appropriate event in subclasses

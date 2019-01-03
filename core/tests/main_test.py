@@ -334,7 +334,6 @@ class TestOneEntryYearRange2007:
         etable = EntryTable(app.aview)
         etable.view = app.etable_gui
         etable.columns.view = app.etable_gui
-        etable.connect()
         etable.show()
         eq_(getattr(etable[0], column), value)
         app.save_file()

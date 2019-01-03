@@ -6,7 +6,6 @@
 
 import datetime
 
-from .base import ViewChild, MESSAGES_DOCUMENT_CHANGED
 from .table import GUITable, TableWithAmountMixin
 from .completable_edit import CompletableEdit
 
@@ -56,14 +55,17 @@ class TransactionSelectionMixin:
             self.selected_index = len(self) - 1
 
 
-class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, TableWithAmountMixin):
+class TransactionTableBase(GUITable, TransactionSelectionMixin, TableWithAmountMixin):
     """Common superclass for TransactionTable and EntryTable, which share a lot of logic.
     """
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'filter_applied', 'date_range_changed'}
 
     def __init__(self, parent_view):
-        ViewChild.__init__(self, parent_view)
         GUITable.__init__(self, document=parent_view.document)
+        self.parent_view = parent_view
+        self.mainwindow = parent_view.mainwindow
+        self.document = self.mainwindow.document
+        self.app = self.document.app
+        self._invalidated = True
         self.completable_edit = CompletableEdit(parent_view.mainwindow)
 
     # --- Override
@@ -85,6 +87,7 @@ class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, Table
 
     def _revalidate(self):
         self.refresh()
+        self._invalidated = False
 
     def save_edits(self):
         if self.edited is None and len(self.selected_indexes) == 1:
@@ -99,7 +102,8 @@ class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, Table
         super().save_edits()
 
     def show(self):
-        ViewChild.show(self)
+        if self._invalidated:
+            self._revalidate()
         self._restore_from_explicit_selection()
         self.mainwindow.selected_transactions = self.selected_transactions
         self.view.show_selected_row()
@@ -154,9 +158,3 @@ class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, Table
         position = self.selected_indexes[0] - 1
         if self.can_move(self.selected_indexes, position):
             self.move(self.selected_indexes, position)
-
-    # --- Event Handlers
-    filter_applied = GUITable._filter_applied
-    transaction_changed = GUITable._item_changed
-    transaction_deleted = GUITable._item_deleted
-

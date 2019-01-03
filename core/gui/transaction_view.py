@@ -20,7 +20,9 @@ from .transaction_print import TransactionPrint
 from .transaction_panel import TransactionPanel
 
 
-class ViewWithTransactionsMixin:
+class TransactionViewBase(BaseView):
+    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'filter_applied', 'date_range_changed'}
+
     def edit_selected_transactions(self):
         editable_txns = [txn for txn in self.mainwindow.selected_transactions if not txn.is_budget]
         if len(editable_txns) > 1:
@@ -34,26 +36,45 @@ class ViewWithTransactionsMixin:
             panel.load(editable_txns[0])
             return panel
 
+    # --- Public
+    def delete_item(self):
+        self.table.delete()
 
-class TransactionView(BaseView, ViewWithTransactionsMixin):
+    def duplicate_item(self):
+        self.table.duplicate_selected()
+
+    def edit_item(self):
+        return self.edit_selected_transactions()
+
+    def new_item(self):
+        self.table.add()
+
+    # --- Events
+    def document_restoring_preferences(self):
+        self.table._document_restoring_preferences()
+
+    def edition_must_stop(self):
+        self.table._edition_must_stop()
+
+
+class TransactionView(TransactionViewBase):
     VIEW_TYPE = PaneType.Transaction
     PRINT_TITLE_FORMAT = tr('Transactions from {start_date} to {end_date}')
     PRINT_VIEW_CLASS = TransactionPrint
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'filter_applied', 'date_range_changed'}
 
     def __init__(self, mainwindow):
         BaseView.__init__(self, mainwindow)
         self._visible_transactions = None
         self.filter_bar = FilterBar(self)
-        self.ttable = TransactionTable(self)
+        self.ttable = self.table = TransactionTable(self)
         self.maintable = self.ttable
         self.columns = self.maintable.columns
-        self.set_children([self.ttable])
 
     def _revalidate(self):
         self._visible_transactions = None
         self._refresh_totals()
         self.filter_bar.refresh()
+        self.ttable._revalidate()
 
     # --- Private
     def _invalidate_cache(self):
@@ -100,24 +121,16 @@ class TransactionView(BaseView, ViewWithTransactionsMixin):
     def save_preferences(self):
         self.ttable.columns.save_columns()
 
+    def show(self):
+        BaseView.show(self)
+        self.ttable.show()
+
     # --- Public
-    def delete_item(self):
-        self.ttable.delete()
-
-    def duplicate_item(self):
-        self.ttable.duplicate_selected()
-
-    def edit_item(self):
-        return self.edit_selected_transactions()
-
     def move_down(self):
         self.ttable.move_down()
 
     def move_up(self):
         self.ttable.move_up()
-
-    def new_item(self):
-        self.ttable.add()
 
     def show_account(self):
         self.ttable.show_from_account()
@@ -132,26 +145,33 @@ class TransactionView(BaseView, ViewWithTransactionsMixin):
     # --- Event Handlers
     def date_range_changed(self):
         self._invalidate_cache()
+        self.ttable._date_range_changed()
 
     def document_changed(self):
         self._invalidate_cache()
+        self.ttable._document_changed()
 
     def filter_applied(self):
         self._invalidate_cache()
         self.filter_bar.refresh()
+        self.ttable._filter_applied()
 
     def performed_undo_or_redo(self):
         self._invalidate_cache()
+        self.ttable._performed_undo_or_redo()
 
     def transactions_selected(self):
         self._refresh_totals()
 
     def transaction_changed(self):
         self._invalidate_cache()
+        self.ttable._item_changed()
 
     def transaction_deleted(self):
         self._invalidate_cache()
+        self.ttable._item_deleted()
 
     def transactions_imported(self):
         self._invalidate_cache()
+        self.ttable._transactions_imported()
 

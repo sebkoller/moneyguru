@@ -377,7 +377,6 @@ def test_set_row_attr(app):
     # the changes didn't go down to Transaction
     table = TransactionTable(app.tview)
     table.view = app.ttable_gui
-    table.connect()
     table.show()
     assert_row_has_original_attrs(table[0])
 
@@ -729,11 +728,10 @@ def test_explicit_selection(app):
 @with_app(app_three_transactions)
 def test_selection(app):
     # TransactionTable stays in sync with EntryTable.
-    app.ttable.hide() # this disconnect scheme will eventually be embedded in the main testcase
+    app.show_account('New account')
     app.etable.select([0, 1])
     app.clear_gui_calls()
-    app.etable.hide()
-    app.ttable.show()
+    app.show_tview()
     eq_(app.ttable.selected_indexes, [0, 1])
     app.ttable.view.check_gui_calls(['update_selection', 'show_selected_row'])
 

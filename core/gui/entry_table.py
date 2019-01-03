@@ -1,6 +1,4 @@
-# Created By: Eric Mc Sween
-# Created On: 2008-07-06
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -135,7 +133,7 @@ class EntryTable(EntryTableBase):
         self.refresh()
 
     # --- Event Handlers
-    def date_range_changed(self):
+    def _date_range_changed(self):
         date_range = self.document.date_range
         self.refresh(refresh_view=False)
         self.select_transactions(self.mainwindow.selected_transactions)
@@ -145,20 +143,20 @@ class EntryTable(EntryTableBase):
         self.view.show_selected_row()
         self.mainwindow.selected_transactions = self.selected_transactions
 
-    def date_range_will_change(self):
+    def _date_range_will_change(self):
         date_range = self.document.date_range
         transactions = self.selected_transactions
         date = transactions[0].date if transactions else date_range.end
         delta = date - date_range.start
         self._delta_before_change = delta
 
-    def transaction_changed(self):
-        EntryTableBase.transaction_changed(self)
+    def _transaction_changed(self):
+        self._item_changed()
         # It's possible that because of the change, the selected txn has been removed, so we have
         # to update document selection.
         self._update_selection()
 
-    def transactions_imported(self):
+    def _transactions_imported(self):
         self.refresh(refresh_view=False)
         self.mainwindow.selected_transactions = self.selected_transactions
         self.view.refresh()
