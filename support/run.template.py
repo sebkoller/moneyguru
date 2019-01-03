@@ -10,7 +10,7 @@ import gc
 import logging
 import os.path as op
 
-from PyQt5.QtCore import QFile, QTextStream, QSettings
+from PyQt5.QtCore import QFile, QTextStream
 from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QApplication
 
@@ -27,7 +27,6 @@ def main():
     app.setWindowIcon(QIcon(QPixmap(":/logo_small")))
     app.setOrganizationName('Hardcoded Software')
     app.setApplicationName('moneyGuru')
-    settings = QSettings()
     if args.debug:
         LOGGING_LEVEL = logging.DEBUG
     else:
