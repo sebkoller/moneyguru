@@ -8,15 +8,14 @@ from core.trans import tr
 
 from ..const import PaneType
 from ..model.currency import Currencies
-from .base import BaseView
+from .base import BaseViewNG
 from .selectable_list import LinkedSelectableList
 
-class DocPropsView(BaseView):
+class DocPropsView(BaseViewNG):
     VIEW_TYPE = PaneType.DocProps
-    INVALIDATING_MESSAGES = {'document_changed'}
 
     def __init__(self, mainwindow):
-        BaseView.__init__(self, mainwindow)
+        super().__init__(mainwindow)
         WEEKDAYS = [
             tr("Monday"),
             tr("Tuesday"),
@@ -66,6 +65,3 @@ class DocPropsView(BaseView):
         self.first_weekday_list.select(self.document.first_weekday)
         self.ahead_months_list.select(self.document.ahead_months)
         self.year_start_month_list.select(self.document.year_start_month - 1)
-
-    # --- Events
-    document_changed = _revalidate
