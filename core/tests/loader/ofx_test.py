@@ -42,6 +42,17 @@ def test_blank_line_ofx_attrs():
     eq_(len(loader.accounts), 1)
     eq_(len(loader.transactions), 5)
 
+def test_qfx():
+    # I have never seen a real QFX file, but according to #423, it's the same
+    # as OFX with a different header, so I took desjardins.ofx, replaced the
+    # header called it a day. Might be awfully wrong, but it's still better
+    # than nothing...
+    loader = ofx.Loader('USD')
+    loader.parse(testdata.filepath('ofx', 'desjardins.qfx'))
+    loader.load()
+    eq_(len(loader.accounts), 3)
+    eq_(len(loader.accounts), 3)
+
 # ---
 def loader_desjardins():
     loader = ofx.Loader('USD')

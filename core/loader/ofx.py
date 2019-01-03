@@ -31,7 +31,8 @@ class Loader(SGMLParser, base.Loader):
         line = '\n'
         while line and not line.strip(): # skip the first lines if they're blank
             line = infile.readline()
-        if line.strip() != 'OFXHEADER:100':
+        line = line.strip()
+        if line != 'OFXHEADER:100' and not line.startswith('<?OFX'):
             raise FileFormatError()
         self.lines = list(infile)
 
