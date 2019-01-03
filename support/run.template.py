@@ -18,7 +18,6 @@ import core.trans
 from core.args import get_parser
 from qt.support.error_report_dialog import install_excepthook
 from qt.util import setupQtLogging
-from qt.preferences import adjust_after_deserialization
 import qt.mg_rc # noqa
 
 def main():
@@ -32,7 +31,7 @@ def main():
     if args.debug:
         LOGGING_LEVEL = logging.DEBUG
     else:
-        LOGGING_LEVEL = logging.DEBUG if adjust_after_deserialization(settings.value('DebugMode')) else logging.WARNING
+        LOGGING_LEVEL = logging.WARNING
     setupQtLogging(level=LOGGING_LEVEL)
     logging.debug('started in debug mode')
     stylesheetFile = QFile(':/stylesheet_lnx')

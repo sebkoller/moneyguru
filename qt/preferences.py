@@ -4,6 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
+import json
 import os.path as op
 
 from PyQt5.QtCore import Qt, QSettings, QRect, QObject, pyqtSignal, QLocale
@@ -16,21 +17,22 @@ from core.model.date import clean_format
 
 tr = trget('ui')
 
-def normalize_for_serialization(v):
-    # QSettings doesn't consider set/tuple as "native" typs for serialization, so if we don't
-    # change them into a list, we get a weird serialized QVariant value which isn't a very
-    # "portable" value.
-    if isinstance(v, (set, tuple)):
-        v = list(v)
-    if isinstance(v, list):
-        v = [normalize_for_serialization(item) for item in v]
-    return v
+# Using json for settings:
+# PyQt's QSetting can take just about anything as a value but has a weird,
+# opaque format for anything that isn't "Qt native" (not a string, int or
+# un-nested list). That format is also fragile and in some case results in
+# deserialization bugs. We sidestep this by serializing our values to json.
+# Therefore, we only send strings to QSettings
 
-def adjust_after_deserialization(v):
+def serialize(v):
+    return json.dumps(v)
+
+# We have to keep this around for a while to support old prefs
+def deserialize_old(v):
     # In some cases, when reading from prefs, we end up with strings that are supposed to be
     # bool or int. Convert these.
     if isinstance(v, list):
-        return [adjust_after_deserialization(sub) for sub in v]
+        return [deserialize(sub) for sub in v]
     if isinstance(v, str):
         # might be bool or int, try them
         if v == 'true':
@@ -41,9 +43,13 @@ def adjust_after_deserialization(v):
             return tryint(v, v)
     return v
 
-# About QRect conversion:
-# I think Qt supports putting basic structures like QRect directly in QSettings, but I prefer not
-# to rely on it and stay with generic structures.
+def deserialize(v):
+    if not isinstance(v, str):
+        return deserialize_old(v)
+    try:
+        return json.loads(v)
+    except json.JSONDecodeError:
+        return deserialize_old(v)
 
 class PreferencesBase(QObject):
     prefsChanged = pyqtSignal()
@@ -65,7 +71,7 @@ class PreferencesBase(QObject):
 
     def get_value(self, name, default=None):
         if self._settings.contains(name):
-            result = adjust_after_deserialization(self._settings.value(name))
+            result = deserialize(self._settings.value(name))
             if result is not None:
                 return result
             else:
@@ -95,7 +101,7 @@ class PreferencesBase(QObject):
             self.set_value(name, rectAsList)
 
     def set_value(self, name, value):
-        self._settings.setValue(name, normalize_for_serialization(value))
+        self._settings.setValue(name, serialize(value))
 
     def saveGeometry(self, name, widget):
         # We save geometry under a 5-sized int array: first item is a flag for whether the widget
