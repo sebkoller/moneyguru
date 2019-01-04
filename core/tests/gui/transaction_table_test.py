@@ -71,7 +71,7 @@ def test_gui_call_on_filter_applied(app):
     app.show_tview()
     app.clear_gui_calls()
     app.sfield.text = 'foobar'
-    app.check_gui_calls(app.ttable_gui, ['refresh'])
+    app.check_gui_calls_partial(app.ttable_gui, ['refresh'])
 
 @with_app(app_tview_shown)
 def test_refresh_on_import(app):
@@ -81,7 +81,7 @@ def test_refresh_on_import(app):
     app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
     app.iwin.import_selected_pane()
     assert app.ttable.row_count != 0
-    app.check_gui_calls(app.ttable_gui, ['refresh'])
+    app.check_gui_calls_partial(app.ttable_gui, ['refresh'])
 
 @with_app(app_tview_shown)
 def test_strip_account_name_in_from_to_columns(app):

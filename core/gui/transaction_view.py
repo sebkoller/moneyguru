@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -65,35 +65,16 @@ class TransactionViewBase(BaseView):
         self.table.stop_editing()
 
     # --- Events
-    def date_range_changed(self):
-        self._invalidate_cache()
-        self.table._date_range_changed()
-        self._refresh_totals()
-
     def document_changed(self):
-        self._invalidate_cache()
-        self.table.refresh()
-        self._refresh_totals()
-
-    def filter_applied(self):
-        self._invalidate_cache()
-        self.table.refresh_keep_selection()
-        self._refresh_totals()
-
-    def transaction_changed(self):
         self._invalidate_cache()
         self.table.refresh_and_show_selection()
         self._refresh_totals()
 
-    def transaction_deleted(self):
-        self._invalidate_cache()
-        self.table.refresh_keep_selection()
-        self._refresh_totals()
-
-    def transactions_imported(self):
-        self._invalidate_cache()
-        self.table.refresh_keep_selection()
-        self._refresh_totals()
+    date_range_changed = document_changed
+    filter_applied = document_changed
+    transaction_changed = document_changed
+    transaction_deleted = document_changed
+    transactions_imported = document_changed
 
 
 class TransactionView(TransactionViewBase):

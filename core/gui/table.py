@@ -582,13 +582,10 @@ class GUITable(GUITableBase):
         return True
 
     def refresh_and_show_selection(self):
-        self.refresh()
-        self.view.show_selected_row()
-
-    def refresh_keep_selection(self):
         self.refresh(refresh_view=False)
         self._update_selection()
         self.view.refresh()
+        self.view.show_selected_row()
 
     def selection_as_csv(self):
         csvrows = []

@@ -133,6 +133,11 @@ class AccountView(TransactionViewBase):
         return self._reconciliation_mode
 
     # --- Event Handlers
+    def date_range_changed(self):
+        self._invalidate_cache()
+        self.table._date_range_changed()
+        self._refresh_totals()
+
     def date_range_will_change(self):
         self.etable._date_range_will_change()
 

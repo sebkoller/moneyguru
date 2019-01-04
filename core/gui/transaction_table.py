@@ -88,11 +88,6 @@ class TransactionTable(TransactionTableBase):
     def selected_transactions(self):
         return [row.transaction for row in self.selected_rows if hasattr(row, 'transaction')]
 
-    # --- Event handlers
-    def _date_range_changed(self):
-        self.refresh_keep_selection()
-        self.view.show_selected_row()
-
 
 AUTOFILL_ATTRS = {'description', 'payee', 'from', 'to', 'amount'}
 

@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -457,7 +457,7 @@ def test_etable_refreshes(app):
     app.clear_gui_calls()
     app.doc.undo()
     eq_(app.etable_count(), 1)
-    app.check_gui_calls(app.etable_gui, ['refresh'])
+    app.check_gui_calls_partial(app.etable_gui, ['refresh'])
 
 @with_app(app_two_txns_in_two_accounts)
 def test_ttable_refreshes(app):
@@ -465,7 +465,7 @@ def test_ttable_refreshes(app):
     app.clear_gui_calls()
     app.doc.undo()
     eq_(app.ttable.row_count, 1)
-    app.check_gui_calls(app.ttable_gui, ['refresh'])
+    app.check_gui_calls_partial(app.ttable_gui, ['refresh'])
 
 @with_app(app_two_txns_in_two_accounts)
 def test_undo_change_transaction_from_etable(app, checkstate):

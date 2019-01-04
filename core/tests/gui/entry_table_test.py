@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -233,7 +233,7 @@ def test_debit_credit_columns_edit(app):
 def test_delete_when_entry_selected(app):
     # Before deleting an entry, make sure the entry table is not in edition mode.
     app.etable.delete()
-    app.check_gui_calls(app.etable_gui, ['stop_editing', 'refresh']) # Delete also refreshes.
+    app.check_gui_calls_partial(app.etable_gui, ['stop_editing', 'refresh']) # Delete also refreshes.
 
 @with_app(app_one_entry)
 def test_duplicate_transaction(app):
