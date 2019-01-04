@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -14,7 +14,7 @@ from core.trans import tr
 from core.notify import Listener
 from ..exception import OperationAborted
 from ..model.date import DateFormat
-from .base import MainWindowGUIObject
+from .base import DocumentGUIObject
 from .import_table import ImportTable
 from .selectable_list import LinkedSelectableList
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
@@ -306,7 +306,7 @@ class AccountPane:
             return list(entries)
 
 
-class ImportWindow(MainWindowGUIObject):
+class ImportWindow(DocumentGUIObject):
     # --- View interface
     # close()
     # close_selected_tab()
@@ -318,7 +318,8 @@ class ImportWindow(MainWindowGUIObject):
     #
 
     def __init__(self, mainwindow):
-        MainWindowGUIObject.__init__(self, mainwindow)
+        DocumentGUIObject.__init__(self, mainwindow.document)
+        self.mainwindow = mainwindow
         self._tmpaccounts = AccountList(self.document.default_currency)
         self._selected_pane_index = 0
         self._selected_target_index = 0

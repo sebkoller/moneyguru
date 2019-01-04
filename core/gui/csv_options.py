@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,7 +11,7 @@ from core.trans import tr
 
 from ..exception import FileLoadError
 from ..loader.csv import CsvField, MERGABLE_FIELDS
-from .base import MainWindowGUIObject
+from .base import DocumentGUIObject
 
 LAYOUT_PREFERENCE_NAME = 'CSVLayouts'
 FIELD_NAMES = {
@@ -88,7 +88,7 @@ class Layout:
             last_index -= 1
 
 
-class CSVOptions(MainWindowGUIObject):
+class CSVOptions(DocumentGUIObject):
     def __init__(self, mainwindow):
         def preference2layout(pref):
             layout = Layout(pref['name'])
@@ -98,7 +98,8 @@ class CSVOptions(MainWindowGUIObject):
             layout.target_account_name = pref.get('target_account')
             return layout
 
-        MainWindowGUIObject.__init__(self, mainwindow)
+        DocumentGUIObject.__init__(self, mainwindow.document)
+        self.mainwindow = mainwindow
         self.lines = []
         self._colcount = 0
         self._target_accounts = []

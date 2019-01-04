@@ -184,24 +184,6 @@ class DocumentGUIObject(Listener, GUIObject, DocumentNotificationsMixin):
         self.app = document.app
 
 
-class MainWindowGUIObject(DocumentGUIObject):
-    """Base class for listeners of :class:`.MainWindow`.
-
-    This base class is not much more than a convenience layer, centralizing multiple subclassing
-    and common properties (:attr:`mainwindow`). It's a base class for every GUI elements that listen
-    to some notifications from :class:`.MainWindow`.
-
-    Subclasses :class:`DocumentGUIObject`
-
-    :param mainwindow: Reference mainwindow.
-    :type mainwindow: :class:`.MainWindow`
-    """
-    def __init__(self, mainwindow):
-        DocumentGUIObject.__init__(self, mainwindow.document)
-        #: Parent :class:`main window <.MainWindow>`.
-        self.mainwindow = mainwindow
-
-
 class ViewChild(GUIObject):
     """Visible GUI element listening to notifications from its parent view.
 
