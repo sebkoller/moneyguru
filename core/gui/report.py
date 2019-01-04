@@ -11,7 +11,7 @@ from core.trans import tr
 
 from ..model.account import ACCOUNT_SORT_KEY
 from .column import Columns
-from .base import ViewChild, SheetViewNotificationsMixin, MESSAGES_DOCUMENT_CHANGED
+from .base import ViewChild, MESSAGES_DOCUMENT_CHANGED
 from . import tree
 
 # used in both bsheet and istatement
@@ -21,7 +21,7 @@ def get_delta_perc(delta_amount, start_amount):
     else:
         return '---'
 
-class Report(ViewChild, tree.Tree, SheetViewNotificationsMixin):
+class Report(ViewChild, tree.Tree):
     SAVENAME = ''
     COLUMNS = []
     INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'accounts_excluded', 'date_range_changed'}

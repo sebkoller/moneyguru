@@ -1,21 +1,19 @@
-# Created By: Virgil Dupras
-# Created On: 2008-09-04
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2018 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from .base import ViewChild, MESSAGES_DOCUMENT_CHANGED
 
 class ChartView:
     """Expected interface for :class:`Chart`'s view.
-    
+
     *Not actually used in the code. For documentation purposes only.*
-    
+
     Our view, a rectangular widget in which we can draw, is expected to respond to all drawing
     methods defined here by performing the drawing on itself.
-    
+
     It is expected to define a pen, a brush and a font for every constant defined in the core.
     """
     def draw_line(self, p1, p2, pen_id):
@@ -40,7 +38,7 @@ class ChartView:
         A pie slice is a slice of a circle of a given ``radius`` and ``center``, with a
         ``start_angle`` and a ``span_angle``.
 
-        
+
         :param .geometry.Point center: Center of the circle
         :param int radius: Radius of the circle
         :param float start_angle: Angle (degrees) at which we start our pie. ``0`` is the rightmost
@@ -101,35 +99,35 @@ class Chart(ViewChild):
     Subclasses :class:`.ViewChild`.
     """
     INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'accounts_excluded', 'date_range_changed'}
-    
+
     def __init__(self, parent_view):
         ViewChild.__init__(self, parent_view)
         self.view_size = (0, 0)
-    
+
     # --- Override
     def _revalidate(self):
         self.compute()
         self.view.refresh()
-    
+
     # --- Virtual
     def compute(self):
         """*Virtual.* Re-compute the charts data points to be drawn."""
         raise NotImplementedError()
-    
+
     def draw(self):
         """Draw the chart."""
         if self.has_view():
             self.draw_chart()
-    
+
     # --- Public
     def set_view_size(self, width, height):
         """Changes the size of the view to draw our chart into."""
         self.view_size = (width, height)
-    
+
     # --- Event Handlers
     def _data_changed(self):
         self._revalidate()
-    
+
     account_changed = _data_changed
     account_deleted = _data_changed
     date_range_changed = _data_changed
@@ -138,7 +136,7 @@ class Chart(ViewChild):
     transaction_changed = _data_changed
     transaction_deleted = _data_changed
     transactions_imported = _data_changed
-    
+
     # --- Properties
     @property
     def data(self):
@@ -152,14 +150,14 @@ class Chart(ViewChild):
         with data points to draw.
         """
         return self._data
-    
+
     @property
     def title(self):
         """Title of the chart."""
         return ''
-    
+
     @property
     def currency(self):
         """Currency used in the chart's datapoints."""
         return self.document.default_currency
-    
+

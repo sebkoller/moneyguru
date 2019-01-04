@@ -158,12 +158,6 @@ class MainWindowNotificationsMixin:
         """One of the main window's main part had its visibility toggled."""
 
 
-class SheetViewNotificationsMixin:
-    """Mixin for listeners of :class:`.AccountSheetView` notifications."""
-    def group_expanded_state_changed(self):
-        """A group had its expand status toggled."""
-
-
 MESSAGES_EVERYTHING_CHANGED = {'document_changed', 'performed_undo_or_redo'}
 MESSAGES_DOCUMENT_CHANGED = (
     MESSAGES_EVERYTHING_CHANGED |

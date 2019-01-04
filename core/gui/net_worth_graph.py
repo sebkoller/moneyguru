@@ -7,9 +7,8 @@
 from core.trans import tr
 from ..model.date import DateRange
 from .balance_graph import BalanceGraph
-from .base import SheetViewNotificationsMixin
 
-class NetWorthGraph(BalanceGraph, SheetViewNotificationsMixin):
+class NetWorthGraph(BalanceGraph):
     def __init__(self, networth_view):
         BalanceGraph.__init__(self, networth_view)
 

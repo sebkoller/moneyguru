@@ -7,9 +7,8 @@
 from core.trans import tr
 
 from .bar_graph import BarGraph
-from .base import SheetViewNotificationsMixin
 
-class ProfitGraph(BarGraph, SheetViewNotificationsMixin):
+class ProfitGraph(BarGraph):
     def __init__(self, profit_view):
         BarGraph.__init__(self, profit_view)
 

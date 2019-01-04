@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-05-10
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,12 +6,12 @@
 
 import weakref
 
-from .base import BaseView
+from .base import BaseView, MESSAGES_DOCUMENT_CHANGED
 from .account_panel import AccountPanel
 from .account_reassign_panel import AccountReassignPanel
 
 class AccountSheetView(BaseView):
-    INVALIDATING_MESSAGES = BaseView.INVALIDATING_MESSAGES | {'area_visibility_changed'}
+    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'accounts_excluded', 'date_range_changed'}
     SAVENAME = ''
 
     def __init__(self, mainwindow):
@@ -24,7 +22,7 @@ class AccountSheetView(BaseView):
     # --- Overrides
     def _revalidate(self):
         BaseView._revalidate(self)
-        self.view.update_visibility()
+        self.pie._revalidate()
 
     def restore_subviews_size(self):
         if self.graph.view_size[1]:
@@ -50,7 +48,7 @@ class AccountSheetView(BaseView):
     # --- Public
     def collapse_group(self, group):
         group.expanded = False
-        self.notify('group_expanded_state_changed')
+        self.pie._revalidate()
 
     def delete_item(self):
         self.sheet.delete()
@@ -65,7 +63,7 @@ class AccountSheetView(BaseView):
 
     def expand_group(self, group):
         group.expanded = True
-        self.notify('group_expanded_state_changed')
+        self.pie._revalidate()
 
     def get_account_reassign_panel(self):
         panel = AccountReassignPanel(self.mainwindow)
@@ -78,6 +76,31 @@ class AccountSheetView(BaseView):
     def new_group(self):
         self.sheet.add_account_group()
 
+    def show(self):
+        BaseView.show(self)
+        self.view.update_visibility()
+
     def show_account(self):
         self.sheet.show_selected_account()
 
+    # --- Events
+    def account_changed(self):
+        self.pie._revalidate()
+
+    def account_deleted(self):
+        self.pie._revalidate()
+
+    def accounts_excluded(self):
+        self.pie._revalidate()
+
+    def area_visibility_changed(self):
+        self.view.update_visibility()
+
+    def date_range_changed(self):
+        self.pie._revalidate()
+
+    def document_changed(self):
+        self.pie._revalidate()
+
+    def performed_undo_or_redo(self):
+        self.pie._revalidate()

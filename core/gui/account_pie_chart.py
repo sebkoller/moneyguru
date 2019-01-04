@@ -12,13 +12,12 @@ from core.trans import tr
 from ..model.account import AccountType
 from ..model.amount import convert_amount
 from ..model.date import DateRange
-from .base import SheetViewNotificationsMixin
 from .pie_chart import PieChart
 
-class _AccountPieChart(PieChart, SheetViewNotificationsMixin):
+class _AccountPieChart(PieChart):
     INVALIDATING_MESSAGES = (
         PieChart.INVALIDATING_MESSAGES |
-        {'accounts_excluded', 'group_expanded_state_changed'}
+        {'accounts_excluded'}
     )
 
     def __init__(self, parent_view, title):
@@ -49,13 +48,6 @@ class _AccountPieChart(PieChart, SheetViewNotificationsMixin):
     @property
     def title(self):
         return self._title
-
-    # --- Event Handlers
-    def accounts_excluded(self):
-        self._revalidate()
-
-    def group_expanded_state_changed(self):
-        self._revalidate()
 
 
 class BalancePieChart(_AccountPieChart):
