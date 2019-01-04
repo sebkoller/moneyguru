@@ -11,7 +11,7 @@ from ..const import PaneType, FilterType
 from ..model.account import AccountType
 from ..model.amount import convert_amount
 from ..model.transaction import txn_matches
-from .base import BaseView, MESSAGES_DOCUMENT_CHANGED
+from .base import BaseViewNG
 from .filter_bar import FilterBar
 from .mass_edition_panel import MassEditionPanel
 from .transaction_table import TransactionTable
@@ -19,9 +19,7 @@ from .transaction_print import TransactionPrint
 from .transaction_panel import TransactionPanel
 
 
-class TransactionViewBase(BaseView):
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
-
+class TransactionViewBase(BaseViewNG):
     def edit_selected_transactions(self):
         editable_txns = [txn for txn in self.mainwindow.selected_transactions if not txn.is_budget]
         if len(editable_txns) > 1:
@@ -48,8 +46,14 @@ class TransactionViewBase(BaseView):
         self.table.refresh_and_show_selection()
         self._refresh_totals()
 
+    def apply_date_range(self):
+        self._revalidate()
+
+    def apply_filter(self):
+        self._revalidate()
+
     def restore_view(self):
-        BaseView.restore_view(self)
+        BaseViewNG.restore_view(self)
         self.table.restore_view()
 
     # --- Public
@@ -68,13 +72,6 @@ class TransactionViewBase(BaseView):
     def stop_editing(self):
         self.table.stop_editing()
 
-    # --- Events
-    document_changed = _revalidate
-    date_range_changed = _revalidate
-    transaction_changed = _revalidate
-    transaction_deleted = _revalidate
-    transactions_imported = _revalidate
-
 
 class TransactionView(TransactionViewBase):
     VIEW_TYPE = PaneType.Transaction
@@ -82,7 +79,7 @@ class TransactionView(TransactionViewBase):
     PRINT_VIEW_CLASS = TransactionPrint
 
     def __init__(self, mainwindow):
-        BaseView.__init__(self, mainwindow)
+        BaseViewNG.__init__(self, mainwindow)
         self._visible_transactions = None
         self.filter_bar = FilterBar(self)
         self.ttable = self.table = TransactionTable(self)
@@ -139,7 +136,7 @@ class TransactionView(TransactionViewBase):
         self.ttable.columns.save_columns()
 
     def show(self):
-        BaseView.show(self)
+        BaseViewNG.show(self)
         self.ttable.show()
 
     def update_transaction_selection(self, transactions):

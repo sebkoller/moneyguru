@@ -121,12 +121,10 @@ class MainWindow(Listener, GUIObject):
 
     def _apply_filter(self):
         self._invalidate_visible_entries()
-        self._invalidate_panes()
         is_txn_pane = self._current_pane.view.VIEW_TYPE in {PaneType.Transaction, PaneType.Account}
         if self.filter_string and not is_txn_pane:
             self.select_pane_of_type(PaneType.Transaction, clear_filter=False)
-        else:
-            self._current_pane.view.show()
+        self._current_pane.view.apply_filter()
         self.search_field.refresh()
 
     def _change_current_pane(self, pane):
@@ -191,10 +189,6 @@ class MainWindow(Listener, GUIObject):
             raise ValueError("Cannot create view of type {}".format(pane_type))
         result.connect()
         return result
-
-    def _invalidate_panes(self):
-        for pane in self.panes:
-            pane.view._invalidated = True
 
     def _invalidate_visible_entries(self):
         self._account2visibleentries = {}
@@ -672,6 +666,8 @@ class MainWindow(Listener, GUIObject):
 
     def date_range_changed(self):
         self.daterange_selector.refresh()
+        view = self._current_pane.view
+        view.apply_date_range()
 
     def document_changed(self):
         self._close_irrelevant_account_panes()
@@ -712,5 +708,6 @@ class MainWindow(Listener, GUIObject):
         self._selected_transactions = []
         self._close_irrelevant_account_panes() # after an auto-clean
         self.view.refresh_undo_actions()
+        self._current_pane.view.revalidate()
 
     transactions_imported = _undo_stack_changed

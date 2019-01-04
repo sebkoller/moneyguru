@@ -315,6 +315,12 @@ class BaseViewNG(GUIObject):
         pass
 
     # --- Virtual
+    def apply_date_range(self):
+        """A new date range was just set. Adapt to it."""
+
+    def apply_filter(self):
+        """A new filter was just applied. Adapt to it."""
+
     def new_item(self):
         """*Virtual*. Create a new item."""
         raise NotImplementedError()
@@ -405,8 +411,7 @@ class BaseViewNG(GUIObject):
     @status_line.setter
     def status_line(self, value):
         self._status_line = value
-        if not self._hidden:
-            self.mainwindow.update_status_line()
+        self.mainwindow.update_status_line()
 
 
 class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
@@ -461,6 +466,12 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
         called when we show the element back and that we had received a notification invalidating
         our content.
         """
+
+    def apply_date_range(self):
+        """A new date range was just set. Adapt to it."""
+
+    def apply_filter(self):
+        """A new filter was just applied. Adapt to it."""
 
     def new_item(self):
         """*Virtual*. Create a new item."""

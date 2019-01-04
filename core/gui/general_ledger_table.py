@@ -68,11 +68,3 @@ class GeneralLedgerTable(EntryTableBase):
 
     def is_bold_row(self, row):
         return isinstance(row, (TotalRow, PreviousBalanceRow))
-
-    # --- Event Handlers
-    def _date_range_changed(self):
-        self.refresh(refresh_view=False)
-        self._update_selection()
-        self.view.refresh()
-        self.view.show_selected_row()
-

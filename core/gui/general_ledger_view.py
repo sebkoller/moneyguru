@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -20,7 +20,6 @@ class GeneralLedgerView(TransactionViewBase):
         self.gltable = self.table = GeneralLedgerTable(parent_view=self)
         self.maintable = self.gltable
         self.columns = self.maintable.columns
-        self.bind_messages(self.INVALIDATING_MESSAGES, self._refresh_totals)
         self.restore_subviews_size()
 
     # --- Overrides
