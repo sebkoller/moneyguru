@@ -92,7 +92,7 @@ class TransactionViewBase(BaseView):
 
     def transactions_imported(self):
         self._invalidate_cache()
-        self.table._transactions_imported()
+        self.table.refresh_keep_selection()
         self._refresh_totals()
 
 

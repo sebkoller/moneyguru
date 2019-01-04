@@ -149,10 +149,3 @@ class EntryTable(EntryTableBase):
         date = transactions[0].date if transactions else date_range.end
         delta = date - date_range.start
         self._delta_before_change = delta
-
-    def _transactions_imported(self):
-        self.refresh(refresh_view=False)
-        self.mainwindow.selected_transactions = self.selected_transactions
-        self.view.refresh()
-        self.view.show_selected_row()
-

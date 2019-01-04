@@ -90,15 +90,8 @@ class TransactionTable(TransactionTableBase):
 
     # --- Event handlers
     def _date_range_changed(self):
-        self.refresh(refresh_view=False)
-        self._update_selection()
-        self.view.refresh()
+        self.refresh_keep_selection()
         self.view.show_selected_row()
-
-    def _transactions_imported(self):
-        self.refresh(refresh_view=False)
-        self._update_selection()
-        self.view.refresh()
 
 
 AUTOFILL_ATTRS = {'description', 'payee', 'from', 'to', 'amount'}
