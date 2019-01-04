@@ -96,34 +96,14 @@ class AccountSheetView(BaseView):
         self.sheet.stop_editing()
 
     # --- Events
-    def account_added(self):
-        self.sheet.refresh()
-
-    def account_changed(self):
-        self.sheet.refresh()
-        self.graph._revalidate()
-        self.pie._revalidate()
-
-    def account_deleted(self):
-        self.sheet._account_deleted()
-        self.graph._revalidate()
-        self.pie._revalidate()
-
-    def accounts_excluded(self):
-        self.sheet.refresh()
-        self.graph._revalidate()
-        self.pie._revalidate()
-
-    def date_range_changed(self):
-        self.sheet.refresh()
-        self.graph._revalidate()
-        self.pie._revalidate()
-
     def document_changed(self):
-        self.sheet._document_changed()
+        self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
 
-    # account might have been auto-created during import
-    def transactions_imported(self):
-        self.sheet._document_changed()
+    account_added = document_changed
+    account_changed = document_changed
+    account_deleted = document_changed
+    accounts_excluded = document_changed
+    date_range_changed = document_changed
+    transactions_imported = document_changed

@@ -253,8 +253,25 @@ class Report(ViewChild, tree.Tree):
                 selected_nodes.append(node_of_account)
         if selected_nodes:
             self.selected_nodes = selected_nodes
-        else:
+        elif len(selected_paths) == 1 and len(selected_paths[0]) > 1:
+            # If our selected path is not an account or group (because of a
+            # deletion, most probably), try to select the node preceding it so
+            # that our selection stays in the realm of accounts/groups.
+            selected_path = selected_paths[0]
+            try:
+                next_node = self.get_node(selected_path)
+            except IndexError:
+                self._select_first()
+            else:
+                if not (next_node.is_account or next_node.is_group):
+                    selected_path[-1] -= 1
+                    if selected_path[-1] < 0:
+                        selected_path = selected_path[:-1]
+                self.selected_path = selected_path
+        elif selected_paths:
             self.selected_paths = selected_paths
+        else:
+            self._select_first()
         self._prune_invalid_expanded_paths()
         if refresh_view:
             self.view.refresh()
@@ -324,23 +341,6 @@ class Report(ViewChild, tree.Tree):
                 affected_accounts.add(node.account)
         if affected_accounts:
             self.document.toggle_accounts_exclusion(affected_accounts)
-
-    # --- Event handlers
-    def _account_deleted(self):
-        selected_path = self.selected_path
-        self.refresh(refresh_view=False)
-        next_node = self.get_node(selected_path)
-        if not (next_node.is_account or next_node.is_group):
-            selected_path[-1] -= 1
-            if selected_path[-1] < 0:
-                selected_path = selected_path[:-1]
-        self.selected_path = selected_path
-        self.view.refresh()
-
-    def _document_changed(self):
-        self.refresh(refresh_view=False)
-        self._select_first()
-        self.view.refresh()
 
     # --- Properties
     @property
