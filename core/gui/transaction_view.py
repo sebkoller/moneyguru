@@ -43,6 +43,11 @@ class TransactionViewBase(BaseView):
         pass
 
     # --- Overrides
+    def _revalidate(self):
+        self._invalidate_cache()
+        self.table.refresh_and_show_selection()
+        self._refresh_totals()
+
     def restore_view(self):
         BaseView.restore_view(self)
         self.table.restore_view()
@@ -64,15 +69,11 @@ class TransactionViewBase(BaseView):
         self.table.stop_editing()
 
     # --- Events
-    def document_changed(self):
-        self._invalidate_cache()
-        self.table.refresh_and_show_selection()
-        self._refresh_totals()
-
-    date_range_changed = document_changed
-    transaction_changed = document_changed
-    transaction_deleted = document_changed
-    transactions_imported = document_changed
+    document_changed = _revalidate
+    date_range_changed = _revalidate
+    transaction_changed = _revalidate
+    transaction_deleted = _revalidate
+    transactions_imported = _revalidate
 
 
 class TransactionView(TransactionViewBase):
@@ -90,10 +91,8 @@ class TransactionView(TransactionViewBase):
         self.restore_subviews_size()
 
     def _revalidate(self):
-        self._visible_transactions = None
-        self._refresh_totals()
+        TransactionViewBase._revalidate(self)
         self.filter_bar.refresh()
-        self.ttable._revalidate()
 
     # --- Private
     def _refresh_totals(self):

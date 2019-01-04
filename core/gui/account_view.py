@@ -43,8 +43,8 @@ class AccountView(TransactionViewBase):
             self.view.show_bar_graph()
 
     def _revalidate(self):
-        self.etable._revalidate()
-        self._shown_graph._revalidate()
+        TransactionViewBase._revalidate(self)
+        self.filter_bar.refresh()
 
     def _refresh_totals(self):
         # _shown_graph is not precisely a "total", but whenever we want to
@@ -137,9 +137,3 @@ class AccountView(TransactionViewBase):
         self._invalidate_cache()
         self.table._date_range_changed()
         self._refresh_totals()
-
-    def transaction_changed(self):
-        TransactionViewBase.transaction_changed(self)
-        # It's possible that because of the change, the selected txn has been removed, so we have
-        # to update document selection.
-        self.etable._update_selection()

@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -705,25 +705,6 @@ def test_delete_second_then_add(app):
     app.ttable.delete()
     app.ttable.add()
     eq_(app.ttable.edited.date, '12/07/2008')
-
-@with_app(app_three_transactions)
-def test_explicit_selection(app):
-    # Only the explicit selection is sticky. If the non-explicit selection changes, this doesn't
-    # affect the ttable selection.
-    app.show_pview()
-    app.istatement.selected = app.istatement.income[1] # second
-    app.show_account()
-    app.show_tview()
-    eq_(app.ttable.selected_indexes, [2]) # explicit selection
-    # the other way around too
-    app.ttable.select([1])
-    app.show_pview()
-    app.istatement.selected = app.istatement.income[2]
-    app.show_account()
-    app.show_nwview()
-    app.bsheet.selected = app.bsheet.assets[0]
-    app.show_account()
-    eq_(app.etable.selected_indexes, [1]) # explicit selection
 
 @with_app(app_three_transactions)
 def test_selection(app):
