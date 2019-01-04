@@ -4,7 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from core.notify import Listener, Repeater
+from core.notify import Listener
 
 from .print_view import PrintView
 
@@ -512,7 +512,7 @@ class BaseViewNG(GUIObject):
             self.mainwindow.update_status_line()
 
 
-class BaseView(Repeater, GUIObject, HideableObject, DocumentNotificationsMixin, MainWindowNotificationsMixin):
+class BaseView(Listener, GUIObject, HideableObject, DocumentNotificationsMixin, MainWindowNotificationsMixin):
     """Superclass for main "tabs" controllers.
 
     You know, the tabs you open in moneyGuru (Net Worth, Transactions, General Ledger)? Their main
@@ -537,10 +537,9 @@ class BaseView(Repeater, GUIObject, HideableObject, DocumentNotificationsMixin, 
     PRINT_VIEW_CLASS = PrintView
 
     def __init__(self, mainwindow):
-        Repeater.__init__(self, mainwindow)
+        Listener.__init__(self, mainwindow)
         GUIObject.__init__(self)
         HideableObject.__init__(self)
-        self._children = []
         #: :class:`.MainWindow`
         self.mainwindow = mainwindow
         #: :class:`.Document`
@@ -593,27 +592,7 @@ class BaseView(Repeater, GUIObject, HideableObject, DocumentNotificationsMixin, 
     # --- Overrides
     def dispatch(self, msg):
         if self._process_message(msg):
-            Repeater.dispatch(self, msg)
-        else:
-            self._repeat_message(msg)
-
-    # This has to be call *once* and *right after creation*. The children are set after
-    # initialization so that we can pass a reference to self during children's initialization.
-    def set_children(self, children):
-        self._children = children
-        for child in children:
-            child.connect()
-        self.restore_subviews_size()
-
-    def show(self):
-        HideableObject.show(self)
-        for child in self._children:
-            child.show()
-
-    def hide(self):
-        HideableObject.hide(self)
-        for child in self._children:
-            child.hide()
+            Listener.dispatch(self, msg)
 
     # --- Public
     @classmethod
