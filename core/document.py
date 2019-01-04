@@ -449,14 +449,8 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         new_date_range = self.date_range.adjusted(new_date)
         if new_date_range is None:
             return False
-        # We have to manually set the date range and send notifications because ENTRY_CHANGED
-        # must happen between DATE_RANGE_WILL_CHANGE and DATE_RANGE_CHANGED
-        # Note that there are no tests for this, as the current doesn't really allow to test
-        # for the order of the gui calls (and this exception doesn't mean that we should).
-        self.notify('date_range_will_change')
         self._date_range = new_date_range
         self.oven.continue_cooking(new_date_range.end)
-        self.notify('transaction_changed')
         self.notify('date_range_changed')
         return True
 
@@ -1417,7 +1411,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         if date_range == self._date_range:
             return
         self.stop_edition()
-        self.notify('date_range_will_change')
         self._date_range = date_range
         self.oven.continue_cooking(date_range.end)
         self.notify('date_range_changed')

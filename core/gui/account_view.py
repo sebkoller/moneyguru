@@ -138,9 +138,6 @@ class AccountView(TransactionViewBase):
         self.table._date_range_changed()
         self._refresh_totals()
 
-    def date_range_will_change(self):
-        self.etable._date_range_will_change()
-
     def filter_applied(self):
         TransactionViewBase.filter_applied(self)
         self.filter_bar.refresh()

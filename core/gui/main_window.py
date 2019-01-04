@@ -618,9 +618,6 @@ class MainWindow(Listener, GUIObject):
         panel.view = weakref.proxy(self.view.get_panel_view(panel))
         panel.load()
 
-    def date_range_will_change(self):
-        self.daterange_selector.remember_current_range()
-
     def date_range_changed(self):
         self.daterange_selector.refresh()
 

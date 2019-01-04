@@ -97,6 +97,10 @@ class EntryTable(EntryTableBase):
     def _get_totals_currency(self):
         return self._get_current_account().currency
 
+    def _revalidate(self):
+        EntryTableBase._revalidate(self)
+        self._previous_date_range = self.document.date_range
+
     # --- Public
     def show_transfer_account(self, row_index=None):
         if row_index is None:
@@ -134,18 +138,16 @@ class EntryTable(EntryTableBase):
 
     # --- Event Handlers
     def _date_range_changed(self):
+        date_range = self._previous_date_range
+        transactions = self.selected_transactions
+        date = transactions[0].date if transactions else date_range.end
+        delta_before_change = date - date_range.start
         date_range = self.document.date_range
+        self._previous_date_range = date_range
         self.refresh(refresh_view=False)
         self.select_transactions(self.mainwindow.selected_transactions)
         if not self.selected_indexes:
-            self._select_nearest_date(date_range.start + self._delta_before_change)
+            self._select_nearest_date(date_range.start + delta_before_change)
         self.view.refresh()
         self.view.show_selected_row()
         self.mainwindow.selected_transactions = self.selected_transactions
-
-    def _date_range_will_change(self):
-        date_range = self.document.date_range
-        transactions = self.selected_transactions
-        date = transactions[0].date if transactions else date_range.end
-        delta = date - date_range.start
-        self._delta_before_change = delta

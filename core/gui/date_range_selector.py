@@ -61,14 +61,12 @@ class DateRangeSelector:
         if saved_range:
             self.document.select_custom_date_range(saved_range.start, saved_range.end)
 
-    def remember_current_range(self):
-        self._old_date_range = self.document.date_range
-
     def refresh(self):
         self.view.refresh()
         old = self._old_date_range
+        new = self.document.date_range
+        self._old_date_range = new
         if old is not None:
-            new = self.document.date_range
             if type(new) == type(old):
                 if new.start > old.start:
                     self.view.animate_forward()
