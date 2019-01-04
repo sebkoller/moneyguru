@@ -650,6 +650,10 @@ class MainWindow(Listener, GUIObject):
         for pane in self.panes:
             pane.view.restore_view()
 
+    def edition_must_stop(self):
+        if self._current_pane is not None:
+            self._current_pane.view.stop_editing()
+
     def filter_applied(self):
         is_txn_pane = self._current_pane.view.VIEW_TYPE in {PaneType.Transaction, PaneType.Account}
         if self.document.filter_string and not is_txn_pane:

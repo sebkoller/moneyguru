@@ -306,6 +306,7 @@ class Report(ViewChild, tree.Tree):
         self.mainwindow.open_account(node.account)
 
     def stop_editing(self):
+        self.view.stop_editing()
         if self.edited is not None:
             self.save_edits()
 
@@ -335,10 +336,6 @@ class Report(ViewChild, tree.Tree):
                 selected_path = selected_path[:-1]
         self.selected_path = selected_path
         self.view.refresh()
-
-    def _edition_must_stop(self):
-        self.view.stop_editing()
-        self.stop_editing()
 
     def _document_changed(self):
         self.refresh(refresh_view=False)

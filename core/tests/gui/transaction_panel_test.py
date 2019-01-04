@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -201,7 +201,7 @@ def test_mct_balance():
     tpanel.mct_balance()
     eq_(len(stable), 3)
     eq_(stable[2].credit, 'CAD 6.80') # the selected split is the 2nd one
-    stable.view.check_gui_calls_partial(['refresh', 'stop_editing'])
+    stable.view.check_gui_calls_partial(['refresh'])
 
 @with_app(app_multi_currency_transaction)
 def test_mct_balance_reuses_unassigned_split(app):

@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -158,6 +158,7 @@ def test_show_account():
 def test_stop_editing_on_applying_filter(app):
     # Applying a filter on the filter bar stops table editing.
     tview = app.show_tview()
+    tview.ttable.add() # edit something
     app.clear_gui_calls()
     tview.filter_bar.filter_type = FilterType.Income
     tview.ttable.view.check_gui_calls_partial(['stop_editing'])
@@ -178,6 +179,7 @@ def test_changing_date_range_refreshes_transaction_totals():
 @with_app(app_on_transaction_view)
 def test_stop_editing_on_pane_change(app):
     # To avoid buggy editing (for example, #283), stop all editing before a pane switch occurs.
+    app.ttable.add() # edit something
     app.mw.select_next_view()
     app.check_gui_calls_partial(app.ttable_gui, ['stop_editing'])
 
@@ -289,10 +291,11 @@ def app_transaction_between_income_and_expense():
 def test_etable_show_income_account(app):
     # show_transfer_account() correctly refreshes the gui even if the graph type doesn't change.
     income_aview = app.show_account('income')
+    income_aview.etable.edited = income_aview.etable.selected_row # edit something
     app.clear_gui_calls()
     app.etable.show_transfer_account()
     app.link_aview()
-    income_aview.etable.view.check_gui_calls(['stop_editing'])
+    income_aview.etable.view.check_gui_calls_partial(['stop_editing'])
     app.etable.view.check_gui_calls(['update_selection', 'show_selected_row', 'refresh'])
     app.bargraph.view.check_gui_calls(['refresh'])
 
@@ -309,10 +312,11 @@ def app_transaction_between_asset_and_liability():
 def test_etable_show_asset_account(app):
     # show_transfer_account() correctly refreshes the gui even if the graph type doesn't change.
     asset_aview = app.show_account('asset')
+    asset_aview.etable.edited = asset_aview.etable.selected_row # edit something
     app.clear_gui_calls()
     app.etable.show_transfer_account()
     app.link_aview()
-    asset_aview.etable.view.check_gui_calls(['stop_editing'])
+    asset_aview.etable.view.check_gui_calls_partial(['stop_editing'])
     app.etable.view.check_gui_calls(['update_selection', 'show_selected_row', 'refresh'])
     app.balgraph.view.check_gui_calls(['refresh'])
 

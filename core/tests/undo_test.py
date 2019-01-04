@@ -209,6 +209,7 @@ def test_gui_calls(app):
     # the correct gui calls are made when undoing/redoing (in particular: stop_editing)
     app.show_nwview()
     app.clear_gui_calls()
+    app.bsheet.selected.name = 'foo' # edit something
     app.doc.undo()
     app.check_gui_calls(app.bsheet_gui, ['refresh', 'stop_editing'])
     app.doc.redo()
@@ -456,7 +457,7 @@ def test_etable_refreshes(app):
     app.clear_gui_calls()
     app.doc.undo()
     eq_(app.etable_count(), 1)
-    app.check_gui_calls(app.etable_gui, ['refresh', 'stop_editing'])
+    app.check_gui_calls(app.etable_gui, ['refresh'])
 
 @with_app(app_two_txns_in_two_accounts)
 def test_ttable_refreshes(app):
@@ -464,7 +465,7 @@ def test_ttable_refreshes(app):
     app.clear_gui_calls()
     app.doc.undo()
     eq_(app.ttable.row_count, 1)
-    app.check_gui_calls(app.ttable_gui, ['refresh', 'stop_editing'])
+    app.check_gui_calls(app.ttable_gui, ['refresh'])
 
 @with_app(app_two_txns_in_two_accounts)
 def test_undo_change_transaction_from_etable(app, checkstate):

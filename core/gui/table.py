@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -602,11 +602,12 @@ class GUITable(GUITableBase):
         fp.seek(0)
         return fp.read()
 
-    # --- Event handlers
-    def _edition_must_stop(self):
-        self.view.stop_editing()
-        self.stop_editing()
+    def stop_editing(self):
+        if self.edited is not None:
+            self.view.stop_editing()
+        GUITableBase.stop_editing(self)
 
+    # --- Event handlers
     def _document_changed(self):
         self.refresh()
 

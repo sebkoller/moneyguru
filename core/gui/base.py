@@ -362,6 +362,9 @@ class BaseViewNG(GUIObject):
     def restore_view(self):
         """ Restore view (recursively) param from preferences."""
 
+    def stop_editing(self):
+        """If we're editing something, stop now."""
+
     def update_transaction_selection(self, transactions):
         """Transactions were just selected."""
 
@@ -502,6 +505,9 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
     def move_down(self):
         """*Virtual*. Move select item(s) down in the list, if possible."""
         raise NotImplementedError()
+
+    def stop_editing(self):
+        """If we're editing something, stop now."""
 
     def update_transaction_selection(self, transactions):
         """Transactions were just selected."""

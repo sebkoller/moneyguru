@@ -92,6 +92,9 @@ class AccountSheetView(BaseView):
     def show_account(self):
         self.sheet.show_selected_account()
 
+    def stop_editing(self):
+        self.sheet.stop_editing()
+
     # --- Events
     def account_added(self):
         self.sheet.refresh()
@@ -120,9 +123,6 @@ class AccountSheetView(BaseView):
         self.sheet._document_changed()
         self.graph._revalidate()
         self.pie._revalidate()
-
-    def edition_must_stop(self):
-        self.sheet._edition_must_stop()
 
     def performed_undo_or_redo(self):
         self.sheet.refresh()

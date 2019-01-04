@@ -54,9 +54,8 @@ class TransactionViewBase(BaseView):
     def new_item(self):
         self.table.add()
 
-    # --- Events
-    def edition_must_stop(self):
-        self.table._edition_must_stop()
+    def stop_editing(self):
+        self.table.stop_editing()
 
 
 class TransactionView(TransactionViewBase):
