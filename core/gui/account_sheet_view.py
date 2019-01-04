@@ -22,6 +22,7 @@ class AccountSheetView(BaseView):
     # --- Overrides
     def _revalidate(self):
         BaseView._revalidate(self)
+        self.graph._revalidate()
         self.pie._revalidate()
 
     def restore_subviews_size(self):
@@ -85,22 +86,28 @@ class AccountSheetView(BaseView):
 
     # --- Events
     def account_changed(self):
+        self.graph._revalidate()
         self.pie._revalidate()
 
     def account_deleted(self):
+        self.graph._revalidate()
         self.pie._revalidate()
 
     def accounts_excluded(self):
+        self.graph._revalidate()
         self.pie._revalidate()
 
     def area_visibility_changed(self):
         self.view.update_visibility()
 
     def date_range_changed(self):
+        self.graph._revalidate()
         self.pie._revalidate()
 
     def document_changed(self):
+        self.graph._revalidate()
         self.pie._revalidate()
 
     def performed_undo_or_redo(self):
+        self.graph._revalidate()
         self.pie._revalidate()
