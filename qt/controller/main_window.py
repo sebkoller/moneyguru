@@ -85,6 +85,7 @@ class MainWindow(QMainWindow):
 
         # Create base elements
         self.model = MainWindowModel(document=doc.model)
+        self.model.connect()
         self.model2view = {}
         self.alookup = Lookup(self, model=self.model.account_lookup)
         self.clookup = Lookup(self, model=self.model.completion_lookup)
@@ -96,7 +97,6 @@ class MainWindow(QMainWindow):
         self.recentDocuments.addMenu(self.menuOpenRecent)
 
         self.model.view = self
-        self.model.connect()
 
         self._updateUndoActions()
         self._bindSignals()

@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -167,6 +167,7 @@ class TestApp(TestAppBase):
         # return value of TestApp.show_*view() and access its child GUI objects through that
         # reference.
         self.mw = self.mainwindow # shortcut. This one is often typed
+        self.mw.connect()
         self.default_parent = self.mw
         self.sfield = link_gui(self.mw.search_field)
         self.drsel = link_gui(self.mw.daterange_selector)
@@ -182,7 +183,6 @@ class TestApp(TestAppBase):
         self.doc.connect()
         self.mw.view = self.make_logger(MainWindowGUI(self))
         self.mainwindow_gui = self.mw.view
-        self.mw.connect()
 
     def link_gui(self, gui, logger=None):
         if gui.view is None:

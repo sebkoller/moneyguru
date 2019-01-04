@@ -195,13 +195,9 @@ class MainWindowGUIObject(DocumentGUIObject):
 
     :param mainwindow: Reference mainwindow.
     :type mainwindow: :class:`.MainWindow`
-    :param listento: The object to listen our notifications from. Defaults to ``mainwindow``.
-    :type listento: :class:`.Broadcaster`
     """
-    def __init__(self, mainwindow, listento=None):
-        if listento is None:
-            listento = mainwindow
-        DocumentGUIObject.__init__(self, mainwindow.document, listento=listento)
+    def __init__(self, mainwindow):
+        DocumentGUIObject.__init__(self, mainwindow.document)
         #: Parent :class:`main window <.MainWindow>`.
         self.mainwindow = mainwindow
 
@@ -472,7 +468,7 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
     ALWAYSON_MESSAGES = {'document_restoring_preferences'}
 
     def __init__(self, mainwindow):
-        Listener.__init__(self, mainwindow)
+        Listener.__init__(self, mainwindow.document)
         GUIObject.__init__(self)
         #: :class:`.MainWindow`
         self.mainwindow = mainwindow
