@@ -131,7 +131,6 @@ class CompletableEdit(DocumentGUIObject):
     account_changed = transaction_changed
     account_deleted = transaction_changed
     document_changed = transaction_changed
-    performed_undo_or_redo = transaction_changed
     transaction_added = transaction_changed
     transaction_deleted = transaction_changed
 

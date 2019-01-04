@@ -124,11 +124,6 @@ class AccountSheetView(BaseView):
         self.graph._revalidate()
         self.pie._revalidate()
 
-    def performed_undo_or_redo(self):
-        self.sheet.refresh()
-        self.graph._revalidate()
-        self.pie._revalidate()
-
     # account might have been auto-created during import
     def transactions_imported(self):
         self.sheet._document_changed()

@@ -127,9 +127,6 @@ class DocumentNotificationsMixin:
     def filter_applied(self):
         """A filter has just been applied to our transactions."""
 
-    def performed_undo_or_redo(self):
-        """An undo or redo operation was just performed."""
-
     def schedule_changed(self):
         """Schedule(s) had some of their properties changed."""
 
@@ -146,7 +143,7 @@ class DocumentNotificationsMixin:
         """Transactions have just been imported into the document."""
 
 
-MESSAGES_EVERYTHING_CHANGED = {'document_changed', 'performed_undo_or_redo'}
+MESSAGES_EVERYTHING_CHANGED = {'document_changed'}
 MESSAGES_DOCUMENT_CHANGED = (
     MESSAGES_EVERYTHING_CHANGED |
     {

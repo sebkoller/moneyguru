@@ -140,7 +140,7 @@ class AccountView(TransactionViewBase):
         self.etable._date_range_will_change()
 
     def document_changed(self):
-        self.etable._document_changed()
+        self.etable.refresh()
         self._shown_graph._revalidate()
         self._refresh_totals()
 
@@ -148,11 +148,6 @@ class AccountView(TransactionViewBase):
         self.etable._filter_applied()
         self._refresh_totals()
         self.filter_bar.refresh()
-
-    def performed_undo_or_redo(self):
-        self.etable._performed_undo_or_redo()
-        self._shown_graph._revalidate()
-        self._refresh_totals()
 
     def transaction_changed(self):
         self.etable._transaction_changed()

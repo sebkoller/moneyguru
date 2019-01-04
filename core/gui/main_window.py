@@ -660,10 +660,6 @@ class MainWindow(Listener, GUIObject):
             self.select_pane_of_type(PaneType.Transaction, clear_filter=False)
         self.search_field.refresh()
 
-    def performed_undo_or_redo(self):
-        self._close_irrelevant_account_panes()
-        self.view.refresh_undo_actions()
-
     schedule_changed = _undo_stack_changed
     schedule_deleted = _undo_stack_changed
     transaction_changed = _undo_stack_changed

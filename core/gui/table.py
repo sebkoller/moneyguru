@@ -608,12 +608,6 @@ class GUITable(GUITableBase):
         GUITableBase.stop_editing(self)
 
     # --- Event handlers
-    def _document_changed(self):
-        self.refresh()
-
-    def _performed_undo_or_redo(self):
-        self.refresh()
-
     # Plug these below to the appropriate event in subclasses
     def _filter_applied(self):
         self.refresh(refresh_view=False)

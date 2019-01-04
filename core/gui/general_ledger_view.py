@@ -48,10 +48,7 @@ class GeneralLedgerView(TransactionViewBase):
 
     # --- Event Handlers
     def document_changed(self):
-        self.gltable._document_changed()
-
-    def performed_undo_or_redo(self):
-        self.gltable._performed_undo_or_redo()
+        self.gltable.refresh()
 
     def filter_applied(self):
         self.gltable._filter_applied()

@@ -1436,7 +1436,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.stop_edition()
         self._undoer.undo()
         self._cook()
-        self.notify('performed_undo_or_redo')
+        self.notify('document_changed')
 
     def can_redo(self):
         """Returns whether the document has something to redo."""
@@ -1451,7 +1451,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.stop_edition()
         self._undoer.redo()
         self._cook()
-        self.notify('performed_undo_or_redo')
+        self.notify('document_changed')
 
     # --- Misc
     def close(self):

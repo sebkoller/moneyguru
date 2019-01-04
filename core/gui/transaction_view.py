@@ -154,16 +154,12 @@ class TransactionView(TransactionViewBase):
 
     def document_changed(self):
         self._invalidate_cache()
-        self.ttable._document_changed()
+        self.ttable.refresh()
 
     def filter_applied(self):
         self._invalidate_cache()
         self.filter_bar.refresh()
         self.ttable._filter_applied()
-
-    def performed_undo_or_redo(self):
-        self._invalidate_cache()
-        self.ttable._performed_undo_or_redo()
 
     def transaction_changed(self):
         self._invalidate_cache()
