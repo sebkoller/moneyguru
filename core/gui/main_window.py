@@ -7,7 +7,7 @@
 import logging
 import weakref
 
-from core.notify import Repeater
+from core.notify import Listener
 from core.util import first, minmax
 from core.trans import tr
 
@@ -72,7 +72,7 @@ class ViewPane:
             return None
 
 
-class MainWindow(Repeater, GUIObject):
+class MainWindow(Listener, GUIObject):
     # --- model -> view calls:
     # change_current_pane()
     # get_panel_view(model)
@@ -87,7 +87,7 @@ class MainWindow(Repeater, GUIObject):
     # update_area_visibility()
 
     def __init__(self, document):
-        Repeater.__init__(self, document)
+        Listener.__init__(self, document)
         GUIObject.__init__(self)
         self._current_pane = None
         self.document = document
@@ -308,11 +308,6 @@ class MainWindow(Repeater, GUIObject):
         self.daterange_selector.refresh()
         self.daterange_selector.refresh_custom_ranges()
         self.document_restoring_preferences()
-        if self.document.can_restore_from_prefs():
-            # Under Cocoa, document.load_from_xml() is called before the creation of our main
-            # window, which means that all our view children don't receive the
-            # document_restoring_preferences notification. Force it here.
-            self.notify('document_restoring_preferences')
         if not self.panes:
             self._restore_default_panes()
 
