@@ -168,73 +168,6 @@ MESSAGES_DOCUMENT_CHANGED = (
     }
 )
 
-class HideableObject:
-    """An object receiving notifications, but that is disabled when hidden.
-
-    Notifications can trigger a lot of refreshes all around, and moneyGuru has a lot of GUI elements
-    that are hidden most of the time. What we want to achieve here is to delay refreshes triggered
-    by notifications until our GUI element is shown again.
-
-    A subclass of this class can define two class-level constants:
-
-    ``INVALIDATING_MESSAGES``: a set of all notifications that invalidate our content.
-
-    ``ALWAYSON_MESSAGES``: A set of all notifications that should be processed even when our element
-    is hidden. By default, it contains ``document_restoring_preferences`` because this message isn't
-    really about invalidating content, but rather restoring preferences on document load, which is
-    very important to do, hidden or not.
-    """
-    # Messages that invalidates the view if received while it's hidden (its cache will be
-    # revalidated upon show)
-    INVALIDATING_MESSAGES = set()
-    # Messages that are always passed, even if the object is hidden.
-    ALWAYSON_MESSAGES = {'document_restoring_preferences'}
-
-    def __init__(self):
-        self._hidden = True
-        self._invalidated = True
-
-    # --- Protected
-    def _process_message(self, msg):
-        """*Protected*. Process notification ``msg``.
-
-        Whenever your subclasses receives a notification, call this. It checks whether the
-        notification should be processed and invalidates our element if needed.
-
-        Returns ``True`` if our notification should be further processed. ``False`` if not.
-        """
-        if self._hidden and (msg in self.INVALIDATING_MESSAGES):
-            self._invalidated = True
-        return (not self._hidden) or (msg in self.ALWAYSON_MESSAGES)
-
-    def _revalidate(self):
-        """*Virtual*. Refresh the GUI element's content.
-
-        Override this when you subclass with code that refreshes the content of the element. This is
-        called when we show the element back and that we had received a notification invalidating
-        our content.
-        """
-
-    # --- Public
-    def show(self):
-        """Show the object and revalidate if necessary.
-
-        If an invalidating notification was received while we were hidden, we'll trigger a full
-        refresh with :meth:`_revalidate`.
-        """
-        self._hidden = False
-        if self._invalidated:
-            self._revalidate()
-            self._invalidated = False
-
-    def hide(self):
-        """Hide the object.
-
-        We will no longer process notifications. We'll refresh when we show up again, if needed.
-        """
-        self._hidden = True
-
-
 class DocumentGUIObject(Listener, GUIObject, DocumentNotificationsMixin):
     """Base class for listeners of :class:`.Document`.
 
@@ -512,7 +445,7 @@ class BaseViewNG(GUIObject):
             self.mainwindow.update_status_line()
 
 
-class BaseView(Listener, GUIObject, HideableObject, DocumentNotificationsMixin, MainWindowNotificationsMixin):
+class BaseView(Listener, GUIObject, DocumentNotificationsMixin, MainWindowNotificationsMixin):
     """Superclass for main "tabs" controllers.
 
     You know, the tabs you open in moneyGuru (Net Worth, Transactions, General Ledger)? Their main
@@ -535,11 +468,15 @@ class BaseView(Listener, GUIObject, HideableObject, DocumentNotificationsMixin, 
     VIEW_TYPE = -1
     #: The class to use as a model when printing a tab. Defaults to :class:`.PrintView`.
     PRINT_VIEW_CLASS = PrintView
+    # Messages that invalidates the view if received while it's hidden (its cache will be
+    # revalidated upon show)
+    INVALIDATING_MESSAGES = set()
+    # Messages that are always passed, even if the object is hidden.
+    ALWAYSON_MESSAGES = {'document_restoring_preferences'}
 
     def __init__(self, mainwindow):
         Listener.__init__(self, mainwindow)
         GUIObject.__init__(self)
-        HideableObject.__init__(self)
         #: :class:`.MainWindow`
         self.mainwindow = mainwindow
         #: :class:`.Document`
@@ -547,12 +484,22 @@ class BaseView(Listener, GUIObject, HideableObject, DocumentNotificationsMixin, 
         #: :class:`.Application`
         self.app = mainwindow.document.app
         self._status_line = ""
+        self._hidden = True
+        self._invalidated = True
 
     # --- Temporary stubs
     def revalidate(self):
         pass
 
     # --- Virtual
+    def _revalidate(self):
+        """*Virtual*. Refresh the GUI element's content.
+
+        Override this when you subclass with code that refreshes the content of the element. This is
+        called when we show the element back and that we had received a notification invalidating
+        our content.
+        """
+
     def new_item(self):
         """*Virtual*. Create a new item."""
         raise NotImplementedError()
@@ -591,7 +538,9 @@ class BaseView(Listener, GUIObject, HideableObject, DocumentNotificationsMixin, 
 
     # --- Overrides
     def dispatch(self, msg):
-        if self._process_message(msg):
+        if self._hidden and (msg in self.INVALIDATING_MESSAGES):
+            self._invalidated = True
+        if (not self._hidden) or (msg in self.ALWAYSON_MESSAGES):
             Listener.dispatch(self, msg)
 
     # --- Public
@@ -615,6 +564,24 @@ class BaseView(Listener, GUIObject, HideableObject, DocumentNotificationsMixin, 
 
     def save_preferences(self):
         """*Virtual*. Save subviews size to preferences."""
+
+    def show(self):
+        """Show the object and revalidate if necessary.
+
+        If an invalidating notification was received while we were hidden, we'll trigger a full
+        refresh with :meth:`_revalidate`.
+        """
+        self._hidden = False
+        if self._invalidated:
+            self._revalidate()
+            self._invalidated = False
+
+    def hide(self):
+        """Hide the object.
+
+        We will no longer process notifications. We'll refresh when we show up again, if needed.
+        """
+        self._hidden = True
 
     # --- Properties
     @property
