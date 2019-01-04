@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -7,7 +7,6 @@
 import os
 import os.path as op
 import datetime
-import threading
 from collections import namedtuple
 import re
 
@@ -106,10 +105,6 @@ class Application(Broadcaster):
     :class:`.Document` instances. These instances are auto-sufficient and their reference are held
     directly by the UI layer.
 
-    However, opened document, as :class:`.Listener` subclasses, listen to our app instance, which
-    is a :class:`.Broadcaster` for a couple of app-wide events, such as ``must_autosave`` and
-    ``saved_custom_ranges_changed``.
-
     But otherwise, it acts as an app-wide preference repository. As such, it provides useful
     utilities, such as :meth:`format_amount`, :meth:`format_date`, :meth:`parse_amount` and
     :meth:`parse_date`, which are dependent on user preferences.
@@ -165,7 +160,6 @@ class Application(Broadcaster):
         self._date_format = date_format
         self._decimal_sep = decimal_sep
         self._grouping_sep = grouping_sep
-        self._autosave_timer = None
         self._autosave_interval = self.get_default(PreferenceNames.AutoSaveInterval, 10)
         self._auto_decimal_place = self.get_default(PreferenceNames.AutoDecimalPlace, False)
         self._day_first_date_entry = self.get_default(PreferenceNames.DayFirstDateEntry, True)
@@ -180,25 +174,9 @@ class Application(Broadcaster):
         self._enabled_plugins = set(self.get_default(PreferenceNames.EnabledUserPlugins, []))
         self._load_core_plugins()
         self._hook_currency_plugins()
-        self._update_autosave_timer()
         self._update_date_entry_order()
 
     # --- Private
-    def _autosave_all_documents(self):
-        self.notify('must_autosave')
-        self._update_autosave_timer()
-
-    def _update_autosave_timer(self):
-        if self._autosave_timer is not None:
-            self._autosave_timer.cancel()
-        if self._autosave_interval > 0 and self.cache_path: # no need to start a timer if we have nowhere to autosave to
-            # By having the timer at the application level, we make sure that there will not be 2
-            # documents trying to autosave at the same time, thus overwriting each other.
-            self._autosave_timer = threading.Timer(self._autosave_interval * 60, self._autosave_all_documents)
-            self._autosave_timer.start()
-        else:
-            self._autosave_timer = None
-
     def _update_date_entry_order(self):
         DateWidget.setDMYEntryOrder(self._day_first_date_entry)
 
@@ -325,15 +303,6 @@ class Application(Broadcaster):
         plpath = op.join(self.appdata_path, 'moneyguru_plugins')
         self.view.reveal_path(plpath)
 
-    def shutdown(self):
-        """Shutdown the app before closing.
-
-        For now, the only thing it does is to stop the autosave timer to insure that there isn't
-        going to be an autosave being called for at a wrong moment.
-        """
-        self._autosave_interval = 0
-        self._update_autosave_timer()
-
     def get_enabled_plugins(self):
         return [p for p in self.plugins if self.is_plugin_enabled(p)]
 
@@ -405,7 +374,6 @@ class Application(Broadcaster):
             return
         self._autosave_interval = value
         self.set_default(PreferenceNames.AutoSaveInterval, value)
-        self._update_autosave_timer()
 
     @property
     def auto_decimal_place(self):

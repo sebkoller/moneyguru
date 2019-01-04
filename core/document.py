@@ -393,6 +393,8 @@ class BaseDocument:
 
     def touch(self):
         self.step += 1
+        if self.app.autosave_interval and self.step % self.app.autosave_interval == 0:
+            self._autosave()
 
     # --- Properties
     @property
@@ -459,11 +461,7 @@ class Document(BaseDocument, Repeater, GUIObject):
         self.notify('date_range_changed')
         return True
 
-    def _async_autosave(self):
-        # Because this method is called asynchronously, it's possible that, if unlucky, it happens
-        # exactly as the user is commiting a change. In these cases, the autosaved file might be a
-        # save of the data in a quite weird state. I think this risk is acceptable. The alternative
-        # is to put locks everywhere, which would complexify the application.
+    def _autosave(self):
         existing_names = [name for name in os.listdir(self.app.cache_path) if name.startswith('autosave')]
         existing_names.sort()
         timestamp = int(time.time())
@@ -1230,22 +1228,23 @@ class Document(BaseDocument, Repeater, GUIObject):
 
         ``filename`` must be a path to a moneyGuru XML document.
 
-        If ``autosave`` is true, the operation will not affect the document's modified state and
-        will not make editing stop, if editing there is (like it normally does without the autosave
-        flag to make sure that the input being currently done by the user is saved).
+        If ``autosave`` is true, the operation will not affect the document's
+        modified state and will not make editing stop, if editing there is
+        (like it normally does without the autosave flag to make sure that the
+        input being currently done by the user is saved).
 
         :param filename: ``str``
         :param autosave: ``bool``
         """
-        # When called from _async_autosave, it should not disrupt the user: no stop edition, no
-        # change in the save state.
+        # When called from _autosave, it should not disrupt the user: no stop
+        # edition, no change in the save state.
         if not autosave:
             self.stop_edition()
         if self._document_id is None:
             self._document_id = uuid.uuid4().hex
         save_native(
-            filename, self._document_id, self._properties, self.accounts, self.groups,
-            self.transactions, self.schedules, self.budgets
+            filename, self._document_id, self._properties, self.accounts,
+            self.groups, self.transactions, self.schedules, self.budgets
         )
         if not autosave:
             self._undoer.set_save_point()
@@ -1575,10 +1574,6 @@ class Document(BaseDocument, Repeater, GUIObject):
         self.accounts.default_currency = value
         self.notify('document_changed')
 
-    # --- Events
-    def must_autosave(self):
-        # this is called async
-        self._async_autosave()
 
 class ImportDocument(BaseDocument):
     """A document used to as a segregation area to operate on core model data before importing.

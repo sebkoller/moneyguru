@@ -49,7 +49,9 @@ def test_close_document():
     # preferences.
     app = TestApp()
     app.drsel.select_year_range()
-    app.app.autosave_interval = 8
+    # We don't test autosave_interval because we purposefully always set it to
+    # 0 during tests to avoid autosaving all the time. We expect that if other
+    # prefs work, this one too.
     app.app.auto_decimal_place = True
     app.app.show_schedule_scope_dialog = False
     app.doc.close()
@@ -58,7 +60,6 @@ def test_close_document():
     newdoc.view = app.doc_gui
     newapp = TestApp(app=newapp, doc=newdoc)
     assert isinstance(newdoc.date_range, YearRange)
-    eq_(newapp.app.autosave_interval, 8)
     eq_(newapp.app.auto_decimal_place, True)
     eq_(newapp.app.show_schedule_scope_dialog, False)
 
@@ -172,17 +173,20 @@ def app_one_empty_account_range_on_october_2007(monkeypatch):
 
 @with_app(app_one_empty_account_range_on_october_2007)
 def test_autosave(app, tmpdir):
-    # Testing the interval between autosaves would require some complicated mocking. We're just
-    # going to cheat here and call 'must_autosave' directly.
     cache_path = str(tmpdir)
     app.app.cache_path = cache_path
-    app.doc.must_autosave()
+    app.app.autosave_interval = 2
+    app.doc.step = 0
+    app.add_entry() # no autosave
+    eq_(len(os.listdir(cache_path)), 0)
+    app.add_entry() # autosave!
     eq_(len(os.listdir(cache_path)), 1)
     app.check_gui_calls_partial(app.etable_gui, not_expected=['stop_edition'])
     assert app.doc.is_dirty
+    app.app.autosave_interval = 1
     # test that the autosave file rotation works
     for i in range(AUTOSAVE_BUFFER_COUNT):
-        app.doc.must_autosave()
+        app.add_entry() # triggers autosave
     # The extra autosave file has been deleted
     eq_(len(os.listdir(cache_path)), AUTOSAVE_BUFFER_COUNT)
 

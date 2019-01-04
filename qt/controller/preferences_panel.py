@@ -36,7 +36,7 @@ class PreferencesPanel(QDialog):
 
         self.autoSaveIntervalSpinBox = QSpinBox(self)
         self.autoSaveIntervalSpinBox.setMaximumSize(QSize(70, 0xffffff))
-        self.label_5 = QLabel(tr("minute(s) (0 for none)"), self)
+        self.label_5 = QLabel(tr("step(s) (0 for none)"), self)
         self.formLayout.addRow(
             tr("Auto-save interval:"),
             horizontalWrap([self.autoSaveIntervalSpinBox, self.label_5])

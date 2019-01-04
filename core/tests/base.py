@@ -150,6 +150,7 @@ class TestApp(TestAppBase):
             if not appargs:
                 appargs = {}
             app = Application(self.make_logger(ApplicationGUI()), **appargs)
+        app.autosave_interval = 0
         self.app = app
         self.app_gui = app.view
         if doc is None:

@@ -93,7 +93,6 @@ class MoneyGuru(QObject):
         self.prefs.saveGeometry('mainWindowGeometry', self.mainWindow)
         self.prefs.saveGeometry('importWindowGeometry', self.mainWindow.importWindow)
         self.prefs.save()
-        self.model.shutdown()
 
     # --- Signals
     def __launchTimerTimedOut(self):
