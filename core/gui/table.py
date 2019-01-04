@@ -585,6 +585,11 @@ class GUITable(GUITableBase):
         self.refresh()
         self.view.show_selected_row()
 
+    def refresh_keep_selection(self):
+        self.refresh(refresh_view=False)
+        self._update_selection()
+        self.view.refresh()
+
     def selection_as_csv(self):
         csvrows = []
         columns = (self.columns.coldata[colname] for colname in self.columns.colnames)
@@ -606,21 +611,6 @@ class GUITable(GUITableBase):
         if self.edited is not None:
             self.view.stop_editing()
         GUITableBase.stop_editing(self)
-
-    # --- Event handlers
-    # Plug these below to the appropriate event in subclasses
-    def _filter_applied(self):
-        self.refresh(refresh_view=False)
-        self._update_selection()
-        self.view.refresh()
-
-    def _item_changed(self):
-        self.refresh_and_show_selection()
-
-    def _item_deleted(self):
-        self.refresh(refresh_view=False)
-        self._update_selection()
-        self.view.refresh()
 
 
 class Row(RowBase):

@@ -77,17 +77,17 @@ class TransactionViewBase(BaseView):
 
     def filter_applied(self):
         self._invalidate_cache()
-        self.table._filter_applied()
+        self.table.refresh_keep_selection()
         self._refresh_totals()
 
     def transaction_changed(self):
         self._invalidate_cache()
-        self.table._item_changed()
+        self.table.refresh_and_show_selection()
         self._refresh_totals()
 
     def transaction_deleted(self):
         self._invalidate_cache()
-        self.table._item_deleted()
+        self.table.refresh_keep_selection()
         self._refresh_totals()
 
     def transactions_imported(self):

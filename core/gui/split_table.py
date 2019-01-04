@@ -56,7 +56,7 @@ class SplitTable(GUITable):
         self.view.refresh()
 
     def refresh_splits(self):
-        self._item_changed()
+        self.refresh_and_show_selection()
 
     def refresh_initial(self):
         # the refresh just after a panel loading is a bit different
