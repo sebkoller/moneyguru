@@ -579,7 +579,8 @@ class MainWindow(Repeater, GUIObject):
     @selected_transactions.setter
     def selected_transactions(self, transactions):
         self._selected_transactions = transactions
-        self._current_pane.view.update_transaction_selection(transactions)
+        if self._current_pane is not None:
+            self._current_pane.view.update_transaction_selection(transactions)
 
     @property
     def explicitly_selected_transactions(self):

@@ -20,6 +20,7 @@ class ScheduleView(BaseViewNG):
         super().__init__(mainwindow)
         self.table = ScheduleTable(self)
         self.columns = self.table.columns
+        self.restore_subviews_size()
 
     def _revalidate(self):
         self.table.refresh_and_show_selection()

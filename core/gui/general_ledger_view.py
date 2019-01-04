@@ -21,6 +21,7 @@ class GeneralLedgerView(TransactionViewBase):
         self.maintable = self.gltable
         self.columns = self.maintable.columns
         self.bind_messages(self.INVALIDATING_MESSAGES, self._refresh_totals)
+        self.restore_subviews_size()
 
     # --- Overrides
     def _revalidate(self):

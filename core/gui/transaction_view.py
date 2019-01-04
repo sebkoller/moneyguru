@@ -69,6 +69,7 @@ class TransactionView(TransactionViewBase):
         self.ttable = self.table = TransactionTable(self)
         self.maintable = self.ttable
         self.columns = self.maintable.columns
+        self.restore_subviews_size()
 
     def _revalidate(self):
         self._visible_transactions = None

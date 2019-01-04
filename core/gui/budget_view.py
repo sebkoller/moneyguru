@@ -23,6 +23,7 @@ class BudgetView(BaseViewNG):
     def __init__(self, mainwindow):
         super().__init__(mainwindow)
         self.table = BudgetTable(self)
+        self.restore_subviews_size()
 
     def _revalidate(self):
         self.table.refresh_and_show_selection()

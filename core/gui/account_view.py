@@ -33,6 +33,7 @@ class AccountView(TransactionViewBase):
             self._shown_graph = self.balgraph
         else:
             self._shown_graph = self.bargraph
+        self.restore_subviews_size()
 
     # --- Private
     def _refresh_totals(self):
