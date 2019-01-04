@@ -127,9 +127,6 @@ class DocumentNotificationsMixin:
     def filter_applied(self):
         """A filter has just been applied to our transactions."""
 
-    def first_weekday_changed(self):
-        """The First Weekday preferences has been changed."""
-
     def performed_undo_or_redo(self):
         """An undo or redo operation was just performed."""
 

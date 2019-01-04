@@ -1538,7 +1538,7 @@ class Document(BaseDocument, Repeater, GUIObject):
             return
         self._properties['first_weekday'] = value
         self.set_dirty()
-        self.notify('first_weekday_changed')
+        self.notify('document_changed')
 
     @property
     def ahead_months(self):

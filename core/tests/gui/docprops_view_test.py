@@ -1,8 +1,8 @@
 # Created On: 2011/10/13
 # Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from datetime import date
@@ -10,7 +10,7 @@ from datetime import date
 from ..testutil import eq_
 
 from ...model.date import MonthRange
-from ..base import ApplicationGUI, TestApp, with_app
+from ..base import TestApp, with_app
 
 # ---
 def app_props_shown():
@@ -28,15 +28,19 @@ def test_first_weekday_pref(app):
     app.add_txn('31/3/2008', 'entry3', from_='Asset', to='Expense', amount='150')
     app.show_account('Expense')
     app.doc.date_range = MonthRange(date(2008, 1, 1))
-    app.clear_gui_calls()
+    app.show_dpview()
     app.dpview.first_weekday_list.select(1) # tuesday
+    app.clear_gui_calls()
+    app.show_account('Expense')
     # The month conveniently starts on a tuesday, so the data now starts from the 1st of the month
-    expected = [('01/01/2008', '08/01/2008', '100.00', '0.00'), 
+    expected = [('01/01/2008', '08/01/2008', '100.00', '0.00'),
                 ('15/01/2008', '22/01/2008', '200.00', '0.00')]
     eq_(app.bar_graph_data(), expected)
     app.bargraph_gui.check_gui_calls(['refresh'])
+    app.show_dpview()
     app.dpview.first_weekday_list.select(6) # sunday
-    expected = [('30/12/2007', '06/01/2008', '142.00', '0.00'), 
+    app.show_account('Expense')
+    expected = [('30/12/2007', '06/01/2008', '142.00', '0.00'),
                 ('20/01/2008', '27/01/2008', '200.00', '0.00')]
     eq_(app.bar_graph_data(), expected)
 
@@ -65,7 +69,7 @@ def test_setting_prop_makes_doc_dirty(app):
     assert not app.doc.is_dirty()
     app.dpview.first_weekday_list.select(4)
     assert app.doc.is_dirty()
-    
+
 @with_app(app_props_shown)
 def test_set_default_currency(app):
     app.dpview.currency_list.select(1) # EUR

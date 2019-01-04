@@ -33,7 +33,6 @@ class AccountView(TransactionViewBase):
             self._shown_graph = self.balgraph
         else:
             self._shown_graph = self.bargraph
-        self.set_children([self._shown_graph])
 
     # --- Private
     def _refresh_totals(self):
@@ -61,6 +60,7 @@ class AccountView(TransactionViewBase):
 
     def _revalidate(self):
         self.etable._revalidate()
+        self._shown_graph._revalidate()
 
     def restore_subviews_size(self):
         if self.balgraph.view_size[1]:
@@ -129,6 +129,7 @@ class AccountView(TransactionViewBase):
 
     def date_range_changed(self):
         self.etable._date_range_changed()
+        self._shown_graph._revalidate()
         self._refresh_totals()
 
     def date_range_will_change(self):
@@ -136,6 +137,7 @@ class AccountView(TransactionViewBase):
 
     def document_changed(self):
         self.etable._document_changed()
+        self._shown_graph._revalidate()
         self._refresh_totals()
 
     def filter_applied(self):
@@ -145,6 +147,7 @@ class AccountView(TransactionViewBase):
 
     def performed_undo_or_redo(self):
         self.etable._performed_undo_or_redo()
+        self._shown_graph._revalidate()
         self._refresh_totals()
 
     def transactions_selected(self):
@@ -152,13 +155,16 @@ class AccountView(TransactionViewBase):
 
     def transaction_changed(self):
         self.etable._transaction_changed()
+        self._shown_graph._revalidate()
         self._refresh_totals()
 
     def transaction_deleted(self):
         self.etable._item_deleted()
+        self._shown_graph._revalidate()
         self._refresh_totals()
 
     def transactions_imported(self):
         self.etable._transactions_imported()
+        self._shown_graph._revalidate()
         self._refresh_totals()
 
