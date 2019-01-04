@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,12 +9,12 @@ from .text_field import TextField
 class SearchField(TextField):
     def __init__(self, mainwindow):
         TextField.__init__(self)
-        self.document = mainwindow.document
+        self.mainwindow = mainwindow
 
     def _update(self, newvalue):
-        self.document.filter_string = newvalue
+        self.mainwindow.filter_string = newvalue
 
     def refresh(self):
-        self._text = self._value = self.document.filter_string
+        self._text = self._value = self.mainwindow.filter_string
         self.view.refresh()
 

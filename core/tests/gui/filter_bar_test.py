@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-02
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,7 +7,7 @@
 from ..testutil import eq_
 
 from ..base import TestApp, with_app
-from ...document import FilterType
+from ...const import FilterType
 from ...model.account import AccountType
 
 class TestPristine:

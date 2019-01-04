@@ -8,11 +8,10 @@ import logging
 import weakref
 
 from core.notify import Listener
-from core.util import first, minmax
+from core.util import first, minmax, nonone
 from core.trans import tr
 
-from ..const import PaneType
-from ..document import FilterType
+from ..const import PaneType, FilterType
 from ..exception import OperationAborted, FileFormatError
 from ..model.date import inc_month, DateFormat
 from ..model.recurrence import Recurrence, RepeatType
@@ -56,6 +55,7 @@ class Preference:
     HiddenAreas = 'HiddenAreas'
     WindowFrame = 'WindowFrame'
 
+
 class ViewPane:
     def __init__(self, view, label):
         self.view = view
@@ -97,6 +97,8 @@ class MainWindow(Listener, GUIObject):
         self._selected_schedules = []
         self._selected_budgets = []
         self._account2visibleentries = {}
+        self._filter_string = ''
+        self._filter_type = None
         self.panes = []
         self.hidden_areas = set()
 
@@ -108,7 +110,7 @@ class MainWindow(Listener, GUIObject):
         self.csv_options = CSVOptions(self)
         self.import_window = ImportWindow(self)
 
-        msgs = MESSAGES_DOCUMENT_CHANGED | {'filter_applied', 'date_range_changed'}
+        msgs = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
         self.bind_messages(msgs, self._invalidate_visible_entries)
 
     # --- Private
@@ -116,6 +118,16 @@ class MainWindow(Listener, GUIObject):
         self.panes.append(pane)
         self.view.refresh_panes()
         self.current_pane_index = len(self.panes) - 1
+
+    def _apply_filter(self):
+        self._invalidate_visible_entries()
+        self._invalidate_panes()
+        is_txn_pane = self._current_pane.view.VIEW_TYPE in {PaneType.Transaction, PaneType.Account}
+        if self.filter_string and not is_txn_pane:
+            self.select_pane_of_type(PaneType.Transaction, clear_filter=False)
+        else:
+            self._current_pane.view.show()
+        self.search_field.refresh()
 
     def _change_current_pane(self, pane):
         if self._current_pane is pane:
@@ -179,6 +191,10 @@ class MainWindow(Listener, GUIObject):
             raise ValueError("Cannot create view of type {}".format(pane_type))
         result.connect()
         return result
+
+    def _invalidate_panes(self):
+        for pane in self.panes:
+            pane.view._invalidated = True
 
     def _invalidate_visible_entries(self):
         self._account2visibleentries = {}
@@ -276,8 +292,8 @@ class MainWindow(Listener, GUIObject):
         date_range = self.document.date_range
         entries = self.document.accounts.entries_for_account(account)
         entries = [e for e in entries if e.date in date_range]
-        query_string = self.document.filter_string
-        filter_type = self.document.filter_type
+        query_string = self.filter_string
+        filter_type = self.filter_type
         if query_string:
             query = self.app.parse_search_query(query_string)
             entries = [e for e in entries if txn_matches(e.transaction, query)]
@@ -470,7 +486,7 @@ class MainWindow(Listener, GUIObject):
 
     def select_pane_of_type(self, pane_type, clear_filter=True):
         if clear_filter:
-            self.document.filter_string = ''
+            self.filter_string = ''
         index = first(i for i, p in enumerate(self.panes) if p.view.VIEW_TYPE == pane_type)
         if index is None:
             self._add_pane(self._create_pane(pane_type))
@@ -551,6 +567,42 @@ class MainWindow(Listener, GUIObject):
         pane = self.panes[value]
         self._current_pane_index = value
         self._change_current_pane(pane)
+
+    @property
+    def filter_string(self):
+        """*get/set*. Restrict visible elements in lists to those matching the string.
+
+        When set to an non empty string, it restricts visible transactions/entries in
+        :class:`.TransactionTable` and :class:`.EntryTable` to those matching with the string.
+        """
+        return self._filter_string
+
+    @filter_string.setter
+    def filter_string(self, value):
+        value = nonone(value, '').strip()
+        if value == self._filter_string:
+            return
+        self._filter_string = value
+        self._apply_filter()
+
+    # use FilterType.* consts or None
+    @property
+    def filter_type(self):
+        """*get/set*. Restrict visible elements in lists to those matching the type.
+
+        When set to something else than ``None``, it restricts visible transactions/entries in
+        :class:`.TransactionTable` and :class:`.EntryTable` to those matching having the specified
+        :class:`.FilterType`
+        """
+        return self._filter_type
+
+    @filter_type.setter
+    def filter_type(self, value):
+        if value is self._filter_type:
+            return
+        self.document.stop_edition()
+        self._filter_type = value
+        self._apply_filter()
 
     @property
     def pane_count(self):
@@ -650,12 +702,6 @@ class MainWindow(Listener, GUIObject):
     def edition_must_stop(self):
         if self._current_pane is not None:
             self._current_pane.view.stop_editing()
-
-    def filter_applied(self):
-        is_txn_pane = self._current_pane.view.VIEW_TYPE in {PaneType.Transaction, PaneType.Account}
-        if self.document.filter_string and not is_txn_pane:
-            self.select_pane_of_type(PaneType.Transaction, clear_filter=False)
-        self.search_field.refresh()
 
     schedule_changed = _undo_stack_changed
     schedule_deleted = _undo_stack_changed

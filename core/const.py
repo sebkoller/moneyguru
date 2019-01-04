@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -37,4 +37,22 @@ class PaneArea:
     Main = 1
     BottomGraph = 2
     RightChart = 3
+
+class FilterType:
+    """Available types for filter at :attr:`Document.filter_type`.
+
+    * ``Unassigned``
+    * ``Income``
+    * ``Expense``
+    * ``Transfer``
+    * ``Reconciled``
+    * ``NotReconciled``.
+    """
+    Unassigned = object()
+    Income = object() # in etable, the filter is for increase
+    Expense = object() # in etable, the filter is for decrease
+    Transfer = object()
+    Reconciled = object()
+    NotReconciled = object()
+
 

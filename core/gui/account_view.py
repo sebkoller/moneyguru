@@ -138,10 +138,6 @@ class AccountView(TransactionViewBase):
         self.table._date_range_changed()
         self._refresh_totals()
 
-    def filter_applied(self):
-        TransactionViewBase.filter_applied(self)
-        self.filter_bar.refresh()
-
     def transaction_changed(self):
         TransactionViewBase.transaction_changed(self)
         # It's possible that because of the change, the selected txn has been removed, so we have

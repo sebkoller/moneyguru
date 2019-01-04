@@ -121,9 +121,6 @@ class DocumentNotificationsMixin:
     def edition_must_stop(self):
         """If any GUI is currently in editing mode, this has to stop now."""
 
-    def filter_applied(self):
-        """A filter has just been applied to our transactions."""
-
     def schedule_changed(self):
         """Schedule(s) had some of their properties changed."""
 

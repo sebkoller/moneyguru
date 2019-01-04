@@ -48,23 +48,6 @@ DATE_RANGE_RUNNING_YEAR = 'running_year'
 DATE_RANGE_ALL_TRANSACTIONS = 'all_transactions'
 DATE_RANGE_CUSTOM = 'custom'
 
-class FilterType:
-    """Available types for filter at :attr:`Document.filter_type`.
-
-    * ``Unassigned``
-    * ``Income``
-    * ``Expense``
-    * ``Transfer``
-    * ``Reconciled``
-    * ``NotReconciled``.
-    """
-    Unassigned = object()
-    Income = object() # in etable, the filter is for increase
-    Expense = object() # in etable, the filter is for decrease
-    Transfer = object()
-    Reconciled = object()
-    NotReconciled = object()
-
 class ScheduleScope:
     Local = 0
     Global = 1
@@ -438,8 +421,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.groups = GroupList()
         self._undoer = Undoer(self.accounts, self.groups, self.transactions, self.schedules, self.budgets)
         self._date_range = YearRange(datetime.date.today())
-        self._filter_string = ''
-        self._filter_type = None
         self._document_id = None
         self._dirty_flag = False
         self._restore_preferences()
@@ -1482,42 +1463,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.app.set_default(key, value)
 
     # --- Properties
-    @property
-    def filter_string(self):
-        """*get/set*. Restrict visible elements in lists to those matching the string.
-
-        When set to an non empty string, it restricts visible transactions/entries in
-        :class:`.TransactionTable` and :class:`.EntryTable` to those matching with the string.
-        """
-        return self._filter_string
-
-    @filter_string.setter
-    def filter_string(self, value):
-        value = nonone(value, '').strip()
-        if value == self._filter_string:
-            return
-        self._filter_string = value
-        self.notify('filter_applied')
-
-    # use FilterType.* consts or None
-    @property
-    def filter_type(self):
-        """*get/set*. Restrict visible elements in lists to those matching the type.
-
-        When set to something else than ``None``, it restricts visible transactions/entries in
-        :class:`.TransactionTable` and :class:`.EntryTable` to those matching having the specified
-        :class:`.FilterType`
-        """
-        return self._filter_type
-
-    @filter_type.setter
-    def filter_type(self, value):
-        if value is self._filter_type:
-            return
-        self.stop_edition()
-        self._filter_type = value
-        self.notify('filter_applied')
-
     # 0=monday 6=sunday
     @property
     def first_weekday(self):

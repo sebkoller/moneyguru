@@ -7,8 +7,7 @@
 import weakref
 
 from core.trans import tr
-from ..const import PaneType
-from ..document import FilterType
+from ..const import PaneType, FilterType
 from ..model.account import AccountType
 from ..model.amount import convert_amount
 from ..model.transaction import txn_matches
@@ -21,7 +20,7 @@ from .transaction_panel import TransactionPanel
 
 
 class TransactionViewBase(BaseView):
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'filter_applied', 'date_range_changed'}
+    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
 
     def edit_selected_transactions(self):
         editable_txns = [txn for txn in self.mainwindow.selected_transactions if not txn.is_budget]
@@ -71,7 +70,6 @@ class TransactionViewBase(BaseView):
         self._refresh_totals()
 
     date_range_changed = document_changed
-    filter_applied = document_changed
     transaction_changed = document_changed
     transaction_deleted = document_changed
     transactions_imported = document_changed
@@ -110,8 +108,8 @@ class TransactionView(TransactionViewBase):
     def _set_visible_transactions(self):
         date_range = self.document.date_range
         txns = [t for t in self.document.oven.transactions if t.date in date_range]
-        query_string = self.document.filter_string
-        filter_type = self.document.filter_type
+        query_string = self.mainwindow.filter_string
+        filter_type = self.mainwindow.filter_type
         if not query_string and filter_type is None:
             self._visible_transactions = txns
             return
@@ -164,8 +162,3 @@ class TransactionView(TransactionViewBase):
         if self._visible_transactions is None:
             self._set_visible_transactions()
         return self._visible_transactions
-
-    # --- Event Handlers
-    def filter_applied(self):
-        TransactionViewBase.filter_applied(self)
-        self.filter_bar.refresh()
