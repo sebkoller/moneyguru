@@ -181,7 +181,6 @@ class TestApp(TestAppBase):
         self.iwin = link_gui(self.mw.import_window)
         self.alookup = link_gui(self.mw.account_lookup)
         self.clookup = link_gui(self.mw.completion_lookup)
-        self.doc.connect()
         self.mw.view = self.make_logger(MainWindowGUI(self))
         self.mainwindow_gui = self.mw.view
 

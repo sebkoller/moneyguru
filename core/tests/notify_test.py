@@ -1,23 +1,15 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from core.tests.testutil import eq_
-from ..notify import Broadcaster, Listener, Repeater
+from ..notify import Broadcaster, Listener
 
 class HelloListener(Listener):
     def __init__(self, broadcaster):
         Listener.__init__(self, broadcaster)
-        self.hello_count = 0
-
-    def hello(self):
-        self.hello_count += 1
-
-class HelloRepeater(Repeater):
-    def __init__(self, broadcaster):
-        Repeater.__init__(self, broadcaster)
         self.hello_count = 0
 
     def hello(self):
@@ -86,48 +78,6 @@ def test_reconnect():
     l.disconnect()
     l.connect()
     b.notify('hello')
-    eq_(l.hello_count, 1)
-
-def test_repeater():
-    b = Broadcaster()
-    r = HelloRepeater(b)
-    l = HelloListener(r)
-    r.connect()
-    l.connect()
-    b.notify('hello')
-    eq_(r.hello_count, 1)
-    eq_(l.hello_count, 1)
-
-def test_repeater_with_repeated_notifications():
-    # If REPEATED_NOTIFICATIONS is not empty, only notifs in this set are repeated (but they're
-    # still dispatched locally).
-    class MyRepeater(HelloRepeater):
-        REPEATED_NOTIFICATIONS = set(['hello'])
-        def __init__(self, broadcaster):
-            HelloRepeater.__init__(self, broadcaster)
-            self.foo_count = 0
-        def foo(self):
-            self.foo_count += 1
-
-    b = Broadcaster()
-    r = MyRepeater(b)
-    l = HelloListener(r)
-    r.connect()
-    l.connect()
-    b.notify('hello')
-    b.notify('foo') # if the repeater repeated this notif, we'd get a crash on HelloListener
-    eq_(r.hello_count, 1)
-    eq_(l.hello_count, 1)
-    eq_(r.foo_count, 1)
-
-def test_repeater_doesnt_try_to_dispatch_to_self_if_it_cant():
-    # if a repeater doesn't handle a particular message, it doesn't crash and simply repeats it.
-    b = Broadcaster()
-    r = Repeater(b) # doesnt handle hello
-    l = HelloListener(r)
-    r.connect()
-    l.connect()
-    b.notify('hello') # no crash
     eq_(l.hello_count, 1)
 
 def test_bind_messages():

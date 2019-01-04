@@ -10,7 +10,6 @@ import datetime
 from collections import namedtuple
 import re
 
-from core.notify import Broadcaster
 from core.util import nonone
 
 from .gui.date_widget import DateWidget
@@ -98,7 +97,7 @@ class ApplicationView:
     def reveal_path(self, path):
         """Open ``path`` with the system's default file explorer."""
 
-class Application(Broadcaster):
+class Application:
     """Manage a running instance of moneyGuru.
 
     Mostly, it handles app-wide user preferences. It doesn't hold a reference to a list of open
@@ -138,7 +137,6 @@ class Application(Broadcaster):
     def __init__(
             self, view, date_format='dd/MM/yyyy', decimal_sep='.', grouping_sep='',
             default_currency='USD', cache_path=None, appdata_path=None):
-        Broadcaster.__init__(self)
         self.view = view
         self.cache_path = cache_path
         # cache_path is required, but for tests, we don't want to bother specifying it. When
@@ -296,7 +294,6 @@ class Application(Broadcaster):
         """
         self.saved_custom_ranges[slot] = SavedCustomRange(name, start, end)
         self._save_custom_ranges()
-        self.notify('saved_custom_ranges_changed')
 
     def open_plugin_folder(self):
         """Open the plugin folder in the user's file explorer."""

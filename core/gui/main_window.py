@@ -463,6 +463,11 @@ class MainWindow(Listener, GUIObject):
         else:
             self.load_parsed_file_for_import()
 
+    def save_custom_range(self, slot, name, start, end):
+        # called by the CustomDateRangePanel
+        self.app.save_custom_range(slot, name, start, end)
+        self.daterange_selector.refresh_custom_ranges()
+
     def select_pane_of_type(self, pane_type, clear_filter=True):
         if clear_filter:
             self.document.filter_string = ''
@@ -609,7 +614,7 @@ class MainWindow(Listener, GUIObject):
     budget_deleted = _undo_stack_changed
 
     def custom_date_range_selected(self):
-        panel = CustomDateRangePanel(self.document)
+        panel = CustomDateRangePanel(self)
         panel.view = weakref.proxy(self.view.get_panel_view(panel))
         panel.load()
 
@@ -652,9 +657,6 @@ class MainWindow(Listener, GUIObject):
     def performed_undo_or_redo(self):
         self._close_irrelevant_account_panes()
         self.view.refresh_undo_actions()
-
-    def saved_custom_ranges_changed(self):
-        self.daterange_selector.refresh_custom_ranges()
 
     schedule_changed = _undo_stack_changed
     schedule_deleted = _undo_stack_changed

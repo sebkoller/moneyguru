@@ -49,7 +49,6 @@ class MoneyGuru(QObject):
         )
         # on the Qt side, we're single document based, so it's one doc per app.
         self.doc = Document(app=self)
-        self.doc.model.connect()
         self.mainWindow = MainWindow(doc=self.doc)
         self.preferencesPanel = PreferencesPanel(self.mainWindow, app=self)
         self.aboutBox = AboutBox(self.mainWindow, self)
