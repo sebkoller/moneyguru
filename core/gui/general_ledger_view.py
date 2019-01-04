@@ -24,6 +24,13 @@ class GeneralLedgerView(TransactionViewBase):
         self.restore_subviews_size()
 
     # --- Overrides
+    def _refresh_totals(self):
+        selected, total, total_debit, total_credit = self.gltable.get_totals()
+        total_debit_fmt = self.document.format_amount(total_debit)
+        total_credit_fmt = self.document.format_amount(total_credit)
+        msg = tr("{0} out of {1} selected. Debit: {2} Credit: {3}")
+        self.status_line = msg.format(selected, total, total_debit_fmt, total_credit_fmt)
+
     def _revalidate(self):
         self.gltable._revalidate()
 
@@ -37,27 +44,3 @@ class GeneralLedgerView(TransactionViewBase):
 
     def update_transaction_selection(self, transactions):
         self._refresh_totals()
-
-    # --- Private
-    def _refresh_totals(self):
-        selected, total, total_debit, total_credit = self.gltable.get_totals()
-        total_debit_fmt = self.document.format_amount(total_debit)
-        total_credit_fmt = self.document.format_amount(total_credit)
-        msg = tr("{0} out of {1} selected. Debit: {2} Credit: {3}")
-        self.status_line = msg.format(selected, total, total_debit_fmt, total_credit_fmt)
-
-    # --- Event Handlers
-    def document_changed(self):
-        self.gltable.refresh()
-
-    def filter_applied(self):
-        self.gltable._filter_applied()
-
-    def transaction_changed(self):
-        self.gltable._item_changed()
-
-    def transaction_deleted(self):
-        self.gltable._item_deleted()
-
-    def date_range_changed(self):
-        self.gltable._date_range_changed()

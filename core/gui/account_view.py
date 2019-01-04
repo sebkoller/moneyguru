@@ -35,8 +35,21 @@ class AccountView(TransactionViewBase):
             self._shown_graph = self.bargraph
         self.restore_subviews_size()
 
-    # --- Private
+    # --- Override
+    def _view_updated(self):
+        if self._shown_graph is self.balgraph:
+            self.view.show_line_graph()
+        else:
+            self.view.show_bar_graph()
+
+    def _revalidate(self):
+        self.etable._revalidate()
+        self._shown_graph._revalidate()
+
     def _refresh_totals(self):
+        # _shown_graph is not precisely a "total", but whenever we want to
+        # refresh totals, we'll want to refresh the graph as well.
+        self._shown_graph._revalidate()
         account = self.account
         if account is None:
             return
@@ -51,17 +64,6 @@ class AccountView(TransactionViewBase):
         total_decrease_fmt = self.document.format_amount(decrease)
         msg = tr("{0} out of {1} selected. Increase: {2} Decrease: {3}")
         self.status_line = msg.format(selected, total, total_increase_fmt, total_decrease_fmt)
-
-    # --- Override
-    def _view_updated(self):
-        if self._shown_graph is self.balgraph:
-            self.view.show_line_graph()
-        else:
-            self.view.show_bar_graph()
-
-    def _revalidate(self):
-        self.etable._revalidate()
-        self._shown_graph._revalidate()
 
     def restore_subviews_size(self):
         if self.balgraph.view_size[1]:
@@ -131,36 +133,15 @@ class AccountView(TransactionViewBase):
         return self._reconciliation_mode
 
     # --- Event Handlers
-    def date_range_changed(self):
-        self.etable._date_range_changed()
-        self._shown_graph._revalidate()
-        self._refresh_totals()
-
     def date_range_will_change(self):
         self.etable._date_range_will_change()
 
-    def document_changed(self):
-        self.etable.refresh()
-        self._shown_graph._revalidate()
-        self._refresh_totals()
-
     def filter_applied(self):
-        self.etable._filter_applied()
-        self._refresh_totals()
+        TransactionViewBase.filter_applied(self)
         self.filter_bar.refresh()
 
     def transaction_changed(self):
-        self.etable._transaction_changed()
-        self._shown_graph._revalidate()
-        self._refresh_totals()
-
-    def transaction_deleted(self):
-        self.etable._item_deleted()
-        self._shown_graph._revalidate()
-        self._refresh_totals()
-
-    def transactions_imported(self):
-        self.etable._transactions_imported()
-        self._shown_graph._revalidate()
-        self._refresh_totals()
-
+        TransactionViewBase.transaction_changed(self)
+        # It's possible that because of the change, the selected txn has been removed, so we have
+        # to update document selection.
+        self.etable._update_selection()

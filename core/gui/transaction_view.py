@@ -36,6 +36,13 @@ class TransactionViewBase(BaseView):
             panel.load(editable_txns[0])
             return panel
 
+    # --- Virtuals
+    def _invalidate_cache(self):
+        pass
+
+    def _refresh_totals(self):
+        pass
+
     # --- Overrides
     def restore_view(self):
         BaseView.restore_view(self)
@@ -56,6 +63,37 @@ class TransactionViewBase(BaseView):
 
     def stop_editing(self):
         self.table.stop_editing()
+
+    # --- Events
+    def date_range_changed(self):
+        self._invalidate_cache()
+        self.table._date_range_changed()
+        self._refresh_totals()
+
+    def document_changed(self):
+        self._invalidate_cache()
+        self.table.refresh()
+        self._refresh_totals()
+
+    def filter_applied(self):
+        self._invalidate_cache()
+        self.table._filter_applied()
+        self._refresh_totals()
+
+    def transaction_changed(self):
+        self._invalidate_cache()
+        self.table._item_changed()
+        self._refresh_totals()
+
+    def transaction_deleted(self):
+        self._invalidate_cache()
+        self.table._item_deleted()
+        self._refresh_totals()
+
+    def transactions_imported(self):
+        self._invalidate_cache()
+        self.table._transactions_imported()
+        self._refresh_totals()
 
 
 class TransactionView(TransactionViewBase):
@@ -79,10 +117,6 @@ class TransactionView(TransactionViewBase):
         self.ttable._revalidate()
 
     # --- Private
-    def _invalidate_cache(self):
-        self._visible_transactions = None
-        self._refresh_totals()
-
     def _refresh_totals(self):
         selected = len(self.mainwindow.selected_transactions)
         total = len(self.visible_transactions)
@@ -120,6 +154,9 @@ class TransactionView(TransactionViewBase):
         self._visible_transactions = txns
 
     # --- Override
+    def _invalidate_cache(self):
+        self._visible_transactions = None
+
     def save_preferences(self):
         self.ttable.columns.save_columns()
 
@@ -148,28 +185,6 @@ class TransactionView(TransactionViewBase):
         return self._visible_transactions
 
     # --- Event Handlers
-    def date_range_changed(self):
-        self._invalidate_cache()
-        self.ttable._date_range_changed()
-
-    def document_changed(self):
-        self._invalidate_cache()
-        self.ttable.refresh()
-
     def filter_applied(self):
-        self._invalidate_cache()
+        TransactionViewBase.filter_applied(self)
         self.filter_bar.refresh()
-        self.ttable._filter_applied()
-
-    def transaction_changed(self):
-        self._invalidate_cache()
-        self.ttable._item_changed()
-
-    def transaction_deleted(self):
-        self._invalidate_cache()
-        self.ttable._item_deleted()
-
-    def transactions_imported(self):
-        self._invalidate_cache()
-        self.ttable._transactions_imported()
-

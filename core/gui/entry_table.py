@@ -150,12 +150,6 @@ class EntryTable(EntryTableBase):
         delta = date - date_range.start
         self._delta_before_change = delta
 
-    def _transaction_changed(self):
-        self._item_changed()
-        # It's possible that because of the change, the selected txn has been removed, so we have
-        # to update document selection.
-        self._update_selection()
-
     def _transactions_imported(self):
         self.refresh(refresh_view=False)
         self.mainwindow.selected_transactions = self.selected_transactions
