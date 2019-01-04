@@ -35,6 +35,10 @@ class AccountSheetView(BaseView):
         prefname = '{}.PieWidth'.format(self.SAVENAME)
         self.pie_width_to_restore = self.document.get_default(prefname, 0)
 
+    def restore_view(self):
+        BaseView.restore_view(self)
+        self.sheet.restore_view()
+
     def save_preferences(self):
         self.sheet.save_preferences()
         height = self.graph.view_size[1]
@@ -111,9 +115,6 @@ class AccountSheetView(BaseView):
         self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
-
-    def document_restoring_preferences(self):
-        self.sheet.restore_view()
 
     def document_changed(self):
         self.sheet._document_changed()

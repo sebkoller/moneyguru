@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -6,6 +6,7 @@
 
 import datetime
 
+from .base import ViewChild
 from .table import GUITable, TableWithAmountMixin
 from .completable_edit import CompletableEdit
 
@@ -55,12 +56,13 @@ class TransactionSelectionMixin:
             self.selected_index = len(self) - 1
 
 
-class TransactionTableBase(GUITable, TransactionSelectionMixin, TableWithAmountMixin):
+class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, TableWithAmountMixin):
     """Common superclass for TransactionTable and EntryTable, which share a lot of logic.
     """
 
     def __init__(self, parent_view):
         GUITable.__init__(self, document=parent_view.document)
+        ViewChild.__init__(self, parent_view)
         self.parent_view = parent_view
         self.mainwindow = parent_view.mainwindow
         self.document = self.mainwindow.document
@@ -69,6 +71,9 @@ class TransactionTableBase(GUITable, TransactionSelectionMixin, TableWithAmountM
         self.completable_edit = CompletableEdit(parent_view.mainwindow)
 
     # --- Override
+    def _do_restore_view(self):
+        self.columns.restore_columns()
+
     def _is_edited_new(self):
         return self.edited.transaction not in self.document.transactions
 

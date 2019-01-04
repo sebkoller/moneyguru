@@ -36,6 +36,11 @@ class TransactionViewBase(BaseView):
             panel.load(editable_txns[0])
             return panel
 
+    # --- Overrides
+    def restore_view(self):
+        BaseView.restore_view(self)
+        self.table.restore_view()
+
     # --- Public
     def delete_item(self):
         self.table.delete()
@@ -50,9 +55,6 @@ class TransactionViewBase(BaseView):
         self.table.add()
 
     # --- Events
-    def document_restoring_preferences(self):
-        self.table._document_restoring_preferences()
-
     def edition_must_stop(self):
         self.table._edition_must_stop()
 

@@ -130,9 +130,6 @@ class DocumentNotificationsMixin:
     def performed_undo_or_redo(self):
         """An undo or redo operation was just performed."""
 
-    def saved_custom_ranges_changed(self):
-        """A custom date range was just saved into one of the slots."""
-
     def schedule_changed(self):
         """Schedule(s) had some of their properties changed."""
 
@@ -170,13 +167,9 @@ class DocumentGUIObject(Listener, GUIObject, DocumentNotificationsMixin):
 
     :param document: Reference document.
     :type document: :class:`.Document`
-    :param listento: The object to listen our notifications from. Defaults to ``document``.
-    :type listento: :class:`.Broadcaster`
     """
-    def __init__(self, document, listento=None):
-        if listento is None:
-            listento = document
-        Listener.__init__(self, listento)
+    def __init__(self, document):
+        Listener.__init__(self, document)
         GUIObject.__init__(self)
         #: Parent :class:`document <.Document>`.
         self.document = document
@@ -185,11 +178,6 @@ class DocumentGUIObject(Listener, GUIObject, DocumentNotificationsMixin):
 
 
 class ViewChild(GUIObject):
-    """Visible GUI element listening to notifications from its parent view.
-
-    :param parent_view: View we listen our notifications from.
-    :type parent_view: :class:`BaseView`
-    """
     def __init__(self, parent_view):
         GUIObject.__init__(self)
         self.parent_view = parent_view
@@ -203,6 +191,10 @@ class ViewChild(GUIObject):
         Override this when you subclass with code that refreshes the content of the element. This is
         called when we show the element back and that we had received a notification invalidating
         our content.
+        """
+
+    def restore_view(self):
+        """ Called when the view needs to restore it's state from preferences.
         """
 
 
@@ -367,6 +359,9 @@ class BaseViewNG(GUIObject):
         """*Virtual*. Move select item(s) down in the list, if possible."""
         raise NotImplementedError()
 
+    def restore_view(self):
+        """ Restore view (recursively) param from preferences."""
+
     def update_transaction_selection(self, transactions):
         """Transactions were just selected."""
 
@@ -446,8 +441,6 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
     # Messages that invalidates the view if received while it's hidden (its cache will be
     # revalidated upon show)
     INVALIDATING_MESSAGES = set()
-    # Messages that are always passed, even if the object is hidden.
-    ALWAYSON_MESSAGES = {'document_restoring_preferences'}
 
     def __init__(self, mainwindow):
         Listener.__init__(self, mainwindow.document)
@@ -520,7 +513,7 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
     def dispatch(self, msg):
         if self._hidden and (msg in self.INVALIDATING_MESSAGES):
             self._invalidated = True
-        if (not self._hidden) or (msg in self.ALWAYSON_MESSAGES):
+        if not self._hidden:
             Listener.dispatch(self, msg)
 
     # --- Public
@@ -541,6 +534,12 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
 
     def restore_subviews_size(self):
         """*Virtual*. Restore subviews size from preferences."""
+
+    def restore_view(self):
+        """Restore view (recursively) param from preferences."""
+        self.restore_subviews_size()
+        if self.view: # Some BaseView don't have a view
+            self.view.restore_subviews_size()
 
     def save_preferences(self):
         """*Virtual*. Save subviews size to preferences."""
@@ -577,9 +576,3 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
         self._status_line = value
         if not self._hidden:
             self.mainwindow.update_status_line()
-
-    # --- Notifications
-    def document_restoring_preferences(self):
-        self.restore_subviews_size()
-        if self.view: # Some BaseView don't have a view
-            self.view.restore_subviews_size()

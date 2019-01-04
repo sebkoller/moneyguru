@@ -610,9 +610,6 @@ class GUITable(GUITableBase):
     def _document_changed(self):
         self.refresh()
 
-    def _document_restoring_preferences(self):
-        self.columns.restore_columns()
-
     def _performed_undo_or_redo(self):
         self.refresh()
 

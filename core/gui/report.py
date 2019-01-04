@@ -29,28 +29,23 @@ class Report(ViewChild, tree.Tree):
     def __init__(self, parent_view):
         ViewChild.__init__(self, parent_view)
         tree.Tree.__init__(self)
-        self._was_restored = False
         self.columns = Columns(self, prefaccess=parent_view.document, savename=self.SAVENAME)
         self.edited = None
         self._expanded_paths = {(0, ), (1, )}
 
     # --- Override
-    def _do_restore_view(self):
-        if not self.document.can_restore_from_prefs():
-            return False
+    def restore_view(self):
         prefname = '{}.ExpandedPaths'.format(self.SAVENAME)
         expanded = self.document.get_default(prefname, list())
         if expanded:
             self._expanded_paths = {tuple(p) for p in expanded}
             self.view.refresh_expanded_paths()
         self.columns.restore_columns()
-        return True
 
     def _revalidate(self):
         self.refresh(refresh_view=False)
         self._update_selection()
         self.view.refresh()
-        self.restore_view()
 
     # --- Virtual
     def _compute_account_node(self, node):
@@ -263,11 +258,6 @@ class Report(ViewChild, tree.Tree):
         self._prune_invalid_expanded_paths()
         if refresh_view:
             self.view.refresh()
-
-    def restore_view(self):
-        if not self._was_restored:
-            if self._do_restore_view():
-                self._was_restored = True
 
     def save_edits(self):
         node = self.edited

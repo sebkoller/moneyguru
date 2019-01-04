@@ -647,6 +647,8 @@ class MainWindow(Listener, GUIObject):
         self._restore_opened_panes()
         self.hidden_areas = set(self.document.get_default(Preference.HiddenAreas, fallback_value=[]))
         self._update_area_visibility()
+        for pane in self.panes:
+            pane.view.restore_view()
 
     def filter_applied(self):
         is_txn_pane = self._current_pane.view.VIEW_TYPE in {PaneType.Transaction, PaneType.Account}
