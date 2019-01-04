@@ -34,6 +34,9 @@ class GeneralLedgerView(TransactionViewBase):
         self.gltable.show()
         self._refresh_totals()
 
+    def update_transaction_selection(self, transactions):
+        self._refresh_totals()
+
     # --- Private
     def _refresh_totals(self):
         selected, total, total_debit, total_credit = self.gltable.get_totals()
@@ -57,9 +60,6 @@ class GeneralLedgerView(TransactionViewBase):
 
     def transaction_deleted(self):
         self.gltable._item_deleted()
-
-    def transactions_selected(self):
-        self._refresh_totals()
 
     def date_range_changed(self):
         self.gltable._date_range_changed()

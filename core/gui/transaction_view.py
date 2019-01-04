@@ -125,6 +125,9 @@ class TransactionView(TransactionViewBase):
         BaseView.show(self)
         self.ttable.show()
 
+    def update_transaction_selection(self, transactions):
+        self._refresh_totals()
+
     # --- Public
     def move_down(self):
         self.ttable.move_down()
@@ -159,9 +162,6 @@ class TransactionView(TransactionViewBase):
     def performed_undo_or_redo(self):
         self._invalidate_cache()
         self.ttable._performed_undo_or_redo()
-
-    def transactions_selected(self):
-        self._refresh_totals()
 
     def transaction_changed(self):
         self._invalidate_cache()

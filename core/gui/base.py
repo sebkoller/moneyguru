@@ -149,15 +149,6 @@ class DocumentNotificationsMixin:
         """Transactions have just been imported into the document."""
 
 
-class MainWindowNotificationsMixin:
-    """Mixin for listeners of :class:`.MainWindow` notifications."""
-    def transactions_selected(self):
-        """Transactions were just selected."""
-
-    def area_visibility_changed(self):
-        """One of the main window's main part had its visibility toggled."""
-
-
 MESSAGES_EVERYTHING_CHANGED = {'document_changed', 'performed_undo_or_redo'}
 MESSAGES_DOCUMENT_CHANGED = (
     MESSAGES_EVERYTHING_CHANGED |
@@ -193,14 +184,14 @@ class DocumentGUIObject(Listener, GUIObject, DocumentNotificationsMixin):
         self.app = document.app
 
 
-class MainWindowGUIObject(DocumentGUIObject, MainWindowNotificationsMixin):
+class MainWindowGUIObject(DocumentGUIObject):
     """Base class for listeners of :class:`.MainWindow`.
 
     This base class is not much more than a convenience layer, centralizing multiple subclassing
     and common properties (:attr:`mainwindow`). It's a base class for every GUI elements that listen
     to some notifications from :class:`.MainWindow`.
 
-    Subclasses :class:`DocumentGUIObject` and :class:`MainWindowNotificationsMixin`.
+    Subclasses :class:`DocumentGUIObject`
 
     :param mainwindow: Reference mainwindow.
     :type mainwindow: :class:`.MainWindow`
@@ -398,6 +389,12 @@ class BaseViewNG(GUIObject):
         """*Virtual*. Move select item(s) down in the list, if possible."""
         raise NotImplementedError()
 
+    def update_transaction_selection(self, transactions):
+        """Transactions were just selected."""
+
+    def update_visibility(self):
+        """One of the main window's main part had its visibility toggled."""
+
     # --- Private
     def _revalidate(self):
         pass
@@ -445,7 +442,7 @@ class BaseViewNG(GUIObject):
             self.mainwindow.update_status_line()
 
 
-class BaseView(Listener, GUIObject, DocumentNotificationsMixin, MainWindowNotificationsMixin):
+class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
     """Superclass for main "tabs" controllers.
 
     You know, the tabs you open in moneyGuru (Net Worth, Transactions, General Ledger)? Their main
@@ -535,6 +532,11 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin, MainWindowNotifi
         """*Virtual*. Move select item(s) down in the list, if possible."""
         raise NotImplementedError()
 
+    def update_transaction_selection(self, transactions):
+        """Transactions were just selected."""
+
+    def update_visibility(self):
+        """One of the main window's main part had its visibility toggled."""
 
     # --- Overrides
     def dispatch(self, msg):

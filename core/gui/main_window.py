@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -89,6 +89,7 @@ class MainWindow(Repeater, GUIObject):
     def __init__(self, document):
         Repeater.__init__(self, document)
         GUIObject.__init__(self)
+        self._current_pane = None
         self.document = document
         self.app = document.app
         self._selected_transactions = []
@@ -267,7 +268,8 @@ class MainWindow(Repeater, GUIObject):
         self._change_current_pane(newpane)
 
     def _update_area_visibility(self):
-        self.notify('area_visibility_changed')
+        if self._current_pane is not None:
+            self._current_pane.view.update_visibility()
         self.view.update_area_visibility()
 
     def _visible_entries_for_account(self, account):
@@ -577,7 +579,7 @@ class MainWindow(Repeater, GUIObject):
     @selected_transactions.setter
     def selected_transactions(self, transactions):
         self._selected_transactions = transactions
-        self.notify('transactions_selected')
+        self._current_pane.view.update_transaction_selection(transactions)
 
     @property
     def explicitly_selected_transactions(self):

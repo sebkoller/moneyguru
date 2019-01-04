@@ -92,6 +92,12 @@ class AccountView(TransactionViewBase):
         if height:
             self.document.set_default('AccountView.GraphHeight', height)
 
+    def update_transaction_selection(self, transactions):
+        self._refresh_totals()
+
+    def update_visibility(self):
+        self.view.update_visibility()
+
     # --- Public
     def navigate_back(self):
         """When the entry table is shown, go back to the appropriate report."""
@@ -124,9 +130,6 @@ class AccountView(TransactionViewBase):
         return self._reconciliation_mode
 
     # --- Event Handlers
-    def area_visibility_changed(self):
-        self.view.update_visibility()
-
     def date_range_changed(self):
         self.etable._date_range_changed()
         self._shown_graph._revalidate()
@@ -148,9 +151,6 @@ class AccountView(TransactionViewBase):
     def performed_undo_or_redo(self):
         self.etable._performed_undo_or_redo()
         self._shown_graph._revalidate()
-        self._refresh_totals()
-
-    def transactions_selected(self):
         self._refresh_totals()
 
     def transaction_changed(self):

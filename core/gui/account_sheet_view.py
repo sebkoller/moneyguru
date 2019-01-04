@@ -47,6 +47,9 @@ class AccountSheetView(BaseView):
             prefname = '{}.PieWidth'.format(self.SAVENAME)
             self.document.set_default(prefname, width)
 
+    def update_visibility(self):
+        self.view.update_visibility()
+
     # --- Public
     def collapse_group(self, group):
         group.expanded = False
@@ -103,9 +106,6 @@ class AccountSheetView(BaseView):
         self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
-
-    def area_visibility_changed(self):
-        self.view.update_visibility()
 
     def date_range_changed(self):
         self.sheet.refresh()
