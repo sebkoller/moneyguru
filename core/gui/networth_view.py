@@ -22,5 +22,4 @@ class NetWorthView(AccountSheetView):
         self.columns = self.bsheet.columns
         self.graph = self.nwgraph = NetWorthGraph(self)
         self.pie = BalancePieChart(self)
-        self.set_children([self.bsheet])
 

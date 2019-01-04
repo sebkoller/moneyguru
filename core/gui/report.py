@@ -335,13 +335,7 @@ class Report(ViewChild, tree.Tree):
             self.document.toggle_accounts_exclusion(affected_accounts)
 
     # --- Event handlers
-    def account_added(self):
-        self.refresh()
-
-    def account_changed(self):
-        self.refresh()
-
-    def account_deleted(self):
+    def _account_deleted(self):
         selected_path = self.selected_path
         self.refresh(refresh_view=False)
         next_node = self.get_node(selected_path)
@@ -352,31 +346,14 @@ class Report(ViewChild, tree.Tree):
         self.selected_path = selected_path
         self.view.refresh()
 
-    def accounts_excluded(self):
-        self.refresh()
-
-    def date_range_changed(self):
-        self.refresh()
-
-    document_restoring_preferences = restore_view
-
-    def edition_must_stop(self):
+    def _edition_must_stop(self):
         self.view.stop_editing()
         self.stop_editing()
 
-    # account might have been auto-created during import
-    def transactions_imported(self):
+    def _document_changed(self):
         self.refresh(refresh_view=False)
         self._select_first()
         self.view.refresh()
-
-    def document_changed(self):
-        self.refresh(refresh_view=False)
-        self._select_first()
-        self.view.refresh()
-
-    def performed_undo_or_redo(self):
-        self.refresh()
 
     # --- Properties
     @property

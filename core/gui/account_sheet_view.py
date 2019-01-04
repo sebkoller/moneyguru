@@ -22,6 +22,7 @@ class AccountSheetView(BaseView):
     # --- Overrides
     def _revalidate(self):
         BaseView._revalidate(self)
+        self.sheet._revalidate()
         self.graph._revalidate()
         self.pie._revalidate()
 
@@ -85,15 +86,21 @@ class AccountSheetView(BaseView):
         self.sheet.show_selected_account()
 
     # --- Events
+    def account_added(self):
+        self.sheet.refresh()
+
     def account_changed(self):
+        self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
 
     def account_deleted(self):
+        self.sheet._account_deleted()
         self.graph._revalidate()
         self.pie._revalidate()
 
     def accounts_excluded(self):
+        self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
 
@@ -101,13 +108,26 @@ class AccountSheetView(BaseView):
         self.view.update_visibility()
 
     def date_range_changed(self):
+        self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
+
+    def document_restoring_preferences(self):
+        self.sheet.restore_view()
 
     def document_changed(self):
+        self.sheet._document_changed()
         self.graph._revalidate()
         self.pie._revalidate()
 
+    def edition_must_stop(self):
+        self.sheet._edition_must_stop()
+
     def performed_undo_or_redo(self):
+        self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
+
+    # account might have been auto-created during import
+    def transactions_imported(self):
+        self.sheet._document_changed()

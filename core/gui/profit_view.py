@@ -22,5 +22,4 @@ class ProfitView(AccountSheetView):
         self.columns = self.istatement.columns
         self.graph = self.pgraph = ProfitGraph(self)
         self.pie = CashFlowPieChart(self)
-        self.set_children([self.istatement])
 
