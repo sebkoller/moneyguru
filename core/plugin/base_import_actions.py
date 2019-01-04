@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -70,7 +70,6 @@ class BaseSwapDateFields(BaseSwapFields):
         basefmt = parsing_date_format
         swapped = swap_format_elements(basefmt, self._first_field, self._second_field)
         self.ACTION_NAME = "{} --> {}".format(basefmt.iso_format, swapped.iso_format)
-        self.notify(self.action_name_changed)
 
     def can_perform_action(self, import_document, transactions, panes, selected_rows=None):
         try:

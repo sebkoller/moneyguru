@@ -11,7 +11,6 @@ from collections import defaultdict
 from core.util import flatten, dedupe, first as getfirst
 from core.trans import tr
 
-from core.notify import Listener
 from ..exception import OperationAborted
 from ..model.date import DateFormat
 from .base import DocumentGUIObject
@@ -326,8 +325,6 @@ class ImportWindow(DocumentGUIObject):
         self._import_action_plugins = []
         self._always_import_action_plugins = []
 
-        self._import_action_listeners = []
-        self._add_plugin_listeners(self._import_action_plugins)
         self._receive_plugins(self.app.get_enabled_plugins())
 
         def setfunc(index):
@@ -418,6 +415,8 @@ class ImportWindow(DocumentGUIObject):
                 pane.match_entries()
 
         self.import_table.refresh()
+        # swap list items could have been altered during perform_action()
+        self._refresh_swap_list_items()
 
     def _always_perform_actions(self):
         for plugin in self._always_import_action_plugins:
@@ -444,9 +443,7 @@ class ImportWindow(DocumentGUIObject):
         # in time.  So we'll just tell it that the selected pane changed even if it hasn't.
 
         for index, plugin in enumerate(self._import_action_plugins):
-            self._import_action_listeners[index].disconnect()
             plugin.on_selected_pane_changed(self.selected_pane)
-            self._import_action_listeners[index].connect()
         names = [plugin.ACTION_NAME for plugin in self._import_action_plugins]
         self.swap_type_list[:] = names
 
@@ -467,17 +464,7 @@ class ImportWindow(DocumentGUIObject):
         always_actions = [p for p in extended_plugins if p.always_perform_action()]
 
         self._import_action_plugins.extend(select_actions)
-        self._add_plugin_listeners(select_actions)
         self._always_import_action_plugins.extend(always_actions)
-
-    def _add_plugin_listeners(self, plugins):
-        listeners = [Listener(plugin) for plugin in plugins
-                     if not plugin.always_perform_action()]
-        for listener in listeners:
-            listener.bind_messages((ImportActionPlugin.action_name_changed,),
-                                   lambda: self._refresh_swap_list_items())
-            listener.connect()
-            self._import_action_listeners.append(listener)
 
     # --- Override
     def _view_updated(self):

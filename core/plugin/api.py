@@ -1,5 +1,4 @@
-# Created On: 2012/02/02
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -23,7 +22,6 @@ from datetime import date
 
 from collections import namedtuple
 
-from core.notify import Broadcaster
 from ..model.currency import Currencies, CurrencyNotSupportedException
 from ..gui.base import BaseView
 from ..gui.table import GUITable, Row
@@ -276,12 +274,12 @@ class CurrencyProviderPlugin(Plugin):
         """
         raise NotImplementedError()
 
-class ImportActionPlugin(Plugin, Broadcaster):
+class ImportActionPlugin(Plugin):
     """
     Plugin allowing certain kinds of actions to be performed on import.
     By subclassing this plugin, you can add new currencies to moneyGuru and also add a new source
     to fetch those currencies' exchange rates.
-    Subclasses :class:`Plugin`, :class:`Broadcaster`
+    Subclasses :class:`Plugin`
     """
     TYPE_NAME = "Import Action"
 
@@ -290,10 +288,6 @@ class ImportActionPlugin(Plugin, Broadcaster):
 
     # The name that appears in our drop down list
     ACTION_NAME = None
-
-    def __init__(self):
-        Plugin.__init__(self)
-        Broadcaster.__init__(self)
 
     def on_selected_pane_changed(self, selected_pane):
         """This method is called whenever the import window has changed it's selected pane."""
