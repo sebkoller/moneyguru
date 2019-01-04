@@ -282,31 +282,26 @@ class MainWindowGUIObject(DocumentGUIObject, MainWindowNotificationsMixin):
         self.mainwindow = mainwindow
 
 
-class ViewChild(MainWindowGUIObject, HideableObject):
+class ViewChild(GUIObject):
     """Visible GUI element listening to notifications from its parent view.
-
-    Subclasses :class:`.MainWindowGUIObject` and :class:`.HideableObject`.
 
     :param parent_view: View we listen our notifications from.
     :type parent_view: :class:`BaseView`
     """
     def __init__(self, parent_view):
-        MainWindowGUIObject.__init__(self, parent_view.mainwindow, listento=parent_view)
-        HideableObject.__init__(self)
-        #: Parent :class:`base view <BaseView>`.
+        GUIObject.__init__(self)
         self.parent_view = parent_view
+        self.mainwindow = parent_view.mainwindow
+        self.document = self.mainwindow.document
+        self.app = self.document.app
 
-    def _process_message(self, msg):
-        # We never want to process messages (such as document_restoring_preferences) when our view
-        # is None because it will cause a crash.
-        if self.view is None:
-            return False
-        else:
-            return HideableObject._process_message(self, msg)
+    def _revalidate(self):
+        """*Virtual*. Refresh the GUI element's content.
 
-    def dispatch(self, msg):
-        if self._process_message(msg):
-            Listener.dispatch(self, msg)
+        Override this when you subclass with code that refreshes the content of the element. This is
+        called when we show the element back and that we had received a notification invalidating
+        our content.
+        """
 
 
 class GUIPanel(GUIObject):
