@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -258,7 +258,7 @@ def app_fortis_with_two_layouts():
 @with_app(app_fortis_with_two_layouts)
 def test_close_document_saves_prefs(app):
     # when the document is closed, layouts are saved to preferences
-    app.doc.close()
+    app.mw.close()
     # None values can't be in the preferences. They have to be replaced by empty strings.
     default = {
         'name': 'foobar',

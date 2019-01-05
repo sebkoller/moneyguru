@@ -392,7 +392,7 @@ class TestApp(TestAppBase):
         return result
 
     def close_and_load(self):
-        self.doc.close()
+        self.mw.close()
         app = Application(self.app_gui)
         doc = Document(self.app)
         doc.view = self.doc_gui
@@ -492,7 +492,7 @@ class TestApp(TestAppBase):
         # saves the current document and returns a new app with that document loaded
         filepath = op.join(self.tmppath(), 'foo.xml')
         self.doc.save_to_xml(str(filepath))
-        self.doc.close()
+        self.mw.close()
         newapp = TestApp(app=self.app)
         newapp.doc.load_from_xml(str(filepath))
         return newapp

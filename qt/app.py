@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -15,7 +15,6 @@ from PyQt5.QtWidgets import QDialog, QApplication, QMessageBox
 
 from core.app import Application as MoneyGuruModel
 
-from .controller.document import Document
 from .controller.main_window import MainWindow
 from .controller.preferences_panel import PreferencesPanel
 from .support.about_box import AboutBox
@@ -47,9 +46,7 @@ class MoneyGuru(QObject):
             view=self, date_format=dateFormat, decimal_sep=decimalSep,
             grouping_sep=groupingSep, cache_path=cachePath, appdata_path=appdata,
         )
-        # on the Qt side, we're single document based, so it's one doc per app.
-        self.doc = Document(app=self)
-        self.mainWindow = MainWindow(doc=self.doc)
+        self.mainWindow = MainWindow(app=self)
         self.preferencesPanel = PreferencesPanel(self.mainWindow, app=self)
         self.aboutBox = AboutBox(self.mainWindow, self)
         self.initialFilePath = None
@@ -84,10 +81,10 @@ class MoneyGuru(QObject):
         self.prefs.restoreGeometry('importWindowGeometry', self.mainWindow.importWindow)
         self.mainWindow.show()
         if self.initialFilePath:
-            self.doc.open(self.initialFilePath, initial=True)
+            self.mainWindow.open(self.initialFilePath, initial=True)
 
     def applicationWillTerminate(self):
-        self.doc.close()
+        self.mainWindow.model.close()
         self.willSavePrefs.emit()
         self.prefs.saveGeometry('mainWindowGeometry', self.mainWindow)
         self.prefs.saveGeometry('importWindowGeometry', self.mainWindow.importWindow)

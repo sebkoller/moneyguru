@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-06-01
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -35,7 +33,7 @@ def test_mainwindow_panes_reopen_except_nonexistant_accounts(app):
     app.add_account('foo')
     app.show_account()
     filename = app.save_file()
-    app.doc.close()
+    app.mw.close()
     # now, we're going to remove the account from underneath
     meddling_app = TestApp()
     meddling_app.doc.load_from_xml(filename)
@@ -74,7 +72,7 @@ def test_numeric_account_name_pane_reopen(app):
     app.add_account('12345')
     app.show_account()
     filename = app.save_file()
-    app.doc.close()
+    app.mw.close()
     # now let's go change the 'account_name' attr of the pane in the prefs to emulate Qt's behavior
     panes_pref = app.doc.get_default(Preference.OpenedPanes)
     account_pane_pref = panes_pref[-1]
@@ -222,12 +220,12 @@ def test_expanded_node_prefs_is_at_document_level():
     app1.add_group('group')
     app1.bsheet.expand_node(app1.bsheet.assets[0])
     filename = app1.save_file()
-    app1.doc.close()
+    app1.mw.close()
     app2 = TestApp(app=app1.app)
     app2.show_nwview()
     app2.add_group('group')
     app2.bsheet.collapse_node(app1.bsheet.assets[0])
-    app2.doc.close() # when not doc based, this call will overwrite first doc's prefs
+    app2.mw.close() # when not doc based, this call will overwrite first doc's prefs
     newapp = TestApp(app=app1.app)
     newapp.doc.load_from_xml(filename)
     newapp.show_nwview()
@@ -242,13 +240,13 @@ def test_table_column_prefs_is_at_document_level():
     # We use description here because only optional columns can be made invisible
     app1.ttable.columns.set_column_visible('description', False)
     filename = app1.save_file()
-    app1.doc.close()
+    app1.mw.close()
     app2 = TestApp(app=app1.app)
     app2.show_tview()
     app2.ttable.columns.move_column('date', 4)
     app2.ttable.columns.resize_column('date', 41)
     app2.ttable.columns.set_column_visible('description', True)
-    app2.doc.close()
+    app2.mw.close()
     newapp = TestApp(app=app1.app)
     newapp.doc.load_from_xml(filename)
     newapp.show_tview()
@@ -262,10 +260,10 @@ def test_account_exclusion_prefs_is_at_document_level():
     app1.add_account('foo')
     app1.bsheet.toggle_excluded()
     filename = app1.save_file()
-    app1.doc.close()
+    app1.mw.close()
     app2 = TestApp(app=app1.app)
     app2.add_account('foo')
-    app2.doc.close()
+    app2.mw.close()
     newapp = TestApp(app=app1.app)
     newapp.doc.load_from_xml(filename)
     newapp.show_nwview()
@@ -276,10 +274,10 @@ def test_pane_prefs_is_at_document_level():
     app1 = TestApp()
     app1.mw.close_pane(4) # close budget pane
     filename = app1.save_file()
-    app1.doc.close()
+    app1.mw.close()
     app2 = TestApp(app=app1.app)
     app1.mw.close_pane(3) # close schedule pane
-    app2.doc.close()
+    app2.mw.close()
     newapp = TestApp(app=app1.app)
     newapp.doc.load_from_xml(filename)
     eq_(newapp.mw.pane_count, 4)

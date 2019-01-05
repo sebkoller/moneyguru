@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -420,7 +420,7 @@ def test_save_load(tmpdir, monkeypatch):
     def check(app):
         filepath = str(tmpdir.join('foo.xml'))
         app.doc.save_to_xml(filepath)
-        app.doc.close()
+        app.mw.close()
         newapp = TestApp()
         newapp.doc.load_from_xml(filepath)
         newapp.doc.date_range = app.doc.date_range
@@ -486,7 +486,7 @@ def test_save_load_qif(tmpdir):
         expanel = app.get_current_panel()
         expanel.export_path = filepath
         expanel.save()
-        app.doc.close()
+        app.mw.close()
         newapp = TestApp()
         newapp.mw.parse_file_for_import(filepath)
         while newapp.iwin.panes:

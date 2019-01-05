@@ -1428,13 +1428,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
 
     # --- Misc
     def close(self):
-        """Cleanup the document and close it.
-
-        Saves preferences and tells GUI elements about the document closing (so that they can save
-        their own preferences if needed).
-        """
         self._save_preferences()
-        self.notify('document_will_close')
 
     def stop_edition(self):
         """Call this when some operation (such as a panel loading) requires the other GUIs to save

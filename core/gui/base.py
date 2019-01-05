@@ -101,9 +101,6 @@ class DocumentNotificationsMixin:
     def document_changed(self):
         """The whole doucment has changed (for example, when loading document)."""
 
-    def document_will_close(self):
-        """The document is about to be closed."""
-
     def edition_must_stop(self):
         """If any GUI is currently in editing mode, this has to stop now."""
 

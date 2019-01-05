@@ -54,7 +54,7 @@ def test_close_document():
     # prefs work, this one too.
     app.app.auto_decimal_place = True
     app.app.show_schedule_scope_dialog = False
-    app.doc.close()
+    app.mw.close()
     newapp = Application(app.app_gui)
     newdoc = Document(newapp)
     newdoc.view = app.doc_gui
