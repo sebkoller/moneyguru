@@ -98,12 +98,14 @@ class TestLoadFile:
 
     @with_app(do_setup)
     def test_edit_entry(self, app):
-        # When about to save the document, if an entry is in edition, the document saves the edits first
+        # When about to save the document, if an entry is being edited, we
+        # cancel the edit.
         app.etable[0].description = 'foo'
         app.doc.stop_edition()
-        assert app.doc.is_dirty() # We started editing, the flag is on
-        app.etable.save_edits()
-        assert app.doc.is_dirty()
+        assert not app.doc.is_dirty() # Nothing was changed
+        eq_(app.etable[0].description, 'Entry 1')
+        app.etable.save_edits() # nothing is being scheduled for saving
+        assert not app.doc.is_dirty()
 
     @with_app(do_setup)
     def test_initial_selection(self, app):

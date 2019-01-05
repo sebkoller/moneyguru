@@ -95,4 +95,4 @@ class AccountSheetView(BaseView):
         self.sheet.show_selected_account()
 
     def stop_editing(self):
-        self.sheet.stop_editing()
+        self.sheet.cancel_edits()

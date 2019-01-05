@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -266,10 +266,14 @@ def test_make_account_liability(app):
 
 @with_app(app_one_account)
 def test_selection_follows_account_after_editing(app):
-    # After editing, selection follows the account that was edited. This is important to avoid
-    # confusion when invoking the account panel when still editing the name.
+    # After editing, selection follows the account that was edited.
+    # NOTE: this test used to test the situation where we opened the edit panel
+    #       while the account was still being renamed, but this can't happen
+    #       anymore because we always cancel edits when they're not explicitly
+    #       committed. We added a "save_edits()" to make the test pass.
     app.mw.new_item() # 'New Account', so it's after 'Checking'
     app.bsheet.selected.name = 'aaa' # will end up *before* 'Checking'
+    app.bsheet.save_edits()
     app.mw.edit_item()
     eq_(app.bsheet.selected.name, 'aaa')
 

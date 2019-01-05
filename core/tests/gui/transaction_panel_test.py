@@ -64,7 +64,8 @@ def test_load_refreshes_mct_button():
     tpanel.view.check_gui_calls_partial(['refresh_for_multi_currency'])
 
 def test_load_while_etable_is_editing():
-    # loading the tpanel while etable is editing saves the edits and stops editing mode.
+    # loading the tpanel while etable is editing aborts the edits and stops
+    # editing mode.
     app = app_one_entry()
     app.etable.add()
     row = app.etable.edited
@@ -72,11 +73,12 @@ def test_load_while_etable_is_editing():
     app.clear_gui_calls()
     app.mw.edit_item()
     assert app.etable.edited is None
-    eq_(app.etable_count(), 2)
+    eq_(app.etable_count(), 1)
     app.etable.view.check_gui_calls_partial(['stop_editing'])
 
 def test_load_while_ttable_is_editing():
-    # loading the tpanel while ttable is editing saves the edits and stops editing mode.
+    # loading the tpanel while ttable is editing aborts the edits and stops
+    # editing mode.
     app = app_one_entry()
     app.show_tview()
     app.ttable.add()
@@ -85,7 +87,7 @@ def test_load_while_ttable_is_editing():
     app.clear_gui_calls()
     app.mw.edit_item()
     assert app.ttable.edited is None
-    eq_(app.ttable.row_count, 2)
+    eq_(app.ttable.row_count, 1)
     app.ttable.view.check_gui_calls_partial(['stop_editing'])
 
 def test_values():

@@ -148,12 +148,12 @@ def test_entry_is_added_before_total_line(app):
 
 @with_app(app_entry_being_added)
 def test_save(app, tmpdir):
-    # Saving the document ends the edition mode and save the edits
+    # Saving the document abort active editing
     filepath = str(tmpdir.join('foo'))
     app.doc.save_to_xml(filepath)
     app.etable.view.check_gui_calls_partial(['stop_editing'])
     assert app.etable.edited is None
-    eq_(app.etable_count(), 1)
+    eq_(app.etable_count(), 0)
 
 # --- One entry
 def app_one_entry():

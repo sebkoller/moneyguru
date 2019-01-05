@@ -70,7 +70,7 @@ class TransactionViewBase(BaseView):
         self.table.add()
 
     def stop_editing(self):
-        self.table.stop_editing()
+        self.table.cancel_edits()
 
 
 class TransactionView(TransactionViewBase):

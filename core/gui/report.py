@@ -140,6 +140,11 @@ class Report(ViewChild, tree.Tree):
         return True
 
     def cancel_edits(self):
+        # The behavior for calling view.stop_editing() in Report is a bit
+        # different than with tables: we *always* call it instead of calling it
+        # only when something is edited. I'm not sure why. Comments in tests
+        # talk about causing crashes. TODO: investigate and clarify comment.
+        self.view.stop_editing()
         node = self.edited
         if node is None:
             return
