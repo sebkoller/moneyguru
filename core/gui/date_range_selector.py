@@ -45,7 +45,7 @@ class DateRangeSelector:
         self.document.select_all_transactions_range()
 
     def select_custom_date_range(self):
-        self.document.select_custom_date_range()
+        self.mainwindow.invoke_custom_date_range_panel()
 
     def select_prev_date_range(self):
         self.document.select_prev_date_range()

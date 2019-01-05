@@ -361,6 +361,11 @@ class MainWindow(Listener, GUIObject):
         panel.view = weakref.proxy(self.view.get_panel_view(panel))
         panel.load(accounts)
 
+    def invoke_custom_date_range_panel(self):
+        panel = CustomDateRangePanel(self)
+        panel.view = weakref.proxy(self.view.get_panel_view(panel))
+        panel.load()
+
     def jump_to_account(self):
         self.account_lookup.show()
 
@@ -661,11 +666,6 @@ class MainWindow(Listener, GUIObject):
     def account_deleted(self):
         self._undo_stack_changed()
         self.import_window.revalidate()
-
-    def custom_date_range_selected(self):
-        panel = CustomDateRangePanel(self)
-        panel.view = weakref.proxy(self.view.get_panel_view(panel))
-        panel.load()
 
     def date_range_changed(self):
         self.daterange_selector.refresh()

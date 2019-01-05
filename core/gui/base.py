@@ -92,9 +92,6 @@ class DocumentNotificationsMixin:
     def account_deleted(self):
         """Account(s) were deleted from the document."""
 
-    def custom_date_range_selected(self):
-        """We need to open the custom date range dialog."""
-
     def date_range_changed(self):
         """The current date range was changed."""
 

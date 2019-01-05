@@ -1352,16 +1352,13 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             ahead_months=self.ahead_months
         )
 
-    def select_custom_date_range(self, start_date=None, end_date=None):
+    def select_custom_date_range(self, start_date, end_date):
         """Sets :attr:`date_range` to a :class:`.CustomDateRange`.
 
         :param start_date: ``datetime.date``
         :param end_date: ``datetime.date``
         """
-        if start_date is not None and end_date is not None:
-            self.date_range = CustomDateRange(start_date, end_date, self.app.format_date)
-        else: # summon the panel
-            self.notify('custom_date_range_selected')
+        self.date_range = CustomDateRange(start_date, end_date, self.app.format_date)
 
     def select_prev_date_range(self):
         """If the current date range is navigable, select the previous range."""
