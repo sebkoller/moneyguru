@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -6,25 +6,23 @@
 
 import weakref
 
-from .base import BaseView, MESSAGES_DOCUMENT_CHANGED
+from .base import BaseViewNG
 from .account_panel import AccountPanel
 from .account_reassign_panel import AccountReassignPanel
 
-class AccountSheetView(BaseView):
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
+class AccountSheetView(BaseViewNG):
     SAVENAME = ''
-
-    def __init__(self, mainwindow):
-        BaseView.__init__(self, mainwindow)
-        self.bind_messages(self.INVALIDATING_MESSAGES, self._revalidate)
-        # Set self.sheet, self.graph and self.pie in subclasses init
+    # Set self.sheet, self.graph and self.pie in subclasses init
 
     # --- Overrides
     def _revalidate(self):
-        BaseView._revalidate(self)
+        BaseViewNG._revalidate(self)
         self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
+
+    def apply_date_range(self):
+        self._revalidate()
 
     def restore_subviews_size(self):
         if self.graph.view_size[1]:
@@ -36,7 +34,7 @@ class AccountSheetView(BaseView):
         self.pie_width_to_restore = self.document.get_default(prefname, 0)
 
     def restore_view(self):
-        BaseView.restore_view(self)
+        BaseViewNG.restore_view(self)
         self.sheet.restore_view()
 
     def save_preferences(self):
@@ -90,7 +88,7 @@ class AccountSheetView(BaseView):
         self.sheet.add_account_group()
 
     def show(self):
-        BaseView.show(self)
+        BaseViewNG.show(self)
         self.view.update_visibility()
 
     def show_account(self):
@@ -98,15 +96,3 @@ class AccountSheetView(BaseView):
 
     def stop_editing(self):
         self.sheet.stop_editing()
-
-    # --- Events
-    def document_changed(self):
-        self.sheet.refresh()
-        self.graph._revalidate()
-        self.pie._revalidate()
-
-    account_added = document_changed
-    account_changed = document_changed
-    account_deleted = document_changed
-    date_range_changed = document_changed
-    transactions_imported = document_changed

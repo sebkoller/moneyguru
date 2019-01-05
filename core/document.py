@@ -685,6 +685,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action = Action(tr('Add account'))
         action.added_accounts.add(account.copy())
         self._undoer.record(action)
+        self.touch()
         self.notify('account_added')
         return account
 
@@ -724,6 +725,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
                 if account.groupname == oldname:
                     account.groupname = name
         self._undoer.record(action)
+        self.touch()
         self.notify('account_changed')
         return True
 
@@ -746,6 +748,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self.groups.remove(group)
         for account in accounts:
             account.groupname = None
+        self.touch()
         self.notify('account_deleted')
 
     def new_group(self, type):
@@ -764,6 +767,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action.added_groups.add(group)
         self._undoer.record(action)
         self.groups.append(group)
+        self.touch()
         self.notify('account_added')
         return group
 
@@ -1507,6 +1511,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._properties['default_currency'] = value
         self.set_dirty()
         self.accounts.default_currency = value
+        self.touch()
         self.notify('document_changed')
 
 
