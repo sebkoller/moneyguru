@@ -13,12 +13,11 @@ from core.trans import tr
 
 from ..exception import OperationAborted
 from ..model.date import DateFormat
-from .base import GUIObject, DocumentNotificationsMixin
+from .base import GUIObject
 from .import_table import ImportTable
 from .selectable_list import LinkedSelectableList
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 from core.document import ImportDocument
-from core.notify import Listener
 from core.model._ccore import AccountList, Entry
 
 
@@ -306,7 +305,7 @@ class AccountPane:
             return list(entries)
 
 
-class ImportWindow(Listener, GUIObject, DocumentNotificationsMixin):
+class ImportWindow(GUIObject):
     # --- View interface
     # close()
     # close_selected_tab()
@@ -318,8 +317,7 @@ class ImportWindow(Listener, GUIObject, DocumentNotificationsMixin):
     #
 
     def __init__(self, mainwindow):
-        Listener.__init__(self, mainwindow.document)
-        GUIObject.__init__(self)
+        super().__init__()
         self.mainwindow = mainwindow
         self.document = mainwindow.document
         self.app = self.document.app
@@ -472,10 +470,9 @@ class ImportWindow(Listener, GUIObject, DocumentNotificationsMixin):
 
     # --- Override
     def _view_updated(self):
-        self.connect()
         if self.document.can_restore_from_prefs():
             # See MainWindow._view_updated() comment.
-            self.document_restoring_preferences()
+            self.restore_view()
 
     # --- Public
 
@@ -645,6 +642,17 @@ class ImportWindow(Listener, GUIObject, DocumentNotificationsMixin):
         self._refresh_swap_list_items()
         self.import_table.refresh()
 
+    def restore_view(self):
+        self.import_table.columns.restore_columns()
+
+    def revalidate(self):
+        self.refresh_targets()
+        self._refresh_target_selection()
+        self.view.refresh_target_accounts()
+
+    def save_preferences(self):
+        self.import_table.columns.save_columns()
+
     def show(self):
         self.refresh_panes()
         self.view.refresh_target_accounts()
@@ -686,18 +694,3 @@ class ImportWindow(Listener, GUIObject, DocumentNotificationsMixin):
     @property
     def target_account_names(self):
         return [tr('< New Account >')] + [a.name for a in self.target_accounts]
-
-    # --- Events
-    def account_added(self):
-        self.refresh_targets()
-        self._refresh_target_selection()
-        self.view.refresh_target_accounts()
-
-    account_changed = account_added
-    account_deleted = account_added
-
-    def document_will_close(self):
-        self.import_table.columns.save_columns()
-
-    def document_restoring_preferences(self):
-        self.import_table.columns.restore_columns()

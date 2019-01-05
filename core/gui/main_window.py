@@ -646,7 +646,9 @@ class MainWindow(Listener, GUIObject):
         self.view.refresh_undo_actions()
         self._current_pane.view.revalidate()
 
-    account_added = _undo_stack_changed
+    def account_added(self):
+        self._undo_stack_changed()
+        self.import_window.revalidate()
 
     def account_changed(self):
         self._undo_stack_changed()
@@ -654,8 +656,12 @@ class MainWindow(Listener, GUIObject):
         if tochange is not None:
             tochange.label = tochange.account.name
             self.view.refresh_panes()
+        self.import_window.revalidate()
 
-    account_deleted = _undo_stack_changed
+    def account_deleted(self):
+        self._undo_stack_changed()
+        self.import_window.revalidate()
+
     budget_changed = _undo_stack_changed
     budget_deleted = _undo_stack_changed
 
@@ -685,6 +691,7 @@ class MainWindow(Listener, GUIObject):
             # always mean closing the window (unlike under Cocoa).
             self._current_pane.view.hide()
         self.csv_options.save_preferences()
+        self.import_window.save_preferences()
 
     def document_restoring_preferences(self):
         window_frame = self.document.get_default(Preference.WindowFrame)
@@ -695,6 +702,7 @@ class MainWindow(Listener, GUIObject):
         self._update_area_visibility()
         for pane in self.panes:
             pane.view.restore_view()
+        self.import_window.restore_view()
 
     def edition_must_stop(self):
         if self._current_pane is not None:
