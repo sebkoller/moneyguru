@@ -98,7 +98,7 @@ class Chart(ViewChild):
 
     Subclasses :class:`.ViewChild`.
     """
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'accounts_excluded', 'date_range_changed'}
+    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
 
     def __init__(self, parent_view):
         ViewChild.__init__(self, parent_view)

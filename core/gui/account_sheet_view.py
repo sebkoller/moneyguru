@@ -11,7 +11,7 @@ from .account_panel import AccountPanel
 from .account_reassign_panel import AccountReassignPanel
 
 class AccountSheetView(BaseView):
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'accounts_excluded', 'date_range_changed'}
+    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
     SAVENAME = ''
 
     def __init__(self, mainwindow):
@@ -22,7 +22,7 @@ class AccountSheetView(BaseView):
     # --- Overrides
     def _revalidate(self):
         BaseView._revalidate(self)
-        self.sheet._revalidate()
+        self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
 
@@ -50,6 +50,10 @@ class AccountSheetView(BaseView):
         if width:
             prefname = '{}.PieWidth'.format(self.SAVENAME)
             self.document.set_default(prefname, width)
+
+    def toggle_accounts_exclusion(self, accounts):
+        self.document.toggle_accounts_exclusion(accounts)
+        self._revalidate()
 
     def update_visibility(self):
         self.view.update_visibility()
@@ -104,6 +108,5 @@ class AccountSheetView(BaseView):
     account_added = document_changed
     account_changed = document_changed
     account_deleted = document_changed
-    accounts_excluded = document_changed
     date_range_changed = document_changed
     transactions_imported = document_changed

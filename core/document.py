@@ -692,8 +692,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         """Toggles "excluded" state for ``accounts``.
 
         If the current excluded state for ``accounts`` is not homogenous, we set all non-excluded
-        accounts as excluded and leave excluded accounts in their current state. Afterwards,
-        ``accounts_excluded`` is broadcasted.
+        accounts as excluded and leave excluded accounts in their current state.
 
         :param accounts: a ``set`` of :class:`.Account`
         """
@@ -701,7 +700,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self.excluded_accounts -= accounts
         else:
             self.excluded_accounts |= accounts
-        self.notify('accounts_excluded')
 
     # --- Group
     def change_group(self, group, name=NOEDIT):

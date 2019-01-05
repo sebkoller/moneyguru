@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -15,11 +15,6 @@ from ..model.date import DateRange
 from .pie_chart import PieChart
 
 class _AccountPieChart(PieChart):
-    INVALIDATING_MESSAGES = (
-        PieChart.INVALIDATING_MESSAGES |
-        {'accounts_excluded'}
-    )
-
     def __init__(self, parent_view, title):
         PieChart.__init__(self, parent_view)
         self._title = title

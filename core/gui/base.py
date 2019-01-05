@@ -94,9 +94,6 @@ class DocumentNotificationsMixin:
     def account_deleted(self):
         """Account(s) were deleted from the document."""
 
-    def accounts_excluded(self):
-        """Account(s) had their exclusion status changed."""
-
     def budget_changed(self):
         """Budget(s) had some of their properties changed."""
 

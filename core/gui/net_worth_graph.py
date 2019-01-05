@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -28,11 +28,6 @@ class NetWorthGraph(BalanceGraph):
         self._accounts = accounts - self.document.excluded_accounts
         self._currency = self.document.default_currency
         BalanceGraph.compute_data(self)
-
-    # --- Event Handlers
-    def accounts_excluded(self):
-        self.compute()
-        self.view.refresh()
 
     # --- Properties
     @property

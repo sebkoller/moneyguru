@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -24,7 +24,7 @@ def get_delta_perc(delta_amount, start_amount):
 class Report(ViewChild, tree.Tree):
     SAVENAME = ''
     COLUMNS = []
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'accounts_excluded', 'date_range_changed'}
+    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
 
     def __init__(self, parent_view):
         ViewChild.__init__(self, parent_view)
@@ -41,11 +41,6 @@ class Report(ViewChild, tree.Tree):
             self._expanded_paths = {tuple(p) for p in expanded}
             self.view.refresh_expanded_paths()
         self.columns.restore_columns()
-
-    def _revalidate(self):
-        self.refresh(refresh_view=False)
-        self._update_selection()
-        self.view.refresh()
 
     # --- Virtual
     def _compute_account_node(self, node):
@@ -340,7 +335,7 @@ class Report(ViewChild, tree.Tree):
             elif node.is_account:
                 affected_accounts.add(node.account)
         if affected_accounts:
-            self.document.toggle_accounts_exclusion(affected_accounts)
+            self.parent_view.toggle_accounts_exclusion(affected_accounts)
 
     # --- Properties
     @property
