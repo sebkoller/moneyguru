@@ -1392,38 +1392,3 @@ class TestEntrySelectionOnDateRangeChange:
         app.etable.select([0]) # 2007/2/2, no previous balance
         app.drsel.select_next_date_range()
         eq_(app.etable.selected_indexes, [5]) # 2008/2/2
-
-
-class TestExampleDocumentLoadTest:
-    def do_setup(self, monkeypatch):
-        # We're creating a couple of transactions with the latest being 4 months ago (in april).
-        monkeypatch.patch_today(2009, 8, 27)
-        app = TestApp()
-        app.add_account()
-        app.show_account()
-        app.add_entry('01/03/2008')
-        app.add_entry('29/10/2008') # this one will end up in february, but overflow
-        app.add_entry('01/03/2009')
-        app.add_entry('15/04/2009')
-        app.add_entry('28/04/2009') # will be deleted because in the future
-        app.show_scview()
-        scpanel = app.mainwindow.new_item()
-        scpanel.start_date = '03/03/2009'
-        scpanel.stop_date = '04/05/2009'
-        scpanel.repeat_type_index = 2 # monthly
-        scpanel.save()
-        return app
-
-    @with_app(do_setup)
-    def test_adjust_example_file(self, app):
-        # When loading as an example file, an offset is correctly applied to transactions.
-        app.doc.adjust_example_file()
-        app.show_tview()
-        # There are 3 normal txns (the last one is deleted because it's in the future)
-        # and 1 schedule spawns (only future spawns are kept)
-        eq_(app.ttable.row_count, 4)
-        eq_(app.ttable[0].date, '01/03/2009') # from 29/09/2008, it was in feb, but overflowed
-        eq_(app.ttable[1].date, '01/07/2009') # from 01/03/2009
-        eq_(app.ttable[2].date, '15/08/2009') # from 15/04/2009
-        eq_(app.ttable[3].date, '03/09/2009') # spawn
-

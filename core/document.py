@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -27,7 +27,7 @@ from .model.currency import Currencies
 from .model.budget import BudgetList
 from .model.date import (
     MonthRange, QuarterRange, YearRange, YearToDateRange, RunningYearRange,
-    AllTransactionsRange, CustomDateRange, inc_month
+    AllTransactionsRange, CustomDateRange
 )
 from .model.oven import Oven
 from .model.transaction_list import TransactionList
@@ -1116,48 +1116,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.notify('document_changed')
 
     # --- Load / Save / Import
-    def adjust_example_file(self):
-        """Adjusts all document's transactions so that they become current.
-
-        This is used when loading the example document so that it's not necessary to do it manually.
-        """
-        def inc_month_overflow(refdate, count):
-            newdate = inc_month(refdate, count)
-            if newdate.day < refdate.day: # must overflow
-                newdate += datetime.timedelta(days=refdate.day-newdate.day)
-            return newdate
-
-        latest_date = self.transactions.last().date
-        TODAY = datetime.date.today()
-        year_diff = TODAY.year - latest_date.year
-        month_diff = year_diff * 12 + (TODAY.month - latest_date.month)
-        if month_diff < 1:
-            return
-        for txn in list(self.transactions):
-            txn.date = inc_month_overflow(txn.date, month_diff)
-            if txn.date > TODAY:
-                self.transactions.remove(txn)
-            for split in txn.splits:
-                if split.reconciliation_date is not None:
-                    split.reconciliation_date = txn.date
-        for schedule in self.schedules:
-            date2exception = schedule.date2exception
-            schedule.start_date = inc_month_overflow(schedule.start_date, month_diff)
-            if schedule.stop_date is not None:
-                schedule.stop_date = inc_month_overflow(schedule.stop_date, month_diff)
-            # we delete any spawn that is not in the future
-            for spawn in schedule.get_spawns(end=TODAY):
-                schedule.delete(spawn)
-            # This will not work for weekly schedules, but the only reason we have this here is
-            # for then the student loan stops in the example document (last payment is different)
-            for date, exception in list(date2exception.items()):
-                if exception is None:
-                    continue
-                newdate = inc_month_overflow(date, month_diff)
-                schedule.date2exception[newdate] = exception
-        self._cook()
-        self.notify('document_changed') # do it again to refresh the guis
-
     def clear(self):
         """Removes all data from the document (transactions, accounts, schedules, etc.)."""
         self._clear()

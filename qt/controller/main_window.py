@@ -4,10 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import os.path as op
-import tempfile
-
-from PyQt5.QtCore import Qt, QRect, QSize, QFile
+from PyQt5.QtCore import Qt, QRect, QSize
 from PyQt5.QtPrintSupport import QPrintDialog
 from PyQt5.QtGui import QIcon, QPixmap, QKeySequence
 from PyQt5.QtWidgets import (
@@ -221,7 +218,6 @@ class MainWindow(QMainWindow):
         self.actionShowPreviousView = QAction(tr("Previous View"), self)
         self.actionShowPreviousView.setShortcut("Ctrl+Shift+[")
         self.actionNewDocument = QAction(tr("New Document"), self)
-        self.actionOpenExampleDocument = QAction(tr("Open Example Document"), self)
         self.actionOpenPluginFolder = QAction(tr("Open Plugin Folder"), self)
         self.actionImport = QAction(tr("Import..."), self)
         self.actionImport.setShortcut("Ctrl+Alt+I")
@@ -270,7 +266,6 @@ class MainWindow(QMainWindow):
         self.menuFile.addAction(self.actionNewTab)
         self.menuFile.addAction(self.actionOpenDocument)
         self.menuFile.addAction(self.menuOpenRecent.menuAction())
-        self.menuFile.addAction(self.actionOpenExampleDocument)
         self.menuFile.addAction(self.actionOpenPluginFolder)
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addSeparator()
@@ -365,7 +360,6 @@ class MainWindow(QMainWindow):
         # Open / Save / Import / Export / New
         self.actionNewDocument.triggered.connect(self.new)
         self.actionOpenDocument.triggered.connect(self.openDocument)
-        self.actionOpenExampleDocument.triggered.connect(self.openExampleDocument)
         self.actionOpenPluginFolder.triggered.connect(self.model.app.open_plugin_folder)
         self.actionImport.triggered.connect(self.importDocument)
         self.actionSave.triggered.connect(self.save)
@@ -512,18 +506,6 @@ class MainWindow(QMainWindow):
         self.model.close()
         self.documentPath = None
         self.doc.clear()
-        self.documentPathChanged()
-
-    def openExampleDocument(self):
-        if not self.confirmDestructiveAction():
-            return
-        self.model.close()
-        dirpath = tempfile.mkdtemp()
-        destpath = op.join(dirpath, 'example.moneyguru')
-        QFile.copy(':/example.moneyguru', destpath)
-        self.doc.load_from_xml(destpath)
-        self.doc.adjust_example_file()
-        self.documentPath = None # As if it was a new doc. Save As is required.
         self.documentPathChanged()
 
     def open(self, docpath, initial=False):
