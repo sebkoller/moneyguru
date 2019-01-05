@@ -1,5 +1,4 @@
-# Created On: 2011/10/13
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -57,7 +56,7 @@ def test_props_are_doc_based(app, tmpdir):
     # which contains preference, to be sure that the data is actually doc-based
     app.doc.save_to_xml(fn)
     app = TestApp()
-    app.doc.load_from_xml(fn)
+    app.mw.load_from_xml(fn)
     dpview = app.show_dpview()
     eq_(dpview.currency_list.selected_index, 42)
     eq_(dpview.first_weekday_list.selected_index, 4)

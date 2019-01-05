@@ -36,14 +36,14 @@ def test_mainwindow_panes_reopen_except_nonexistant_accounts(app):
     app.mw.close()
     # now, we're going to remove the account from underneath
     meddling_app = TestApp()
-    meddling_app.doc.load_from_xml(filename)
+    meddling_app.mw.load_from_xml(filename)
     meddling_app.show_nwview()
     meddling_app.bsheet.selected = meddling_app.bsheet.assets[0]
     meddling_app.bsheet.delete()
     meddling_app.doc.save_to_xml(filename)
     newapp = TestApp(app=app.app)
     # We have to load a file for the columns to be restored. That file doesn't have a 'foo' account
-    newapp.doc.load_from_xml(filename) # no crash on restore
+    newapp.mw.load_from_xml(filename) # no crash on restore
     eq_(newapp.mw.pane_count, 5)
     # since we don't have enough tabs to restore last selected index, select the last one
     eq_(newapp.mw.current_pane_index, 4)
@@ -52,7 +52,7 @@ def test_mainwindow_panes_reopen_except_nonexistant_accounts(app):
 def test_main_window_doent_choke_on_unexisting_pane_pref(app):
     app.app.set_default(Preference.OpenedPanes, [{'pane_type': '99999'}])
     newapp = TestApp(app=app.app)
-    newapp.doc.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru')) # no crash on restore
+    newapp.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru')) # no crash on restore
     newapp.check_current_pane(PaneType.NetWorth) # been replaced with a Net Worth pane.
 
 @with_app(TestApp)
@@ -78,7 +78,7 @@ def test_numeric_account_name_pane_reopen(app):
     account_pane_pref = panes_pref[-1]
     account_pane_pref['account_name'] = int(account_pane_pref['account_name'])
     newapp = TestApp(app=app.app)
-    newapp.doc.load_from_xml(filename) # no crash on restore
+    newapp.mw.load_from_xml(filename) # no crash on restore
     eq_(app.mw.pane_label(app.mw.pane_count-1), '12345')
 
 @with_app(TestApp)
@@ -227,7 +227,7 @@ def test_expanded_node_prefs_is_at_document_level():
     app2.bsheet.collapse_node(app1.bsheet.assets[0])
     app2.mw.close() # when not doc based, this call will overwrite first doc's prefs
     newapp = TestApp(app=app1.app)
-    newapp.doc.load_from_xml(filename)
+    newapp.mw.load_from_xml(filename)
     newapp.show_nwview()
     assert (0, 0) in newapp.bsheet.expanded_paths
 
@@ -248,7 +248,7 @@ def test_table_column_prefs_is_at_document_level():
     app2.ttable.columns.set_column_visible('description', True)
     app2.mw.close()
     newapp = TestApp(app=app1.app)
-    newapp.doc.load_from_xml(filename)
+    newapp.mw.load_from_xml(filename)
     newapp.show_tview()
     eq_(newapp.ttable.columns.colnames[5], 'date')
     eq_(newapp.ttable.columns.column_width('date'), 42)
@@ -265,7 +265,7 @@ def test_account_exclusion_prefs_is_at_document_level():
     app2.add_account('foo')
     app2.mw.close()
     newapp = TestApp(app=app1.app)
-    newapp.doc.load_from_xml(filename)
+    newapp.mw.load_from_xml(filename)
     newapp.show_nwview()
     assert newapp.bsheet.assets[0].is_excluded
 
@@ -279,7 +279,7 @@ def test_pane_prefs_is_at_document_level():
     app1.mw.close_pane(3) # close schedule pane
     app2.mw.close()
     newapp = TestApp(app=app1.app)
-    newapp.doc.load_from_xml(filename)
+    newapp.mw.load_from_xml(filename)
     eq_(newapp.mw.pane_count, 4)
     newapp.mw.current_pane_index = 3
     newapp.check_current_pane(PaneType.Schedule)

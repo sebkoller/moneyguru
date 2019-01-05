@@ -203,7 +203,7 @@ def test_ensures_rates(tmpdir, fake_server, monkeypatch):
     monkeypatch.setattr(rates_db, 'ensure_rates', log_calls(rates_db.ensure_rates))
     filename = str(tmpdir.join('foo.xml'))
     app.doc.save_to_xml(filename)
-    app.doc.load_from_xml(filename)
+    app.mw.load_from_xml(filename)
     calls = rates_db.ensure_rates.calls
     eq_(len(calls), 1)
     eq_(set(calls[0]['currencies']), set(['PLN', 'EUR', 'CAD']))

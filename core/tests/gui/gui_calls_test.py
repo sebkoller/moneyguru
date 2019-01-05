@@ -269,7 +269,7 @@ def app_load_file_with_bsheet_selected():
     app = TestApp()
     app.show_nwview()
     app.clear_gui_calls()
-    app.doc.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
+    app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
     return app
 
 @with_app(app_load_file_with_bsheet_selected)

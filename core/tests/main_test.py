@@ -84,7 +84,7 @@ def test_load_inexistant(tmpdir):
     app = TestApp()
     filename = str(tmpdir.join('does_not_exist.xml'))
     with raises(FileFormatError):
-        app.doc.load_from_xml(filename)
+        app.mw.load_from_xml(filename)
 
 def test_load_invalid():
     # Raises FileFormatError, which gives a message kind of like: <filename> is not a moneyGuru
@@ -92,7 +92,7 @@ def test_load_invalid():
     app = TestApp()
     filename = testdata.filepath('randomfile')
     try:
-        app.doc.load_from_xml(filename)
+        app.mw.load_from_xml(filename)
     except FileFormatError as e:
         assert filename in str(e)
     else:
@@ -103,7 +103,7 @@ def test_load_empty(monkeypatch):
     app = TestApp()
     monkeypatch.setattr(base.Loader, 'parse', lambda self, filename: None)
     monkeypatch.setattr(base.Loader, 'load', lambda self: None)
-    app.doc.load_from_xml('filename does not matter here')
+    app.mw.load_from_xml('filename does not matter here')
 
 def test_modified_flag():
     # The modified flag is initially False.

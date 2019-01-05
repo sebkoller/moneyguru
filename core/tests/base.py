@@ -494,7 +494,7 @@ class TestApp(TestAppBase):
         self.doc.save_to_xml(str(filepath))
         self.mw.close()
         newapp = TestApp(app=self.app)
-        newapp.doc.load_from_xml(str(filepath))
+        newapp.mw.load_from_xml(str(filepath))
         return newapp
 
     def save_file(self):

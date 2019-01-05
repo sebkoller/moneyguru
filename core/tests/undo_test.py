@@ -378,7 +378,7 @@ def app_load_file():
     app.doc.date_range = MonthRange(date(2008, 2, 1))
     # This is to set the modified flag to true so we can make sure it has been put back to false
     app.add_account()
-    app.doc.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
+    app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
     # we have to cheat here because the first save state is articifially
     # different than the second save state because the second state has
     # the currency rates fetched. So what we do here is wait a little bit

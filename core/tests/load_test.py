@@ -22,7 +22,7 @@ def test_dont_save_invalid_xml_characters(tmpdir):
     app.add_txn(description="foo\0bar")
     filepath = str(tmpdir.join('foo.xml'))
     app.doc.save_to_xml(filepath)
-    app.doc.load_from_xml(filepath) # no exception
+    app.mw.load_from_xml(filepath) # no exception
     eq_(app.ttable[0].description, "foo bar")
 
 def test_saved_file_starts_with_xml_header(tmpdir):
@@ -42,7 +42,7 @@ class TestLoadFile:
         monkeypatch.patch_today(2008, 2, 20) # so that the entries are shown
         app = TestApp()
         app.add_account() # This is to set the modified flag to true so we can make sure it has been put back to false
-        app.doc.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
+        app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
         app.show_nwview()
         app.bsheet.selected = app.bsheet.assets[0]
         app.show_account()
@@ -137,8 +137,8 @@ class TestLoadTwice:
     def do_setup(self):
         app = TestApp()
         app.doc.date_range = MonthRange(date(2008, 2, 1))
-        app.doc.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
-        app.doc.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
+        app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
+        app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
         return app
 
     @with_app(do_setup)
@@ -154,7 +154,7 @@ class TestLoadMultiCurrency:
         # Loads 'multi_currency.moneyguru', a file with 2 accounts and a multi-currency transaction.
         app = TestApp()
         app.doc.date_range = MonthRange(date(2008, 2, 1))
-        app.doc.load_from_xml(testdata.filepath('moneyguru', 'multi_currency.moneyguru'))
+        app.mw.load_from_xml(testdata.filepath('moneyguru', 'multi_currency.moneyguru'))
         app.show_nwview()
         app.bsheet.selected = app.bsheet.assets[0]
         app.show_account()
@@ -179,7 +179,7 @@ class TestLoadPayeeDescription:
     def do_setup(self):
         app = TestApp()
         app.doc.date_range = MonthRange(date(2008, 3, 1))
-        app.doc.load_from_xml(testdata.filepath('moneyguru', 'payee_description.moneyguru'))
+        app.mw.load_from_xml(testdata.filepath('moneyguru', 'payee_description.moneyguru'))
         app.show_tview()
         return app
 
@@ -224,7 +224,7 @@ class TestLoadInvalidAccountType:
     def do_setup(self):
         #Loads 'invalid_account_type.moneyguru' which contains a single account with an invalid type.
         app = TestApp()
-        app.doc.load_from_xml(testdata.filepath('moneyguru', 'invalid_account_type.moneyguru'))
+        app.mw.load_from_xml(testdata.filepath('moneyguru', 'invalid_account_type.moneyguru'))
         return app
 
     @with_app(do_setup)
@@ -252,7 +252,7 @@ class TestLoadWithReferences1:
         # Loads 'with_references1.moneyguru' which also have boolean (y/n) reconciliation attributes.
         monkeypatch.patch_today(2008, 2, 1) # before any txn date
         app = TestApp()
-        app.doc.load_from_xml(testdata.filepath('moneyguru', 'with_references1.moneyguru'))
+        app.mw.load_from_xml(testdata.filepath('moneyguru', 'with_references1.moneyguru'))
         return app
 
     @with_app(do_setup)
@@ -424,7 +424,7 @@ def test_save_load(tmpdir, monkeypatch):
         app.doc.save_to_xml(filepath)
         app.mw.close()
         newapp = TestApp()
-        newapp.doc.load_from_xml(filepath)
+        newapp.mw.load_from_xml(filepath)
         newapp.doc.date_range = app.doc.date_range
         newapp.doc._cook()
         compare_apps(app.doc, newapp.doc)
@@ -516,7 +516,7 @@ class TestLoadOffCurrencyReconciliations:
     def do_setup(self, monkeypatch):
         monkeypatch.patch_today(2015, 10, 26) # so that the entries are shown
         app = TestApp()
-        app.doc.load_from_xml(testdata.filepath('moneyguru', 'off_currency_reconciliations.moneyguru'))
+        app.mw.load_from_xml(testdata.filepath('moneyguru', 'off_currency_reconciliations.moneyguru'))
         app.show_nwview()
         app.bsheet.selected = app.bsheet.assets[0]
         app.show_account()

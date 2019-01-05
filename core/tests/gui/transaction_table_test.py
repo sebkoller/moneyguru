@@ -828,7 +828,7 @@ def test_added_txn_is_correctly_selected(app):
 def app_load_file():
     app = TestApp()
     app.doc.date_range = MonthRange(date(2008, 2, 1))
-    app.doc.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
+    app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
     app.show_tview()
     return app
 

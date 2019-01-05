@@ -547,7 +547,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         selected_range = self.app.get_default(SELECTED_DATE_RANGE_PREFERENCE)
         if selected_range == DATE_RANGE_ALL_TRANSACTIONS: # only works after load
             self.select_all_transactions_range()
-        self.notify('document_restoring_preferences')
 
     def _save_preferences(self):
         dr = self.date_range
@@ -1152,10 +1151,10 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self.budgets.append(budget)
         self.accounts.default_currency = self.default_currency
         self._cook()
-        self._restore_preferences_after_load()
         self.notify('document_changed')
         self._undoer.set_save_point()
         self._refresh_date_range()
+        self._restore_preferences_after_load()
 
     def save_to_xml(self, filename, autosave=False):
         """Saves the document to ``filename``.

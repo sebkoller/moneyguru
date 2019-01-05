@@ -515,7 +515,7 @@ class MainWindow(QMainWindow):
             return
         self.model.close()
         try:
-            self.doc.load_from_xml(docpath)
+            self.model.load_from_xml(docpath)
             self.documentPath = docpath
         except FileFormatError as e:
             QMessageBox.warning(self.app.mainWindow, tr("Cannot load file"), str(e))

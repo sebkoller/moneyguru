@@ -405,7 +405,7 @@ def test_import_with_same_reference_twice(app):
 def app_load_then_import_with_ref(monkeypatch):
     monkeypatch.patch_today(2008, 1, 1)
     app = TestApp()
-    app.doc.load_from_xml(testdata.filepath('moneyguru/with_references1.moneyguru'))
+    app.mw.load_from_xml(testdata.filepath('moneyguru/with_references1.moneyguru'))
     app.mw.parse_file_for_import(testdata.filepath('moneyguru/with_references2.moneyguru'))
     return app
 

@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -239,7 +239,7 @@ class TestDoubleOFXImportAcrossSessions:
         app.bsheet.save_edits()
         filename = str(tmpdir.join('foo.xml'))
         app.doc.save_to_xml(filename)
-        app.doc.load_from_xml(filename)
+        app.mw.load_from_xml(filename)
         importall(app, testdata.filepath('ofx', 'desjardins2.ofx'))
         return app
 
@@ -285,7 +285,7 @@ class TestTripleOFXImportAcrossSessions:
         importall(app, testdata.filepath('ofx', 'desjardins.ofx'))
         filename = str(tmpdir.join('foo.xml'))
         app.doc.save_to_xml(filename)
-        app.doc.load_from_xml(filename)
+        app.mw.load_from_xml(filename)
         importall(app, testdata.filepath('ofx', 'desjardins.ofx'))
         return app
 
@@ -354,7 +354,7 @@ class TestTwoEntriesInRangeSaveThenLoad:
         app.add_entry('1/10/2007', description='second')
         filename = str(tmpdir.join('foo.xml'))
         app.doc.save_to_xml(filename)
-        app.doc.load_from_xml(filename)
+        app.mw.load_from_xml(filename)
         # have been kicked back to bsheet. Select the account again
         app.bsheet.selected = app.bsheet.assets[0]
         app.show_account()

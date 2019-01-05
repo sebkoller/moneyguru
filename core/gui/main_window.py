@@ -318,7 +318,7 @@ class MainWindow(Listener, GUIObject):
     def _view_updated(self):
         self.daterange_selector.refresh()
         self.daterange_selector.refresh_custom_ranges()
-        self.document_restoring_preferences()
+        self.restore_view()
         if not self.panes:
             self._restore_default_panes()
 
@@ -388,6 +388,10 @@ class MainWindow(Listener, GUIObject):
 
     def jump_to_account(self):
         self.account_lookup.show()
+
+    def load_from_xml(self, filename):
+        self.document.load_from_xml(filename)
+        self.restore_view()
 
     def load_parsed_file_for_import(self):
         """Load a parsed file for import and trigger the opening of the Import window.
@@ -497,6 +501,17 @@ class MainWindow(Listener, GUIObject):
             self.csv_options.show()
         else:
             self.load_parsed_file_for_import()
+
+    def restore_view(self):
+        window_frame = self.document.get_default(Preference.WindowFrame)
+        if window_frame:
+            self.view.restore_window_frame(tuple(window_frame))
+        self._restore_opened_panes()
+        self.hidden_areas = set(self.document.get_default(Preference.HiddenAreas, fallback_value=[]))
+        self._update_area_visibility()
+        for pane in self.panes:
+            pane.view.restore_view()
+        self.import_window.restore_view()
 
     def save_custom_range(self, slot, name, start, end):
         # called by the CustomDateRangePanel
@@ -704,17 +719,6 @@ class MainWindow(Listener, GUIObject):
         self.stop_editing()
         self._close_irrelevant_account_panes()
         self._undo_stack_changed()
-
-    def document_restoring_preferences(self):
-        window_frame = self.document.get_default(Preference.WindowFrame)
-        if window_frame:
-            self.view.restore_window_frame(tuple(window_frame))
-        self._restore_opened_panes()
-        self.hidden_areas = set(self.document.get_default(Preference.HiddenAreas, fallback_value=[]))
-        self._update_area_visibility()
-        for pane in self.panes:
-            pane.view.restore_view()
-        self.import_window.restore_view()
 
     def transaction_deleted(self):
         self._explicitly_selected_transactions = []

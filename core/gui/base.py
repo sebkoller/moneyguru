@@ -95,9 +95,6 @@ class DocumentNotificationsMixin:
     def date_range_changed(self):
         """The current date range was changed."""
 
-    def document_restoring_preferences(self):
-        """Our document is restoring its state from preferences."""
-
     def document_changed(self):
         """The whole doucment has changed (for example, when loading document)."""
 

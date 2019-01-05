@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-08
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -180,7 +178,7 @@ def app_load_then_import_with_references():
     # with_reference1 and 2 have references that overlap. This is supposed to cause matching in the
     # import dialog.
     app = TestApp()
-    app.doc.load_from_xml(testdata.filepath('moneyguru', 'with_references1.moneyguru'))
+    app.mw.load_from_xml(testdata.filepath('moneyguru', 'with_references1.moneyguru'))
     app.doc.date_range = YearRange(date(2008, 1, 1))
     app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'with_references2.moneyguru'))
     app.clear_gui_calls()
