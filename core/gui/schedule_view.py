@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,11 +8,11 @@ import weakref
 
 from core.trans import tr
 from ..const import PaneType
-from .base import BaseViewNG
+from .base import BaseView
 from .schedule_table import ScheduleTable
 from .schedule_panel import SchedulePanel
 
-class ScheduleView(BaseViewNG):
+class ScheduleView(BaseView):
     VIEW_TYPE = PaneType.Schedule
     PRINT_TITLE_FORMAT = tr('Schedules from {start_date} to {end_date}')
 

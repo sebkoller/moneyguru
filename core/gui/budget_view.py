@@ -8,11 +8,11 @@ import weakref
 
 from core.trans import tr
 from ..const import PaneType
-from .base import BaseViewNG
+from .base import BaseView
 from .budget_table import BudgetTable
 from .budget_panel import BudgetPanel
 
-class BudgetView(BaseViewNG):
+class BudgetView(BaseView):
     # --- model -> view calls:
     # get_panel_view(panel_model) -> view
     #

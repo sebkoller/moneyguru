@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -14,7 +14,7 @@ class EmptyView(BaseView):
     VIEW_TYPE = PaneType.Empty
 
     def __init__(self, mainwindow):
-        BaseView.__init__(self, mainwindow)
+        super().__init__(mainwindow)
         plugin_names = [p.NAME for p in self.mainwindow.app.get_enabled_plugins() if p.IS_VIEW]
         self.plugin_list = GUISelectableList(plugin_names)
 

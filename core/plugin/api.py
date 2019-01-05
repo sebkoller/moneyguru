@@ -117,10 +117,9 @@ class ReadOnlyTableView(BaseView):
     VIEW_TYPE = PaneType.ReadOnlyTablePlugin
 
     def __init__(self, plugin):
-        BaseView.__init__(self, plugin.mainwindow)
+        super().__init__(plugin.mainwindow)
         self.plugin = plugin
         self.table = ReadOnlyTable(plugin)
-        self.bind_messages(self.INVALIDATING_MESSAGES, self._revalidate)
 
     def _revalidate(self):
         self.table.refresh_and_show_selection()

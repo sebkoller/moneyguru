@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -134,15 +134,12 @@ class DocumentNotificationsMixin:
         """Transactions have just been imported into the document."""
 
 
-MESSAGES_EVERYTHING_CHANGED = {'document_changed'}
-MESSAGES_DOCUMENT_CHANGED = (
-    MESSAGES_EVERYTHING_CHANGED |
-    {
-        'account_added', 'account_changed', 'account_deleted', 'transaction_changed',
-        'transaction_deleted', 'transactions_imported', 'budget_changed', 'budget_deleted',
-        'schedule_changed', 'schedule_deleted'
+MESSAGES_DOCUMENT_CHANGED = {
+        'account_added', 'account_changed', 'account_deleted', 'document_changed',
+        'transaction_changed', 'transaction_deleted', 'transactions_imported',
+        'budget_changed', 'budget_deleted', 'schedule_changed',
+        'schedule_deleted'
     }
-)
 
 class DocumentGUIObject(Listener, GUIObject, DocumentNotificationsMixin):
     """Base class for listeners of :class:`.Document`.
@@ -281,7 +278,7 @@ class MainWindowPanel(GUIPanel):
         self.mainwindow = mainwindow
 
 
-class BaseViewNG(GUIObject):
+class BaseView(GUIObject):
     """ The next generation of BaseView.
 
     Unlike BaseView, it doesn't listen or repeat document notifications at all. It's based on the
@@ -290,6 +287,15 @@ class BaseViewNG(GUIObject):
     The goal is to completely replace BaseView before the next release (which will probably be
     v3.0).
     """
+    # --- model -> view calls:
+    # restore_subviews_size()
+    #
+
+    #: A :class:`.PaneType` constant uniquely identifying our subclass.
+    VIEW_TYPE = -1
+    #: The class to use as a model when printing a tab. Defaults to :class:`.PrintView`.
+    PRINT_VIEW_CLASS = PrintView
+
     def __init__(self, mainwindow):
         super().__init__()
         self.mainwindow = mainwindow
@@ -299,12 +305,6 @@ class BaseViewNG(GUIObject):
         self._doc_step = 0
 
     # --- Temporary stubs
-    def connect(self):
-        pass
-
-    def disconnect(self):
-        pass
-
     def show(self):
         self.revalidate()
 
@@ -412,178 +412,3 @@ class BaseViewNG(GUIObject):
     def status_line(self, value):
         self._status_line = value
         self.mainwindow.update_status_line()
-
-
-class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
-    """Superclass for main "tabs" controllers.
-
-    You know, the tabs you open in moneyGuru (Net Worth, Transactions, General Ledger)? Their main
-    controller is a subclass of this. They're a GUI object, but they don't have much of an existence
-    as a UI view, their only purpose being to hold the child views together.
-
-    Views subclasses are uniquely identified by their :attr:`VIEW_TYPE` attribute which is an
-    ``int`` constant that is kept in sync in the UI layer. This way, when we tell the UI to load up
-    the view ``2``, then it knows that we mean the Transactions tab.
-
-    All views respond to a common subset of methods (our virtual methods below), each in their own
-    ways. There's many buttons and menu items (new, edit, delete, etc.) that have a name that is
-    generic enough to be applied to multiple situations depending on the active tab.
-    """
-    # --- model -> view calls:
-    # restore_subviews_size()
-    #
-
-    #: A :class:`.PaneType` constant uniquely identifying our subclass.
-    VIEW_TYPE = -1
-    #: The class to use as a model when printing a tab. Defaults to :class:`.PrintView`.
-    PRINT_VIEW_CLASS = PrintView
-    # Messages that invalidates the view if received while it's hidden (its cache will be
-    # revalidated upon show)
-    INVALIDATING_MESSAGES = set()
-
-    def __init__(self, mainwindow):
-        Listener.__init__(self, mainwindow.document)
-        GUIObject.__init__(self)
-        #: :class:`.MainWindow`
-        self.mainwindow = mainwindow
-        #: :class:`.Document`
-        self.document = mainwindow.document
-        #: :class:`.Application`
-        self.app = mainwindow.document.app
-        self._status_line = ""
-        self._hidden = True
-        self._invalidated = True
-
-    # --- Temporary stubs
-    def revalidate(self):
-        pass
-
-    # --- Virtual
-    def _revalidate(self):
-        """*Virtual*. Refresh the GUI element's content.
-
-        Override this when you subclass with code that refreshes the content of the element. This is
-        called when we show the element back and that we had received a notification invalidating
-        our content.
-        """
-
-    def apply_date_range(self):
-        """A new date range was just set. Adapt to it."""
-
-    def apply_filter(self):
-        """A new filter was just applied. Adapt to it."""
-
-    def new_item(self):
-        """*Virtual*. Create a new item."""
-        raise NotImplementedError()
-
-    def edit_item(self):
-        """*Virtual*. Edit the selected item(s)."""
-        raise NotImplementedError()
-
-    def delete_item(self):
-        """*Virtual*. Delete the selected item(s)."""
-        raise NotImplementedError()
-
-    def duplicate_item(self):
-        """*Virtual*. Duplicate the selected item(s)."""
-        raise NotImplementedError()
-
-    def new_group(self):
-        """*Virtual*. Create a new group."""
-        raise NotImplementedError()
-
-    def navigate_back(self):
-        """*Virtual*. Navigate back from wherever the user is coming.
-
-        This may (will) result in the active tab changing.
-        """
-        raise NotImplementedError()
-
-    def move_up(self):
-        """*Virtual*. Move select item(s) up in the list, if possible."""
-        raise NotImplementedError()
-
-    def move_down(self):
-        """*Virtual*. Move select item(s) down in the list, if possible."""
-        raise NotImplementedError()
-
-    def stop_editing(self):
-        """If we're editing something, stop now."""
-
-    def update_transaction_selection(self, transactions):
-        """Transactions were just selected."""
-
-    def update_visibility(self):
-        """One of the main window's main part had its visibility toggled."""
-
-    # --- Overrides
-    def dispatch(self, msg):
-        if self._hidden and (msg in self.INVALIDATING_MESSAGES):
-            self._invalidated = True
-        if not self._hidden:
-            Listener.dispatch(self, msg)
-
-    # --- Public
-    @classmethod
-    def can_perform(cls, action_name):
-        """Returns whether our view subclass can perform ``action_name``.
-
-        Base views have a specific set of actions they can perform, and the way they perform these
-        actions is defined by the subclasses. However, not all views can perform all actions.
-        You can use this method to determine whether a view can perform an action. It does so by
-        comparing the method of the view with our base method which we know is abstract and if
-        it's not the same, we know that the method was overridden and that we can perform the
-        action.
-        """
-        mymethod = getattr(cls, action_name, None)
-        assert mymethod is not None
-        return mymethod is not getattr(BaseView, action_name, None)
-
-    def invalidate(self):
-        self._invalidated = True
-
-    def restore_subviews_size(self):
-        """*Virtual*. Restore subviews size from preferences."""
-
-    def restore_view(self):
-        """Restore view (recursively) param from preferences."""
-        self.restore_subviews_size()
-        if self.view: # Some BaseView don't have a view
-            self.view.restore_subviews_size()
-
-    def save_preferences(self):
-        """*Virtual*. Save subviews size to preferences."""
-
-    def show(self):
-        """Show the object and revalidate if necessary.
-
-        If an invalidating notification was received while we were hidden, we'll trigger a full
-        refresh with :meth:`_revalidate`.
-        """
-        self._hidden = False
-        if self._invalidated:
-            self._revalidate()
-            self._invalidated = False
-
-    def hide(self):
-        """Hide the object.
-
-        We will no longer process notifications. We'll refresh when we show up again, if needed.
-        """
-        self._hidden = True
-
-    # --- Properties
-    @property
-    def status_line(self):
-        """*get/set*. A short textual description of the global status of the tab.
-
-        This is displayed at the bottom of the main window in the UI.
-        """
-        return self._status_line
-
-    @status_line.setter
-    def status_line(self, value):
-        self._status_line = value
-        if not self._hidden:
-            self.mainwindow.update_status_line()

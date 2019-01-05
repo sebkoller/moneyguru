@@ -1,10 +1,10 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from .base import ViewChild, MESSAGES_DOCUMENT_CHANGED
+from .base import ViewChild
 
 class ChartView:
     """Expected interface for :class:`Chart`'s view.
@@ -98,7 +98,6 @@ class Chart(ViewChild):
 
     Subclasses :class:`.ViewChild`.
     """
-    INVALIDATING_MESSAGES = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
 
     def __init__(self, parent_view):
         ViewChild.__init__(self, parent_view)

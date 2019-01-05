@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -7,8 +7,6 @@
 from .bar_graph import BarGraph
 
 class AccountFlowGraph(BarGraph):
-    INVALIDATING_MESSAGES = BarGraph.INVALIDATING_MESSAGES
-
     def __init__(self, account_view):
         BarGraph.__init__(self, account_view)
         self._account = account_view.account

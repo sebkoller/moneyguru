@@ -157,13 +157,11 @@ class MainWindow(Listener, GUIObject):
 
     def _create_pane_from_plugin(self, plugin):
         plugin_inst = plugin(self)
-        plugin_inst.view.connect()
         return ViewPane(plugin_inst.view, plugin_inst.NAME)
 
     def _get_view_for_pane_type(self, pane_type, account):
         if pane_type == PaneType.Account: # we don't cache Account panes
             result = AccountView(self, account)
-            result.connect()
             return result
         for pane in self.panes:
             if pane.view.VIEW_TYPE == pane_type:
@@ -188,7 +186,6 @@ class MainWindow(Listener, GUIObject):
             result = EmptyView(self)
         else:
             raise ValueError("Cannot create view of type {}".format(pane_type))
-        result.connect()
         return result
 
     def _invalidate_hidden_panes(self):
@@ -259,8 +256,6 @@ class MainWindow(Listener, GUIObject):
         # Replace opened panes with new panes from `pane_data`, which is a [(pane_type, arg)]
         self._current_pane = None
         self._current_pane_index = -1
-        for pane in self.panes:
-            pane.view.disconnect()
         self.panes = []
         for pane_type, arg in pane_data:
             if pane_type >= PaneType.Plugin:
@@ -341,7 +336,6 @@ class MainWindow(Listener, GUIObject):
         del self.panes[index]
         if not any(p.view is pane.view for p in self.panes):
             pane.view.save_preferences()
-            pane.view.disconnect()
         self.view.view_closed(index)
         # The index of the current view might have changed
         newindex = self.panes.index(self._current_pane)

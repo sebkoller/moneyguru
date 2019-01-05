@@ -6,17 +6,17 @@
 
 import weakref
 
-from .base import BaseViewNG
+from .base import BaseView
 from .account_panel import AccountPanel
 from .account_reassign_panel import AccountReassignPanel
 
-class AccountSheetView(BaseViewNG):
+class AccountSheetView(BaseView):
     SAVENAME = ''
     # Set self.sheet, self.graph and self.pie in subclasses init
 
     # --- Overrides
     def _revalidate(self):
-        BaseViewNG._revalidate(self)
+        super()._revalidate()
         self.sheet.refresh()
         self.graph._revalidate()
         self.pie._revalidate()
@@ -34,7 +34,7 @@ class AccountSheetView(BaseViewNG):
         self.pie_width_to_restore = self.document.get_default(prefname, 0)
 
     def restore_view(self):
-        BaseViewNG.restore_view(self)
+        super().restore_view()
         self.sheet.restore_view()
 
     def save_preferences(self):
@@ -88,7 +88,7 @@ class AccountSheetView(BaseViewNG):
         self.sheet.add_account_group()
 
     def show(self):
-        BaseViewNG.show(self)
+        super().show()
         self.view.update_visibility()
 
     def show_account(self):

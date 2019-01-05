@@ -11,7 +11,7 @@ from ..const import PaneType, FilterType
 from ..model.account import AccountType
 from ..model.amount import convert_amount
 from ..model.transaction import txn_matches
-from .base import BaseViewNG
+from .base import BaseView
 from .filter_bar import FilterBar
 from .mass_edition_panel import MassEditionPanel
 from .transaction_table import TransactionTable
@@ -19,7 +19,7 @@ from .transaction_print import TransactionPrint
 from .transaction_panel import TransactionPanel
 
 
-class TransactionViewBase(BaseViewNG):
+class TransactionViewBase(BaseView):
     def edit_selected_transactions(self):
         editable_txns = [txn for txn in self.mainwindow.selected_transactions if not txn.is_budget]
         if len(editable_txns) > 1:
@@ -53,7 +53,7 @@ class TransactionViewBase(BaseViewNG):
         self._revalidate()
 
     def restore_view(self):
-        BaseViewNG.restore_view(self)
+        super().restore_view()
         self.table.restore_view()
 
     # --- Public
@@ -79,7 +79,7 @@ class TransactionView(TransactionViewBase):
     PRINT_VIEW_CLASS = TransactionPrint
 
     def __init__(self, mainwindow):
-        BaseViewNG.__init__(self, mainwindow)
+        super().__init__(mainwindow)
         self._visible_transactions = None
         self.filter_bar = FilterBar(self)
         self.ttable = self.table = TransactionTable(self)
@@ -136,7 +136,7 @@ class TransactionView(TransactionViewBase):
         self.ttable.columns.save_columns()
 
     def show(self):
-        BaseViewNG.show(self)
+        super().show()
         self.ttable.show()
 
     def update_transaction_selection(self, transactions):
