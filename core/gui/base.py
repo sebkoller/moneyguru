@@ -373,6 +373,9 @@ class BaseViewNG(GUIObject):
         pass
 
     # --- Public
+    def invalidate(self):
+        self._doc_step = 0
+
     def revalidate(self):
         if self.document.step > self._doc_step:
             self._revalidate()
@@ -539,6 +542,9 @@ class BaseView(Listener, GUIObject, DocumentNotificationsMixin):
         mymethod = getattr(cls, action_name, None)
         assert mymethod is not None
         return mymethod is not getattr(BaseView, action_name, None)
+
+    def invalidate(self):
+        self._invalidated = True
 
     def restore_subviews_size(self):
         """*Virtual*. Restore subviews size from preferences."""

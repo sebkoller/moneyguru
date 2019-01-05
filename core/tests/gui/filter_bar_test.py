@@ -136,6 +136,16 @@ class TestTransactionsOfEachType:
         app.efbar.filter_type = FilterType.Income
         eq_(app.efbar.filter_type, FilterType.Income)
 
+    @with_app(do_setup)
+    def test_show_tview(self, app):
+        # the filter stays active if we come back to the aview (the same one
+        # as where we were before. this means that we test that we invalidate
+        # the view's cache on setting a filter)
+        tview = app.show_tview()
+        tview.filter_bar.filter_type = FilterType.Expense
+        aview = app.show_account('asset 2')
+        eq_(len(aview.table.rows), 2) # filtered
+
 
 class TestThreeEntriesOneReconciled:
     def do_setup(self):

@@ -125,6 +125,7 @@ class MainWindow(Listener, GUIObject):
         if self.filter_string and not is_txn_pane:
             self.select_pane_of_type(PaneType.Transaction, clear_filter=False)
         self._current_pane.view.apply_filter()
+        self._invalidate_hidden_panes()
         self.search_field.refresh()
 
     def _change_current_pane(self, pane):
@@ -189,6 +190,11 @@ class MainWindow(Listener, GUIObject):
             raise ValueError("Cannot create view of type {}".format(pane_type))
         result.connect()
         return result
+
+    def _invalidate_hidden_panes(self):
+        for pane in self.panes:
+            if pane is not self._current_pane:
+                pane.view.invalidate()
 
     def _invalidate_visible_entries(self):
         self._account2visibleentries = {}
