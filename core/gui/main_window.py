@@ -684,6 +684,7 @@ class MainWindow(Listener, GUIObject):
             # risk getting view refresh bugs under Qt because in there, closing a document doesn't
             # always mean closing the window (unlike under Cocoa).
             self._current_pane.view.hide()
+        self.csv_options.save_preferences()
 
     def document_restoring_preferences(self):
         window_frame = self.document.get_default(Preference.WindowFrame)

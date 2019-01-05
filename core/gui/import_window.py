@@ -13,11 +13,12 @@ from core.trans import tr
 
 from ..exception import OperationAborted
 from ..model.date import DateFormat
-from .base import DocumentGUIObject
+from .base import GUIObject, DocumentNotificationsMixin
 from .import_table import ImportTable
 from .selectable_list import LinkedSelectableList
 from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
 from core.document import ImportDocument
+from core.notify import Listener
 from core.model._ccore import AccountList, Entry
 
 
@@ -305,7 +306,7 @@ class AccountPane:
             return list(entries)
 
 
-class ImportWindow(DocumentGUIObject):
+class ImportWindow(Listener, GUIObject, DocumentNotificationsMixin):
     # --- View interface
     # close()
     # close_selected_tab()
@@ -317,8 +318,11 @@ class ImportWindow(DocumentGUIObject):
     #
 
     def __init__(self, mainwindow):
-        DocumentGUIObject.__init__(self, mainwindow.document)
+        Listener.__init__(self, mainwindow.document)
+        GUIObject.__init__(self)
         self.mainwindow = mainwindow
+        self.document = mainwindow.document
+        self.app = self.document.app
         self._tmpaccounts = AccountList(self.document.default_currency)
         self._selected_pane_index = 0
         self._selected_target_index = 0

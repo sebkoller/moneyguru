@@ -11,7 +11,7 @@ from core.trans import tr
 
 from ..exception import FileLoadError
 from ..loader.csv import CsvField, MERGABLE_FIELDS
-from .base import DocumentGUIObject
+from .base import GUIObject
 
 LAYOUT_PREFERENCE_NAME = 'CSVLayouts'
 FIELD_NAMES = {
@@ -88,7 +88,7 @@ class Layout:
             last_index -= 1
 
 
-class CSVOptions(DocumentGUIObject):
+class CSVOptions(GUIObject):
     def __init__(self, mainwindow):
         def preference2layout(pref):
             layout = Layout(pref['name'])
@@ -98,8 +98,10 @@ class CSVOptions(DocumentGUIObject):
             layout.target_account_name = pref.get('target_account')
             return layout
 
-        DocumentGUIObject.__init__(self, mainwindow.document)
+        super().__init__()
         self.mainwindow = mainwindow
+        self.document = mainwindow.document
+        self.app = self.document.app
         self.lines = []
         self._colcount = 0
         self._target_accounts = []
@@ -111,7 +113,6 @@ class CSVOptions(DocumentGUIObject):
         except Exception: # probably because of corrupted prefs
             self._layouts = []
         self.layout = self._default_layout
-        self.connect()
 
     # --- Private
     def _refresh_columns(self):
@@ -187,6 +188,23 @@ class CSVOptions(DocumentGUIObject):
         self._refresh_columns()
         self._refresh_lines()
 
+    def save_preferences(self):
+        def layout2preference(layout):
+            result = {}
+            result['name'] = layout.name
+            # trim trailing None values
+            columns = list(dropwhile(lambda x: x is None, layout.columns[::-1]))[::-1]
+            # None values cannot be put in preferences, change them to an empty string.
+            columns = [nonone(col, '') for col in columns]
+            result['columns'] = columns
+            result['excluded_lines'] = sorted(list(layout.excluded_lines))
+            if layout.target_account_name:
+                result['target_account'] = layout.target_account_name
+            return result
+
+        layouts = list(map(layout2preference, self._layouts))
+        self.app.set_default(LAYOUT_PREFERENCE_NAME, layouts)
+
     def select_layout(self, name):
         if not name:
             new_layout = self._default_layout
@@ -260,21 +278,4 @@ class CSVOptions(DocumentGUIObject):
     def target_account_names(self):
         return [tr('< New Account >')] + [a.name for a in self._target_accounts]
 
-    # --- Events
-    def document_will_close(self):
-        def layout2preference(layout):
-            result = {}
-            result['name'] = layout.name
-            # trim trailing None values
-            columns = list(dropwhile(lambda x: x is None, layout.columns[::-1]))[::-1]
-            # None values cannot be put in preferences, change them to an empty string.
-            columns = [nonone(col, '') for col in columns]
-            result['columns'] = columns
-            result['excluded_lines'] = sorted(list(layout.excluded_lines))
-            if layout.target_account_name:
-                result['target_account'] = layout.target_account_name
-            return result
-
-        layouts = list(map(layout2preference, self._layouts))
-        self.app.set_default(LAYOUT_PREFERENCE_NAME, layouts)
 

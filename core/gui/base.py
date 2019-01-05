@@ -4,8 +4,6 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from core.notify import Listener
-
 from .print_view import PrintView
 
 def noop(*args, **kwargs):
@@ -141,27 +139,6 @@ MESSAGES_DOCUMENT_CHANGED = {
         'schedule_deleted'
     }
 
-class DocumentGUIObject(Listener, GUIObject, DocumentNotificationsMixin):
-    """Base class for listeners of :class:`.Document`.
-
-    This base class is not much more than a convenience layer, centralizing multiple subclassing
-    and common properties (:attr:`app` and :attr:`document`). It's a base class for every GUI
-    elements that listen to some notifications from :class:`.Document`.
-
-    Subclasses :class:`.Listener`, :class:`.GUIObject` and :class:`DocumentNotificationsMixin`.
-
-    :param document: Reference document.
-    :type document: :class:`.Document`
-    """
-    def __init__(self, document):
-        Listener.__init__(self, document)
-        GUIObject.__init__(self)
-        #: Parent :class:`document <.Document>`.
-        self.document = document
-        #: Parent :class:`app <.Application>`.
-        self.app = document.app
-
-
 class ViewChild(GUIObject):
     def __init__(self, parent_view):
         GUIObject.__init__(self)
@@ -194,8 +171,8 @@ class GUIPanel(GUIObject):
     :meth:`save` doesn't actually do that job, but merely calls the proper document method, with
     the proper arguments.
 
-    Unlike :class:`DocumentGUIObject`, dialogs don't listen to notifications. They're called upon
-    explicitly. They do, however, hold references to :attr:`app` and :attr:`document`.
+    Dialogs don't listen to notifications. They're called upon explicitly. They
+    do, however, hold references to :attr:`app` and :attr:`document`.
 
     Subclasses :class:`.GUIObject`.
     """
@@ -278,7 +255,23 @@ class MainWindowPanel(GUIPanel):
         self.mainwindow = mainwindow
 
 
-class BaseView(GUIObject):
+class DocumentGUIObject(GUIObject):
+    def __init__(self, document):
+        super().__init__()
+        self.document = document
+        self.app = document.app
+        self._doc_step = 0
+
+    def invalidate(self):
+        self._doc_step = 0
+
+    def revalidate(self):
+        if self.document.step > self._doc_step:
+            self._revalidate()
+            self._doc_step = self.document.step
+
+
+class BaseView(DocumentGUIObject):
     """ The next generation of BaseView.
 
     Unlike BaseView, it doesn't listen or repeat document notifications at all. It's based on the
@@ -297,12 +290,10 @@ class BaseView(GUIObject):
     PRINT_VIEW_CLASS = PrintView
 
     def __init__(self, mainwindow):
-        super().__init__()
+        super().__init__(mainwindow.document)
         self.mainwindow = mainwindow
         self.document = mainwindow.document
-        self.app = mainwindow.document.app
         self._status_line = ""
-        self._doc_step = 0
 
     # --- Temporary stubs
     def show(self):
@@ -370,14 +361,6 @@ class BaseView(GUIObject):
         pass
 
     # --- Public
-    def invalidate(self):
-        self._doc_step = 0
-
-    def revalidate(self):
-        if self.document.step > self._doc_step:
-            self._revalidate()
-            self._doc_step = self.document.step
-
     @classmethod
     def can_perform(cls, action_name):
         """Returns whether our view subclass can perform ``action_name``.

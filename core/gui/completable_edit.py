@@ -1,4 +1,4 @@
-# Copyright 2016 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,20 +11,18 @@ from ..model.completion import CompletionList
 
 class CompletableEdit(DocumentGUIObject):
     def __init__(self, mainwindow):
-        DocumentGUIObject.__init__(self, mainwindow.document)
+        super().__init__(mainwindow.document)
         self.mainwindow = mainwindow
         self._attrname = ''
-        self._candidates = None
         self._completions = None
         self._complete_completion = ''
         self.completion = ''
         self._text = ''
         # If doing completion for an entry table, set the account attribute
         self.account = None
-        self.connect()
 
     # --- Private
-    def _refresh_candidates(self):
+    def _revalidate(self):
         if self.mainwindow is None or not self.attrname:
             return
         doc = self.mainwindow.document
@@ -50,8 +48,9 @@ class CompletableEdit(DocumentGUIObject):
             self.view.refresh()
 
     # --- Override
-    # We override view to allow it to be set multiple times because CompletableEdit, as a special
-    # case, can have more than one view swapping each other out
+    # We override view to allow it to be set multiple times because
+    # CompletableEdit, as a special case, can have more than one view swapping
+    # each other out
     @property
     def view(self):
         return self._view
@@ -99,15 +98,14 @@ class CompletableEdit(DocumentGUIObject):
         if self._attrname == value:
             return
         self._attrname = value
-        self._candidates = None
+        self.invalidate()
         self._text = ''
         self._set_completion('')
         self._completions = None
 
     @property
     def candidates(self):
-        if self._candidates is None:
-            self._refresh_candidates()
+        self.revalidate()
         return self._candidates
 
     @property
@@ -122,15 +120,3 @@ class CompletableEdit(DocumentGUIObject):
             self._set_completion(self._completions.current())
         else:
             self._completions = None
-
-    # --- Events
-    def transaction_changed(self):
-        self._candidates = None
-
-    account_added = transaction_changed
-    account_changed = transaction_changed
-    account_deleted = transaction_changed
-    document_changed = transaction_changed
-    transaction_added = transaction_changed
-    transaction_deleted = transaction_changed
-
