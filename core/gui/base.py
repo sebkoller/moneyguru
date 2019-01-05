@@ -133,11 +133,11 @@ class DocumentNotificationsMixin:
 
 
 MESSAGES_DOCUMENT_CHANGED = {
-        'account_added', 'account_changed', 'account_deleted', 'document_changed',
-        'transaction_changed', 'transaction_deleted', 'transactions_imported',
-        'budget_changed', 'budget_deleted', 'schedule_changed',
-        'schedule_deleted'
-    }
+    'account_added', 'account_changed', 'account_deleted', 'document_changed',
+    'transaction_changed', 'transaction_deleted', 'transactions_imported',
+    'budget_changed', 'budget_deleted', 'schedule_changed',
+    'schedule_deleted'
+}
 
 class ViewChild(GUIObject):
     def __init__(self, parent_view):
