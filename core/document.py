@@ -160,7 +160,7 @@ class BaseDocument:
         If ``original`` is a schedule :class:`.Spawn`, the UI will be queried for a scope, which
         might result in the change being aborted.
 
-        After the transaction change, ``transaction_changed`` is broadcasted.
+        After the transaction change, ``document_changed`` is broadcasted.
 
         :param original: :class:`.Transaction`
         :param new: :class:`.Transaction`, a modified copy of ``original``.
@@ -194,7 +194,7 @@ class BaseDocument:
         If any transaction in ``transactions`` is a schedule :class:`.Spawn`, the UI will be queried
         for a scope, which might result in the change being aborted.
 
-        After the transaction change, ``transaction_changed`` is broadcasted.
+        After the transaction change, ``document_changed`` is broadcasted.
 
         :param date: ``datetime.date``
         :param description: ``str``
@@ -261,7 +261,7 @@ class BaseDocument:
         For each transaction in ``transactions``, add a new transaction with the same attributes to
         the document.
 
-        After the operation, ``transaction_changed`` is broadcasted.
+        After the operation, ``document_changed`` is broadcasted.
 
         :param transactions: a collection of :class:`.Transaction` to duplicate.
         """
@@ -280,7 +280,7 @@ class BaseDocument:
         self._undoer.record(action)
         self.transactions.add(materialized)
         self._cook(from_date=materialized.date)
-        self.notify('transaction_changed')
+        self.notify('document_changed')
 
     def move_transactions(self, transactions, to_transaction):
         """Re-orders ``transactions`` so that they are right before ``to_transaction``.
@@ -290,7 +290,7 @@ class BaseDocument:
 
         Make sure your move is legal by calling :meth:`can_move_transactions` first.
 
-        After the move, ``transaction_changed`` is broadcasted.
+        After the move, ``document_changed`` is broadcasted.
 
         :param transactions: a collection of :class:`.Transaction` to move.
         :param to_transaction: target :class:`.Transaction` to move to.
@@ -305,7 +305,7 @@ class BaseDocument:
         """Properly sets properties for ``entry``.
 
         Changes the attributes of ``entry`` (and the transaction in which ``entry`` is) to specified
-        values and then post a ``transaction_changed`` notification. Attributes with ``NOEDIT``
+        values and then post a ``document_changed`` notification. Attributes with ``NOEDIT``
         values are not touched.
 
         ``transfer`` is the name of the transfer to assign the entry to. If it's not found, a new
@@ -811,7 +811,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._undoer.record(action)
         BaseDocument.change_transaction(self, original, new, global_scope=global_scope)
         if not self._adjust_date_range(original.date):
-            self.notify('transaction_changed')
+            self.notify('document_changed')
 
     @handle_abort
     def change_transactions(
@@ -843,9 +843,9 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             from_=from_, to=to, amount=amount, currency=currency, global_scope=global_scope
         )
         if not self._adjust_date_range(transactions[-1].date):
-            self.notify('transaction_changed')
+            self.notify('document_changed')
         if action.changed_schedules:
-            self.notify('schedule_changed')
+            self.notify('document_changed')
 
     @handle_abort
     def delete_transactions(self, transactions, from_account=None):
@@ -869,7 +869,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         )
         self.notify('transaction_deleted')
         if action.changed_schedules:
-            self.notify('schedule_changed')
+            self.notify('document_changed')
 
     def duplicate_transactions(self, transactions):
         """Create copies of ``transactions`` in the document.
@@ -887,7 +887,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action.added_transactions |= set(duplicated)
         self._undoer.record(action)
         self._add_transactions(duplicated)
-        self.notify('transaction_changed')
+        self.notify('document_changed')
 
     def move_transactions(self, transactions, to_transaction):
         """Re-orders ``transactions`` so that they are right before ``to_transaction``.
@@ -906,7 +906,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action.change_transactions(affected, self.schedules)
         self._undoer.record(action)
         BaseDocument.move_transactions(self, transactions, to_transaction)
-        self.notify('transaction_changed')
+        self.notify('document_changed')
 
     # --- Entry
     @handle_abort
@@ -945,7 +945,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             amount=amount, global_scope=global_scope
         )
         if not self._adjust_date_range(entry.date):
-            self.notify('transaction_changed')
+            self.notify('document_changed')
 
     def toggle_entries_reconciled(self, entries):
         """Toggle the reconcile flag of `entries`.
@@ -976,7 +976,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             for entry in entries:
                 entry.split.reconciliation_date = None
         self._cook(from_date=min_date)
-        self.notify('transaction_changed')
+        self.notify('document_changed')
 
     # --- Budget
     def budgeted_amount_for_target(self, target, date_range, filter_excluded=True):
@@ -1043,7 +1043,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         if original not in self.budgets:
             self.budgets.append(original)
         self._cook(from_date=min_date)
-        self.notify('budget_changed')
+        self.notify('document_changed')
 
     def delete_budgets(self, budgets):
         """Removes ``budgets`` from the document.
@@ -1059,7 +1059,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self.budgets.remove(budget)
         min_date = min(b.start_date for b in budgets)
         self._cook(from_date=min_date)
-        self.notify('budget_deleted')
+        self.notify('document_changed')
 
     # --- Schedule
     def change_schedule(self, schedule, new_ref, repeat_type, repeat_every, stop_date):
@@ -1097,7 +1097,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         if schedule not in self.schedules:
             self.schedules.append(schedule)
         self._cook(from_date=min_date)
-        self.notify('schedule_changed')
+        self.notify('document_changed')
 
     def delete_schedules(self, schedules):
         """Removes ``schedules`` from the document.
@@ -1113,7 +1113,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self.schedules.remove(schedule)
         min_date = min(s.ref.date for s in schedules)
         self._cook(from_date=min_date)
-        self.notify('schedule_deleted')
+        self.notify('document_changed')
 
     # --- Load / Save / Import
     def adjust_example_file(self):
@@ -1299,7 +1299,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
                 if entry.transaction not in self.transactions:
                     self.transactions.add(entry.transaction)
         self._cook()
-        self.notify('transactions_imported')
+        self.notify('document_changed')
 
     def is_dirty(self):
         """Returns whether the document has been modified since the last time it was saved."""

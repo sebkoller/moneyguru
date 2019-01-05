@@ -92,12 +92,6 @@ class DocumentNotificationsMixin:
     def account_deleted(self):
         """Account(s) were deleted from the document."""
 
-    def budget_changed(self):
-        """Budget(s) had some of their properties changed."""
-
-    def budget_deleted(self):
-        """Budget(s) were deleted from the document."""
-
     def custom_date_range_selected(self):
         """We need to open the custom date range dialog."""
 
@@ -116,27 +110,13 @@ class DocumentNotificationsMixin:
     def edition_must_stop(self):
         """If any GUI is currently in editing mode, this has to stop now."""
 
-    def schedule_changed(self):
-        """Schedule(s) had some of their properties changed."""
-
-    def schedule_deleted(self):
-        """Schedule(s) were deleted from the document."""
-
-    def transaction_changed(self):
-        """Transaction(s) had some of their properties changed."""
-
     def transaction_deleted(self):
         """Transaction(s) were deleted from the document."""
-
-    def transactions_imported(self):
-        """Transactions have just been imported into the document."""
 
 
 MESSAGES_DOCUMENT_CHANGED = {
     'account_added', 'account_changed', 'account_deleted', 'document_changed',
-    'transaction_changed', 'transaction_deleted', 'transactions_imported',
-    'budget_changed', 'budget_deleted', 'schedule_changed',
-    'schedule_deleted'
+    'transaction_deleted'
 }
 
 class ViewChild(GUIObject):

@@ -662,9 +662,6 @@ class MainWindow(Listener, GUIObject):
         self._undo_stack_changed()
         self.import_window.revalidate()
 
-    budget_changed = _undo_stack_changed
-    budget_deleted = _undo_stack_changed
-
     def custom_date_range_selected(self):
         panel = CustomDateRangePanel(self)
         panel.view = weakref.proxy(self.view.get_panel_view(panel))
@@ -708,15 +705,9 @@ class MainWindow(Listener, GUIObject):
         if self._current_pane is not None:
             self._current_pane.view.stop_editing()
 
-    schedule_changed = _undo_stack_changed
-    schedule_deleted = _undo_stack_changed
-    transaction_changed = _undo_stack_changed
-
     def transaction_deleted(self):
         self._explicitly_selected_transactions = []
         self._selected_transactions = []
         self._close_irrelevant_account_panes() # after an auto-clean
         self.view.refresh_undo_actions()
         self._current_pane.view.revalidate()
-
-    transactions_imported = _undo_stack_changed
