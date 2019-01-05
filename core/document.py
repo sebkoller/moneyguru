@@ -1163,17 +1163,11 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         ``filename`` must be a path to a moneyGuru XML document.
 
         If ``autosave`` is true, the operation will not affect the document's
-        modified state and will not make editing stop, if editing there is
-        (like it normally does without the autosave flag to make sure that the
-        input being currently done by the user is saved).
+        modified state.
 
         :param filename: ``str``
         :param autosave: ``bool``
         """
-        # When called from _autosave, it should not disrupt the user: no stop
-        # edition, no change in the save state.
-        if not autosave:
-            self.stop_edition()
         if self._document_id is None:
             self._document_id = uuid.uuid4().hex
         save_native(
@@ -1348,7 +1342,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
     def date_range(self, date_range):
         if date_range == self._date_range:
             return
-        self.stop_edition()
         self._date_range = date_range
         self.oven.continue_cooking(date_range.end)
         self.notify('date_range_changed')
@@ -1364,7 +1357,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
 
     def undo(self):
         """Undo the last undoable action."""
-        self.stop_edition()
         self._undoer.undo()
         self._cook()
         self.notify('document_changed')
@@ -1379,7 +1371,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
 
     def redo(self):
         """Redo the last redoable action."""
-        self.stop_edition()
         self._undoer.redo()
         self._cook()
         self.notify('document_changed')
@@ -1387,12 +1378,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
     # --- Misc
     def close(self):
         self._save_preferences()
-
-    def stop_edition(self):
-        """Call this when some operation (such as a panel loading) requires the other GUIs to save
-        their edits and stop edition.
-        """
-        self.notify('edition_must_stop')
 
     def can_restore_from_prefs(self):
         """Returns whether the document has preferences to restore from.

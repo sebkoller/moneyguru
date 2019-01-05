@@ -62,7 +62,7 @@ class AccountPanel(MainWindowPanel):
 
     # --- Override
     def _load(self, account):
-        self.document.stop_edition()
+        self.mainwindow.stop_editing()
         self._init_fields()
         self.name = account.name
         self.type = account.type

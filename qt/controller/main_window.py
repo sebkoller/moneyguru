@@ -533,7 +533,7 @@ class MainWindow(QMainWindow):
 
     def save(self):
         if self.documentPath is not None:
-            self.doc.save_to_xml(self.documentPath)
+            self.model.save_to_xml(self.documentPath)
         else:
             self.saveAs()
 
@@ -544,7 +544,7 @@ class MainWindow(QMainWindow):
         if docpath:
             if not docpath.endswith('.moneyguru'):
                 docpath += '.moneyguru'
-            self.doc.save_to_xml(docpath)
+            self.model.save_to_xml(docpath)
             self.documentPath = docpath
             self.documentPathChanged()
             self.recentDocuments.insertItem(docpath)

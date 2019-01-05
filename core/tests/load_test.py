@@ -101,7 +101,7 @@ class TestLoadFile:
         # When about to save the document, if an entry is being edited, we
         # cancel the edit.
         app.etable[0].description = 'foo'
-        app.doc.stop_edition()
+        app.mw.stop_editing()
         assert not app.doc.is_dirty() # Nothing was changed
         eq_(app.etable[0].description, 'Entry 1')
         app.etable.save_edits() # nothing is being scheduled for saving

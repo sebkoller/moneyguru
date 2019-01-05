@@ -98,7 +98,7 @@ class PanelWithTransaction(MainWindowPanel):
 class TransactionPanel(PanelWithTransaction):
     # --- Override
     def _load(self, transaction):
-        self.document.stop_edition()
+        self.mainwindow.stop_editing()
         self.transaction = transaction.replicate()
         self.original = transaction
         self.view.refresh_for_multi_currency()

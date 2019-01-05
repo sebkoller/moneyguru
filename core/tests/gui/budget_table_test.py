@@ -1,9 +1,7 @@
-# Created By: Virgil Dupras
-# Created On: 2009-08-22
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2019 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from ..testutil import eq_
@@ -47,6 +45,6 @@ def test_edition_must_stop(app):
     # When the edition_must_stop event is broadcasted, btable must ignore it because the objc
     # side doesn't have a stop_editing method.
     app.clear_gui_calls()
-    app.doc.stop_edition()
+    app.mw.stop_editing()
     app.btable.view.check_gui_calls_partial(not_expected=['stop_editing'])
 

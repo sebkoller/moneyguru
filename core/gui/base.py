@@ -101,9 +101,6 @@ class DocumentNotificationsMixin:
     def document_changed(self):
         """The whole doucment has changed (for example, when loading document)."""
 
-    def edition_must_stop(self):
-        """If any GUI is currently in editing mode, this has to stop now."""
-
     def transaction_deleted(self):
         """Transaction(s) were deleted from the document."""
 

@@ -503,6 +503,10 @@ class MainWindow(Listener, GUIObject):
         self.app.save_custom_range(slot, name, start, end)
         self.daterange_selector.refresh_custom_ranges()
 
+    def save_to_xml(self, filename):
+        self.stop_editing()
+        self.document.save_to_xml(filename)
+
     def select_pane_of_type(self, pane_type, clear_filter=True):
         if clear_filter:
             self.filter_string = ''
@@ -541,6 +545,10 @@ class MainWindow(Listener, GUIObject):
 
     def show_message(self, message):
         self.view.show_message(message)
+
+    def stop_editing(self):
+        if self._current_pane is not None:
+            self._current_pane.view.stop_editing()
 
     def toggle_area_visibility(self, area):
         if area in self.hidden_areas:
@@ -581,7 +589,7 @@ class MainWindow(Listener, GUIObject):
     def current_pane_index(self, value):
         if value == self._current_pane_index:
             return
-        self.document.stop_edition()
+        self.stop_editing()
         value = minmax(value, 0, len(self.panes)-1)
         pane = self.panes[value]
         self._current_pane_index = value
@@ -619,7 +627,7 @@ class MainWindow(Listener, GUIObject):
     def filter_type(self, value):
         if value is self._filter_type:
             return
-        self.document.stop_edition()
+        self.stop_editing()
         self._filter_type = value
         self._apply_filter()
 
@@ -693,6 +701,7 @@ class MainWindow(Listener, GUIObject):
         view.apply_date_range()
 
     def document_changed(self):
+        self.stop_editing()
         self._close_irrelevant_account_panes()
         self._undo_stack_changed()
 
@@ -706,10 +715,6 @@ class MainWindow(Listener, GUIObject):
         for pane in self.panes:
             pane.view.restore_view()
         self.import_window.restore_view()
-
-    def edition_must_stop(self):
-        if self._current_pane is not None:
-            self._current_pane.view.stop_editing()
 
     def transaction_deleted(self):
         self._explicitly_selected_transactions = []

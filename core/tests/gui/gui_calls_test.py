@@ -73,9 +73,9 @@ def test_change_default_currency():
     app = app_cleared_gui_calls()
     app.show_nwview()
     app.doc.default_currency = 'EUR'
-    app.check_gui_calls(app.bsheet_gui, ['refresh'])
-    app.check_gui_calls(app.nwgraph_gui, ['refresh'])
-    app.check_gui_calls(app.nwview.pie.view, ['refresh'])
+    app.check_gui_calls_partial(app.bsheet_gui, ['refresh'])
+    app.check_gui_calls_partial(app.nwgraph_gui, ['refresh'])
+    app.check_gui_calls_partial(app.nwview.pie.view, ['refresh'])
     # but not if it stays the same
     app.doc.default_currency = 'EUR'
     app.check_gui_calls_partial(app.bsheet_gui, not_expected=['refresh'])

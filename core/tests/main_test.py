@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -181,7 +181,6 @@ def test_autosave(app, tmpdir):
     eq_(len(os.listdir(cache_path)), 0)
     app.add_entry() # autosave!
     eq_(len(os.listdir(cache_path)), 1)
-    app.check_gui_calls_partial(app.etable_gui, not_expected=['stop_edition'])
     assert app.doc.is_dirty
     app.app.autosave_interval = 1
     # test that the autosave file rotation works

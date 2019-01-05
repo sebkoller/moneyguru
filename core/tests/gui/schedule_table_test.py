@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-08-12
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2018 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -60,6 +58,6 @@ def test_edition_must_stop():
     # side doesn't have a stop_editing method.
     app = app_schedule()
     app.clear_gui_calls()
-    app.doc.stop_edition()
+    app.mw.stop_editing()
     app.sctable.view.check_gui_calls_partial(not_expected=['stop_editing'])
 
