@@ -427,12 +427,10 @@ class Document(BaseDocument, Broadcaster, GUIObject):
 
     # --- Private
     def _adjust_date_range(self, new_date):
-        new_date_range = self.date_range.adjusted(new_date)
-        if new_date_range is None:
+        new_date_range = self.date_range.around(new_date)
+        if new_date_range == self.date_range:
             return False
-        self._date_range = new_date_range
-        self.oven.continue_cooking(new_date_range.end)
-        self.notify('date_range_changed')
+        self.date_range = new_date_range
         return True
 
     def _autosave(self):

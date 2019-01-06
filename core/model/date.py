@@ -1,6 +1,4 @@
-# Created By: Eric Mc Sween
-# Created On: 2007-12-12
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -82,20 +80,6 @@ class DateRange:
     def __hash__(self):
         return hash((self.start, self.end))
 
-    def adjusted(self, new_date):
-        """Kinda like :meth:`around`, but it can possibly enlarge the range.
-
-        Returns ``None`` if ``new_date`` doesn't trigger any adjustments.
-
-        To be frank, that method is there only for :class:`AllTransactionsRange`. When we add a new
-        transaction, we call this method to possibly enlarge/reposition the range. If it isn't
-        changed, we don't want to trigger all UI updated related to a date range adjustment, so we
-        return ``None`` to mean "nope, nothing happened here" (which is most of the time).
-
-        If it's changed, we return the new range.
-        """
-        return None
-
     def around(self, date):
         """Returns a date range of the same type as ``self`` that contains ``new_date``.
 
@@ -172,12 +156,6 @@ class NavigableDateRange(DateRange):
 
     Subclasses :class:`DateRange`.
     """
-    def adjusted(self, new_date):
-        result = self.around(new_date)
-        if result == self:
-            result = None
-        return result
-
     def around(self, date):
         return type(self)(date)
 
@@ -370,14 +348,14 @@ class AllTransactionsRange(DateRange):
         DateRange.__init__(self, start, end)
         self.ahead_months = ahead_months
 
-    def adjusted(self, new_date):
-        first_date = min(self.start, new_date)
-        last_date = max(self.end, new_date)
+    def around(self, date):
+        first_date = min(self.start, date)
+        last_date = max(self.end, date)
         result = AllTransactionsRange(
             first_date=first_date, last_date=last_date, ahead_months=self.ahead_months
         )
         if result == self:
-            result = None
+            result = self
         return result
 
     def prev(self):
