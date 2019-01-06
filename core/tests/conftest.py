@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -20,12 +20,13 @@ from ..model import currency as currency_module
 
 logging.basicConfig(level=logging.DEBUG)
 
-def pytest_funcarg__monkeyplus(request):
-    result = monkeyplus()
+@pytest.fixture
+def monkeyplus(request):
+    result = _monkeyplus()
     request.addfinalizer(result.undo)
     return result
 
-class monkeyplus(MonkeyPatch):
+class _monkeyplus(MonkeyPatch):
     def patch_today(self, year, month, day):
         """Patches today's date to date(year, month, day)
         """
@@ -121,7 +122,8 @@ def pytest_unconfigure(config):
     global global_monkeypatch
     global_monkeypatch.undo()
 
-def pytest_funcarg__monkeypatch(request):
+@pytest.fixture
+def monkeypatch(request):
     monkeyplus = request.getfixturevalue('monkeyplus')
     return monkeyplus
 
