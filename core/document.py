@@ -499,23 +499,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         materialized_split.reconciliation_date = reconciliation_date
         return materialized, materialized_split
 
-    def _refresh_date_range(self):
-        """Refreshes the date range to make sure that it's in accordance with the current date
-        range related preference (year start and ahead months). Call this when these prefs changed.
-        """
-        if isinstance(self.date_range, RunningYearRange):
-            self.select_running_year_range()
-        elif isinstance(self.date_range, AllTransactionsRange):
-            self.select_all_transactions_range()
-        elif isinstance(self.date_range, YearRange):
-            if datetime.date.today() in self.date_range:
-                starting_point = datetime.date.today()
-            else:
-                starting_point = self.date_range
-            self.select_year_range(starting_point=starting_point)
-        elif isinstance(self.date_range, YearToDateRange):
-            self.select_year_to_date_range()
-
     def _restore_preferences(self):
         start_date = self.app.get_default(SELECTED_DATE_RANGE_START_PREFERENCE)
         if start_date:
@@ -1151,7 +1134,9 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._cook()
         self.notify('document_changed')
         self._undoer.set_save_point()
-        self._refresh_date_range()
+        self.date_range = self.date_range.with_new_args(
+            year_start_month=self.year_start_month,
+            ahead_months=self.ahead_months)
         self._restore_preferences_after_load()
 
     def save_to_xml(self, filename, autosave=False):
@@ -1420,7 +1405,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             return
         self._properties['ahead_months'] = value
         self.set_dirty()
-        self._refresh_date_range()
+        self.date_range = self.date_range.with_new_args(ahead_months=value)
 
     @property
     def year_start_month(self):
@@ -1433,7 +1418,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             return
         self._properties['year_start_month'] = value
         self.set_dirty()
-        self._refresh_date_range()
+        self.date_range = self.date_range.with_new_args(year_start_month=value)
 
     @BaseDocument.default_currency.setter
     def default_currency(self, value):

@@ -111,6 +111,16 @@ class DateRange:
         """
         return self
 
+    def with_new_args(self, **kwargs):
+        """Returns the date range with new args ``kwargs``.
+
+        If args aren't applicable or if they haven't changed, return an
+        unchanged ``self``.
+
+        We have two args: ``year_start_month`` and ``ahead_months``.
+        """
+        return self
+
     @property
     def can_navigate(self):
         """Returns whether this range is navigable.
@@ -257,6 +267,17 @@ class YearRange(NavigableDateRange):
     def prev(self):
         return YearRange(inc_year(self.start, -1), year_start_month=self.start.month)
 
+    def with_new_args(self, year_start_month=None, **kwargs):
+        if year_start_month is not None and year_start_month != self.start.month:
+            today = date.today()
+            if today in self:
+                seed = today
+            else:
+                seed = self.start
+            return type(self)(seed, year_start_month=year_start_month)
+        else:
+            return self
+
     @property
     def display(self):
         """String representation of the range (ex: "Jan 2013 - Dec 2013")."""
@@ -285,6 +306,12 @@ class YearToDateRange(DateRange):
         start = inc_year(self.start, -1)
         end = inc_year(self.end, -1)
         return DateRange(start, end)
+
+    def with_new_args(self, year_start_month=None, **kwargs):
+        if year_start_month is not None and year_start_month != self.start.month:
+            return type(self)(year_start_month=year_start_month)
+        else:
+            return self
 
     @property
     def display(self):
@@ -323,11 +350,18 @@ class RunningYearRange(DateRange):
         if start.day != 1:
             start = inc_month(start, 1).replace(day=1)
         DateRange.__init__(self, start, end)
+        self.ahead_months = ahead_months
 
     def prev(self):
         start = self.start.replace(year=self.start.year - 1)
         end = self.start - ONE_DAY
         return DateRange(start, end)
+
+    def with_new_args(self, ahead_months=None, **kwargs):
+        if ahead_months is not None and ahead_months != self.ahead_months:
+            return type(self)(ahead_months)
+        else:
+            return self
 
     @property
     def display(self):
@@ -361,6 +395,12 @@ class AllTransactionsRange(DateRange):
     def prev(self):
         start = self.start - ONE_DAY
         return DateRange(start, start) # whatever, as long as there's nothing in it
+
+    def with_new_args(self, ahead_months=None, **kwargs):
+        if ahead_months is not None and ahead_months != self.ahead_months:
+            return type(self)(self.start, self.end, ahead_months)
+        else:
+            return self
 
     @property
     def display(self):
