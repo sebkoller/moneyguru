@@ -81,29 +81,6 @@ class GUIObject:
             self._view = NoopGUI()
 
 
-class DocumentNotificationsMixin:
-    """Mixin for listeners of :class:`.Document` notifications."""
-    def account_added(self):
-        """Account(s) were added to the document."""
-
-    def account_changed(self):
-        """Account(s) had some of their properties changed."""
-
-    def account_deleted(self):
-        """Account(s) were deleted from the document."""
-
-    def document_changed(self):
-        """The whole doucment has changed (for example, when loading document)."""
-
-    def transaction_deleted(self):
-        """Transaction(s) were deleted from the document."""
-
-
-MESSAGES_DOCUMENT_CHANGED = {
-    'account_added', 'account_changed', 'account_deleted', 'document_changed',
-    'transaction_deleted'
-}
-
 class ViewChild(GUIObject):
     def __init__(self, parent_view):
         GUIObject.__init__(self)
@@ -128,25 +105,25 @@ class ViewChild(GUIObject):
 class GUIPanel(GUIObject):
     """GUI Modal dialog.
 
-    All panels work pretty much the same way: They load up an object's properties, let the user
-    fiddle with them, and then save those properties back in the object.
+    All panels work pretty much the same way: They load up an object's
+    properties, let the user fiddle with them, and then save those properties
+    back in the object.
 
-    As :ref:`described in the devdoc overview <writetoamodel>`, saving to an object doesn't mean
-    directly doing so. We need to go through the :class:`.Document` to do that. Therefore,
-    :meth:`save` doesn't actually do that job, but merely calls the proper document method, with
-    the proper arguments.
-
-    Dialogs don't listen to notifications. They're called upon explicitly. They
-    do, however, hold references to :attr:`app` and :attr:`document`.
+    As :ref:`described in the devdoc overview <writetoamodel>`, saving to an
+    object doesn't mean directly doing so. We need to go through the
+    :class:`.Document` to do that. Therefore, :meth:`save` doesn't actually do
+    that job, but merely calls the proper document method, with the proper
+    arguments.
 
     Subclasses :class:`.GUIObject`.
     """
-    def __init__(self, document):
-        GUIObject.__init__(self)
+    def __init__(self, mainwindow):
+        super().__init__()
+        self.mainwindow = mainwindow
         #: Parent :class:`document <.Document>`.
-        self.document = document
+        self.document = mainwindow.document
         #: Parent :class:`app <.Application>`.
-        self.app = document.app
+        self.app = self.document.app
 
     # --- Virtual
     def _load(self):
@@ -206,18 +183,6 @@ class GUIPanel(GUIObject):
         """
         self.view.pre_save()
         self._save()
-
-
-class MainWindowPanel(GUIPanel):
-    """A :class:`GUIPanel` with :class:`.MainWindow` as a parent.
-
-    The vast, vast majority of panels in moneyGuru.
-
-    Subclasses :class:`GUIPanel`
-    """
-    def __init__(self, mainwindow):
-        GUIPanel.__init__(self, mainwindow.document)
-        self.mainwindow = mainwindow
 
 
 class DocumentGUIObject(GUIObject):

@@ -12,14 +12,14 @@ from core.util import first
 from ..model._ccore import AccountList, Split
 from ..model.account import AccountType
 from ..model.transaction import Transaction
-from .base import MainWindowPanel
+from .base import GUIPanel
 from .split_table import SplitTable
 from .completable_edit import CompletableEdit
 
-class PanelWithTransaction(MainWindowPanel):
+class PanelWithTransaction(GUIPanel):
     """Base class for panels working with a transaction"""
     def __init__(self, mainwindow):
-        MainWindowPanel.__init__(self, mainwindow)
+        GUIPanel.__init__(self, mainwindow)
         self.transaction = Transaction(date.today())
         self._selected_splits = []
         # Place to store temporarily created accounts during the editing of the

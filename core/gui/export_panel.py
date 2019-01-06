@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -16,8 +16,8 @@ class ExportFormat:
     CSV = 1
 
 class ExportPanel(GUIPanel):
-    def __init__(self, document):
-        GUIPanel.__init__(self, document)
+    def __init__(self, mainwindow):
+        GUIPanel.__init__(self, mainwindow)
         self.account_table = ExportAccountTable(weakref.proxy(self))
 
     def _load(self, accounts):

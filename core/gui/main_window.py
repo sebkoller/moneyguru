@@ -17,7 +17,7 @@ from ..model.date import inc_month, DateFormat
 from ..model.recurrence import Recurrence, RepeatType
 from ..model.transaction import txn_matches
 from ..loader import csv, qif, ofx, native
-from .base import GUIObject, MESSAGES_DOCUMENT_CHANGED
+from .base import GUIObject
 from .search_field import SearchField
 from .date_range_selector import DateRangeSelector
 from .account_lookup import AccountLookup
@@ -108,6 +108,10 @@ class MainWindow(Listener, GUIObject):
         self.csv_options = CSVOptions(self)
         self.import_window = ImportWindow(self)
 
+        MESSAGES_DOCUMENT_CHANGED = {
+            'account_added', 'account_changed', 'account_deleted',
+            'document_changed', 'transaction_deleted'
+        }
         self.bind_messages(MESSAGES_DOCUMENT_CHANGED, self._invalidate_visible_entries)
 
     # --- Private
@@ -381,7 +385,7 @@ class MainWindow(Listener, GUIObject):
 
     def export(self):
         accounts = [a for a in self.document.accounts if a.is_balance_sheet_account()]
-        panel = ExportPanel(self.document)
+        panel = ExportPanel(self)
         panel.view = weakref.proxy(self.view.get_panel_view(panel))
         panel.load(accounts)
 

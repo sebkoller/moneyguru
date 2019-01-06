@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -13,7 +13,7 @@ from core.trans import tr
 from ..exception import OperationAborted
 from ..model.account import sort_accounts
 from ..model.budget import Budget
-from .base import MainWindowPanel
+from .base import GUIPanel
 from .schedule_panel import PanelWithScheduleMixIn, REPEAT_OPTIONS_ORDER
 from .selectable_list import GUISelectableList
 
@@ -43,9 +43,9 @@ class TargetList(GUISelectableList):
     def refresh(self):
         self[:] = [(a.name if a is not None else tr('None')) for a in self.panel._targets]
 
-class BudgetPanel(MainWindowPanel, PanelWithScheduleMixIn):
+class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
     def __init__(self, mainwindow):
-        MainWindowPanel.__init__(self, mainwindow)
+        GUIPanel.__init__(self, mainwindow)
         self.create_repeat_type_list()
         self.account_list = AccountList(weakref.proxy(self))
         self.target_list = TargetList(weakref.proxy(self))

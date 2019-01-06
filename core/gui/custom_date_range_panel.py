@@ -10,7 +10,7 @@ from .base import GUIPanel
 
 class CustomDateRangePanel(GUIPanel):
     def __init__(self, drsel):
-        GUIPanel.__init__(self, drsel.mainwindow.document)
+        GUIPanel.__init__(self, drsel.mainwindow)
         self.drsel = drsel
         self._start_date = date.today()
         self._end_date = date.today()

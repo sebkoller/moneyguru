@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +10,7 @@ from datetime import date
 from core.util import allsame, flatten
 
 from ..model.currency import Currencies
-from .base import MainWindowPanel
+from .base import GUIPanel
 from .completable_edit import CompletableEdit
 from .selectable_list import LinkedSelectableList
 from .text_field import TextField
@@ -44,9 +44,9 @@ class MassEditAmountField(MassEditTextField):
         return self._panel.app.format_amount(value)
 
 
-class MassEditionPanel(MainWindowPanel):
+class MassEditionPanel(GUIPanel):
     def __init__(self, mainwindow):
-        MainWindowPanel.__init__(self, mainwindow)
+        GUIPanel.__init__(self, mainwindow)
         self_proxy = weakref.proxy(self)
         self.date_field = MassEditDateField(self_proxy, 'date')
         self.description_field = MassEditTextField(self_proxy, 'description')
