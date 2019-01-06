@@ -26,7 +26,7 @@ def test_first_weekday_pref(app):
     app.add_txn('20/1/2008', 'entry2', from_='Asset', to='Expense', amount='200')
     app.add_txn('31/3/2008', 'entry3', from_='Asset', to='Expense', amount='150')
     app.show_account('Expense')
-    app.doc.date_range = MonthRange(date(2008, 1, 1))
+    app.drsel.set_date_range(MonthRange(date(2008, 1, 1)))
     app.show_dpview()
     app.dpview.first_weekday_list.select(1) # tuesday
     app.clear_gui_calls()

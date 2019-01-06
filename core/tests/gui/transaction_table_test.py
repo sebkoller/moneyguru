@@ -76,7 +76,7 @@ def test_gui_call_on_filter_applied(app):
 @with_app(app_tview_shown)
 def test_refresh_on_import(app):
     # When entries are imported, ttable is refreshed
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.clear_gui_calls()
     app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
     app.iwin.import_selected_pane()
@@ -827,7 +827,7 @@ def test_added_txn_is_correctly_selected(app):
 # --- Load file
 def app_load_file():
     app = TestApp()
-    app.doc.date_range = MonthRange(date(2008, 2, 1))
+    app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
     app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
     app.show_tview()
     return app
@@ -1005,7 +1005,7 @@ class TestSevenEntries:
         app = TestApp()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2008, 1, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 1, 1)))
         app.add_entry('1/1/2008', description='txn 1')
         app.add_entry('2/1/2008', description='txn 2')
         app.add_entry('2/1/2008', description='txn 3')
@@ -1129,7 +1129,7 @@ class TestFourEntriesOnTheSameDate:
         app = TestApp()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2008, 1, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 1, 1)))
         app.add_entry('1/1/2008', description='txn 1')
         app.add_entry('1/1/2008', description='txn 2')
         app.add_entry('1/1/2008', description='txn 3')

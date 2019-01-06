@@ -546,7 +546,7 @@ def test_budget_without_target(app, monkeypatch):
 
 @with_app(app_accounts_and_entries)
 def test_change_date_range(app):
-    app.doc.date_range = app.doc.date_range.prev()
+    app.drsel.select_prev_date_range()
     eq_(app.bsheet.assets[0].end, '0.00')
     eq_(app.bsheet.assets[1].start, '0.00')
     eq_(app.bsheet.assets[1].end, '100.00')

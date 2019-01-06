@@ -111,7 +111,7 @@ def test_import_updates_undo_description(app):
 def app_qif_import():
     # One account named 'Account 1' and then an parse_file_for_import() call for the 'checkbook.qif' test file.
     app = TestApp(app=Application(ApplicationGUI(), default_currency='PLN'))
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.add_account('Account 1')
     app.add_account('Account 1 1')
     importall(app, testdata.filepath('qif', 'checkbook.qif'))
@@ -194,7 +194,7 @@ class TestDoubleOFXImport:
     # files (the same reference number) occurs between the two imports.
     def do_setup(self):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2008, 2, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
         importall(app, testdata.filepath('ofx', 'desjardins.ofx'))
         app.show_nwview()
         app.bsheet.selected = app.bsheet.assets[0]
@@ -231,7 +231,7 @@ class TestDoubleOFXImportAcrossSessions:
     # Correctly remember the OFX IDs even if the account name changes.
     def do_setup(self, tmpdir):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2008, 2, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
         importall(app, testdata.filepath('ofx', 'desjardins.ofx'))
         app.show_nwview()
         app.bsheet.selected = app.bsheet.assets[0] # 815-30219-11111-EOP
@@ -253,7 +253,7 @@ class TestAnotherDoubleOFXImport:
     # Importing two OFX files that contain transactions with the same FIT ID, but a different account ID.
     def do_setup(self):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2008, 2, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
         importall(app, testdata.filepath('ofx', 'desjardins2.ofx'))
         importall(app, testdata.filepath('ofx', 'desjardins3.ofx'))
         return app
@@ -280,7 +280,7 @@ class TestTripleOFXImportAcrossSessions:
     # Import the same OFX 3 times
     def do_setup(self, tmpdir):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2008, 2, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
         importall(app, testdata.filepath('ofx', 'desjardins.ofx'))
         importall(app, testdata.filepath('ofx', 'desjardins.ofx'))
         filename = str(tmpdir.join('foo.xml'))
@@ -303,7 +303,7 @@ class TestTripleOFXImportAcrossSessions:
 # Import an OFX, change one entry into a split, and then re-import.
 def app_double_ofx_import_with_split_in_the_middle():
     app = TestApp()
-    app.doc.date_range = MonthRange(date(2008, 2, 1))
+    app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
     importall(app, testdata.filepath('ofx', 'desjardins.ofx'))
     app.show_nwview()
     app.bsheet.selected = app.bsheet.assets[0]
@@ -347,7 +347,7 @@ class TestTwoEntriesInRangeSaveThenLoad:
     # Two entries having the same date, in range. The app saves to a file then loads the same file.
     def do_setup(self, tmpdir):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2007, 10, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
         app.add_account()
         app.show_account()
         app.add_entry('1/10/2007', description='first')
@@ -372,7 +372,7 @@ class TestTwoEntriesInRangeSaveThenLoad:
 # ---
 def app_transfer_between_two_referenced_accounts():
     app = TestApp()
-    app.doc.date_range = MonthRange(date(2008, 2, 1))
+    app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
     importall(app, testdata.filepath('moneyguru', 'with_references1.moneyguru')) # Contains Account 1
     app.add_account('Account 4') # Add it as an asset
     app.show_account('Account 1')
@@ -420,7 +420,7 @@ def test_bound_amount_correctly_imported(app):
 class TestImportFileWithMultipleTransferReferences:
     def do_setup(self):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2008, 2, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
         importall(app, testdata.filepath('moneyguru', 'multiple_transfer_references.moneyguru'))
         return app
 

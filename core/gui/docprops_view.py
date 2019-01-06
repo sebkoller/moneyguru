@@ -31,7 +31,7 @@ class DocPropsView(BaseView):
         self.first_weekday_list = LinkedSelectableList(items=WEEKDAYS, setfunc=setfunc)
 
         def setfunc(index):
-            self.document.ahead_months = index
+            self.mainwindow.daterange_selector.ahead_months = index
         self.ahead_months_list = LinkedSelectableList(items=list(map(str, range(12))), setfunc=setfunc)
         MONTHS = [
             tr("January"),
@@ -49,7 +49,7 @@ class DocPropsView(BaseView):
         ]
 
         def setfunc(index):
-            self.document.year_start_month = index + 1
+            self.mainwindow.daterange_selector.year_start_month = index + 1
         self.year_start_month_list = LinkedSelectableList(items=MONTHS, setfunc=setfunc)
 
         def setfunc(index):
@@ -63,5 +63,5 @@ class DocPropsView(BaseView):
         except IndexError:
             pass
         self.first_weekday_list.select(self.document.first_weekday)
-        self.ahead_months_list.select(self.document.ahead_months)
-        self.year_start_month_list.select(self.document.year_start_month - 1)
+        self.ahead_months_list.select(self.mainwindow.daterange_selector.ahead_months)
+        self.year_start_month_list.select(self.mainwindow.daterange_selector.year_start_month - 1)

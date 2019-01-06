@@ -12,7 +12,7 @@ from ..base import TestApp
 # --- One schedule
 def app_schedule():
     app = TestApp()
-    app.doc.date_range = MonthRange(app.app.parse_date('13/09/2008'))
+    app.drsel.set_date_range(MonthRange(app.app.parse_date('13/09/2008')))
     app.show_scview()
     scpanel = app.mw.new_item()
     scpanel.start_date = '13/09/2008'

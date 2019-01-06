@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-05-28
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -294,7 +292,7 @@ def app_three_entries_one_reconciled():
 @with_app(app_three_entries_one_reconciled)
 def test_save_load_with_one_reconciled_entry(app):
     newapp = app.save_and_load()
-    newapp.doc.date_range = app.doc.date_range
+    newapp.drsel.set_date_range(app.doc.date_range)
     newapp.doc._cook()
     compare_apps(app.doc, newapp.doc)
 

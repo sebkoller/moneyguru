@@ -1,6 +1,4 @@
-# Created By: Eric Mc Sween
-# Created On: 2008-07-12
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -237,7 +235,7 @@ def test_change_date_range(app):
     app.show_account()
     app.show_nwview()
     app.clear_gui_calls()
-    app.doc.date_range = app.doc.date_range.prev()
+    app.drsel.select_prev_date_range()
     expected_calls = ['refresh', 'animate_backward']
     app.drsel.view.check_gui_calls(expected_calls)
     app.check_gui_calls_partial(app.bsheet_gui, ['refresh'])
@@ -251,7 +249,7 @@ def app_asset_and_income_accounts_with_txn():
     app.add_account('Checking')
     app.show_account()
     app.add_entry('10/10/2007', 'Deposit', payee='Payee', transfer='Salary', increase='42.00')
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.clear_gui_calls()
     return app
 

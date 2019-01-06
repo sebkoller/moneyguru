@@ -65,10 +65,11 @@ class AccountView(TransactionViewBase):
         msg = tr("{0} out of {1} selected. Increase: {2} Decrease: {3}")
         self.status_line = msg.format(selected, total, total_increase_fmt, total_decrease_fmt)
 
-    def apply_date_range(self):
+    def apply_date_range(self, new_date_range, prev_date_range):
         self._invalidate_cache()
-        self.table._date_range_changed()
+        self.table._revalidate(prev_date_range=prev_date_range)
         self._refresh_totals()
+
     def restore_subviews_size(self):
         if self.balgraph.view_size[1]:
             # Was already restored

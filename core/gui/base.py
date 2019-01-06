@@ -92,9 +92,6 @@ class DocumentNotificationsMixin:
     def account_deleted(self):
         """Account(s) were deleted from the document."""
 
-    def date_range_changed(self):
-        """The current date range was changed."""
-
     def document_changed(self):
         """The whole doucment has changed (for example, when loading document)."""
 
@@ -271,7 +268,7 @@ class BaseView(DocumentGUIObject):
         pass
 
     # --- Virtual
-    def apply_date_range(self):
+    def apply_date_range(self, new_date_range, prev_date_range):
         """A new date range was just set. Adapt to it."""
 
     def apply_filter(self):

@@ -375,7 +375,7 @@ def test_undo_move_account_out_of_group(app, checkstate):
 def app_load_file():
     # Loads 'simple.moneyguru', a file with 2 accounts and 2 entries in each. Select the first entry.
     app = TestApp()
-    app.doc.date_range = MonthRange(date(2008, 2, 1))
+    app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
     # This is to set the modified flag to true so we can make sure it has been put back to false
     app.add_account()
     app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
@@ -638,7 +638,7 @@ def test_toggle_reconciled(app, checkstate):
 # ---
 def app_import_ofx():
     app = TestApp()
-    app.doc.date_range = MonthRange(date(2008, 2, 1))
+    app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
     app.mw.parse_file_for_import(testdata.filepath('ofx', 'desjardins.ofx'))
     app.iwin.import_selected_pane()
     # same cheat as in LoadFile

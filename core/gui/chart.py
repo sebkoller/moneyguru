@@ -123,18 +123,6 @@ class Chart(ViewChild):
         """Changes the size of the view to draw our chart into."""
         self.view_size = (width, height)
 
-    # --- Event Handlers
-    def _data_changed(self):
-        self._revalidate()
-
-    account_changed = _data_changed
-    account_deleted = _data_changed
-    date_range_changed = _data_changed
-    document_changed = _data_changed
-    transaction_changed = _data_changed
-    transaction_deleted = _data_changed
-    transactions_imported = _data_changed
-
     # --- Properties
     @property
     def data(self):

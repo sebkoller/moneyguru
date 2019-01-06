@@ -421,7 +421,7 @@ class TestApp(TestAppBase):
 
     def do_test_save_load(self):
         newapp = self.save_and_load()
-        newapp.doc.date_range = self.doc.date_range
+        newapp.drsel.set_date_range(self.doc.date_range)
         newapp.doc._cook()
         compare_apps(self.doc, newapp.doc)
 
@@ -476,7 +476,7 @@ class TestApp(TestAppBase):
         # navigate the current date range until target_date is in it. We use year month day to avoid
         # having to import datetime.date in tests.
         assert self.doc.date_range.can_navigate
-        self.doc.date_range = self.doc.date_range.around(date(year, month, day))
+        self.drsel.set_date_range(self.doc.date_range.around(date(year, month, day)))
 
     def new_app_same_prefs(self):
         # Returns a new TestApp() but with the same app_gui as before, thus preserving preferences.

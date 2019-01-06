@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -158,7 +158,7 @@ def test_fuzzy_matching_plugin(app):
 def app_import_checkbook_qif():
     app = TestApp()
     app.clear_gui_calls()
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('qif/checkbook.qif'))
     app.check_gui_calls(app.iwin.view, ['refresh_tabs', 'refresh_target_accounts', 'show'])
     return app
@@ -324,7 +324,7 @@ def test_swap_date_texts_after_swap(app):
 # ---
 def app_import_checkbook_qif_twice():
     app = TestApp()
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('qif/checkbook.qif'))
     app.mw.parse_file_for_import(testdata.filepath('qif/checkbook.qif'))
     return app
@@ -354,7 +354,7 @@ def app_import_checkbook_qif_with_existing_txns():
     app.etable.toggle_reconciled()
     app.aview.toggle_reconciliation_mode() # commit
     app.add_entry(date='02/01/2007', description='second entry', increase='2')
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('qif/checkbook.qif'))
     app.clear_gui_calls()
     app.iwin.selected_target_account_index = 1 # foo
@@ -418,7 +418,7 @@ def test_selected_target_account(app):
 # ---
 def app_import_moneyguru_file_with_expense_account():
     app = TestApp()
-    app.doc.date_range = YearRange(date(2008, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2008, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'simple.moneyguru'))
     return app
 
@@ -433,7 +433,7 @@ def test_account_panes(app):
 # ---
 def app_import_accountless_qif():
     app = TestApp()
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('qif/accountless.qif'))
     return app
 
@@ -448,7 +448,7 @@ def test_account_tabs_has_default_account_name(app):
 # ---
 def app_import_accountless_qif_with_splits():
     app = TestApp()
-    app.doc.date_range = YearRange(date(2008, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2008, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('qif/accountless_with_splits.qif'))
     return app
 
@@ -472,7 +472,7 @@ def test_transfers(app):
 def app_import_qif_with_empty_accounts():
     # like checkbook.qif, but with 2 extra empty accounts
     app = TestApp()
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('qif/empty_accounts.qif'))
     return app
 

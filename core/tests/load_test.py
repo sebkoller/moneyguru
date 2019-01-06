@@ -136,7 +136,7 @@ class TestLoadFile:
 class TestLoadTwice:
     def do_setup(self):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2008, 2, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
         app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
         app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
         return app
@@ -153,7 +153,7 @@ class TestLoadMultiCurrency:
     def do_setup(self):
         # Loads 'multi_currency.moneyguru', a file with 2 accounts and a multi-currency transaction.
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2008, 2, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
         app.mw.load_from_xml(testdata.filepath('moneyguru', 'multi_currency.moneyguru'))
         app.show_nwview()
         app.bsheet.selected = app.bsheet.assets[0]
@@ -178,7 +178,7 @@ class TestLoadMultiCurrency:
 class TestLoadPayeeDescription:
     def do_setup(self):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2008, 3, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 3, 1)))
         app.mw.load_from_xml(testdata.filepath('moneyguru', 'payee_description.moneyguru'))
         app.show_tview()
         return app
@@ -425,7 +425,7 @@ def test_save_load(tmpdir, monkeypatch):
         app.mw.close()
         newapp = TestApp()
         newapp.mw.load_from_xml(filepath)
-        newapp.doc.date_range = app.doc.date_range
+        newapp.drsel.set_date_range(app.doc.date_range)
         newapp.doc._cook()
         compare_apps(app.doc, newapp.doc)
 
@@ -493,7 +493,7 @@ def test_save_load_qif(tmpdir):
         newapp.mw.parse_file_for_import(filepath)
         while newapp.iwin.panes:
             newapp.iwin.import_selected_pane()
-        newapp.doc.date_range = app.doc.date_range
+        newapp.drsel.set_date_range(app.doc.date_range)
         newapp.doc._cook()
         compare_apps(app.doc, newapp.doc, qif_mode=True)
 

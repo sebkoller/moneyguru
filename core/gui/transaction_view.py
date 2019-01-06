@@ -46,7 +46,7 @@ class TransactionViewBase(BaseView):
         self.table.refresh_and_show_selection()
         self._refresh_totals()
 
-    def apply_date_range(self):
+    def apply_date_range(self, new_date_range, prev_date_range):
         self._revalidate()
 
     def apply_filter(self):

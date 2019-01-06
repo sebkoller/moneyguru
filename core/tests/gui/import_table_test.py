@@ -14,7 +14,7 @@ from ...model.date import YearRange
 # ---
 def app_import_checkbook_qif():
     app = TestApp()
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
     app.clear_gui_calls()
     return app
@@ -109,7 +109,7 @@ def app_import_checkbook_qif_with_existing_txns():
     app.etable.toggle_reconciled()
     app.aview.toggle_reconciliation_mode() # commit
     app.add_entry(date='02/01/2007', description='second entry', increase='2')
-    app.doc.date_range = YearRange(date(2007, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
     app.clear_gui_calls()
     app.iwin.selected_target_account_index = 1 # foo
@@ -179,7 +179,7 @@ def app_load_then_import_with_references():
     # import dialog.
     app = TestApp()
     app.mw.load_from_xml(testdata.filepath('moneyguru', 'with_references1.moneyguru'))
-    app.doc.date_range = YearRange(date(2008, 1, 1))
+    app.drsel.set_date_range(YearRange(date(2008, 1, 1)))
     app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'with_references2.moneyguru'))
     app.clear_gui_calls()
     return app
@@ -266,7 +266,7 @@ def app_load_then_import_with_many_matching_and_unmatching():
     ]
     app.fake_import('foo', app.TXNS, account_reference='foo')
     app.iwin.import_selected_pane()
-    app.doc.select_all_transactions_range()
+    app.drsel.select_all_transactions_range()
     aview = app.show_account('foo')
     aview.toggle_reconciliation_mode()
     aview.etable.select([0])

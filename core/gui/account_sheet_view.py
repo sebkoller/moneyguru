@@ -21,7 +21,7 @@ class AccountSheetView(BaseView):
         self.graph._revalidate()
         self.pie._revalidate()
 
-    def apply_date_range(self):
+    def apply_date_range(self, new_date_range, prev_date_range):
         self._revalidate()
 
     def restore_subviews_size(self):

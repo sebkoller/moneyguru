@@ -43,9 +43,9 @@ def test_delete_when_no_entry():
     app.etable.delete() # no crash
 
 def test_selected_entry_index():
-    # When there's no entry, the total row is selected
+    # When there's no entry, the nothing is selected
     app = app_one_account()
-    eq_(app.etable.selected_indexes, [0])
+    eq_(app.etable.selected_indexes, [])
 
 def test_set_decrease_auto_decimal_place():
     # When the auto decimal place option is set, amounts in the decrease column are correctly set.

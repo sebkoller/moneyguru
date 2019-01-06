@@ -22,7 +22,6 @@ from .search_field import SearchField
 from .date_range_selector import DateRangeSelector
 from .account_lookup import AccountLookup
 from .completion_lookup import CompletionLookup
-from .custom_date_range_panel import CustomDateRangePanel
 from .export_panel import ExportPanel
 from .import_window import ImportWindow
 from .csv_options import CSVOptions
@@ -81,7 +80,6 @@ class MainWindow(Listener, GUIObject):
     # refresh_undo_actions()
     # restore_window_frame(frame)
     # save_window_frame() -> frame
-    # show_custom_date_range_panel()
     # show_message(message)
     # view_closed(index)
     # update_area_visibility()
@@ -110,8 +108,7 @@ class MainWindow(Listener, GUIObject):
         self.csv_options = CSVOptions(self)
         self.import_window = ImportWindow(self)
 
-        msgs = MESSAGES_DOCUMENT_CHANGED | {'date_range_changed'}
-        self.bind_messages(msgs, self._invalidate_visible_entries)
+        self.bind_messages(MESSAGES_DOCUMENT_CHANGED, self._invalidate_visible_entries)
 
     # --- Private
     def _add_pane(self, pane):
@@ -323,6 +320,12 @@ class MainWindow(Listener, GUIObject):
             self._restore_default_panes()
 
     # --- Public
+    def apply_date_range(self, new_date_range, prev_date_range):
+        self._invalidate_visible_entries()
+        if self._current_pane is not None:
+            view = self._current_pane.view
+            view.apply_date_range(new_date_range, prev_date_range)
+
     def close(self):
         """Cleanup the document and close it.
 
@@ -330,6 +333,7 @@ class MainWindow(Listener, GUIObject):
         their own preferences if needed).
         """
         self.document.close()
+        self.daterange_selector.save_preferences()
         self._save_preferences()
         for pane in self.panes:
             pane.view.save_preferences()
@@ -380,11 +384,6 @@ class MainWindow(Listener, GUIObject):
         panel = ExportPanel(self.document)
         panel.view = weakref.proxy(self.view.get_panel_view(panel))
         panel.load(accounts)
-
-    def invoke_custom_date_range_panel(self):
-        panel = CustomDateRangePanel(self)
-        panel.view = weakref.proxy(self.view.get_panel_view(panel))
-        panel.load()
 
     def jump_to_account(self):
         self.account_lookup.show()
@@ -503,6 +502,7 @@ class MainWindow(Listener, GUIObject):
             self.load_parsed_file_for_import()
 
     def restore_view(self):
+        self.daterange_selector.restore_view()
         window_frame = self.document.get_default(Preference.WindowFrame)
         if window_frame:
             self.view.restore_window_frame(tuple(window_frame))
@@ -512,11 +512,6 @@ class MainWindow(Listener, GUIObject):
         for pane in self.panes:
             pane.view.restore_view()
         self.import_window.restore_view()
-
-    def save_custom_range(self, slot, name, start, end):
-        # called by the CustomDateRangePanel
-        self.app.save_custom_range(slot, name, start, end)
-        self.daterange_selector.refresh_custom_ranges()
 
     def save_to_xml(self, filename):
         self.stop_editing()
@@ -709,11 +704,6 @@ class MainWindow(Listener, GUIObject):
     def account_deleted(self):
         self._undo_stack_changed()
         self.import_window.revalidate()
-
-    def date_range_changed(self):
-        self.daterange_selector.refresh()
-        view = self._current_pane.view
-        view.apply_date_range()
 
     def document_changed(self):
         self.stop_editing()

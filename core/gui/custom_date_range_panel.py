@@ -6,13 +6,12 @@
 
 from datetime import date
 
-from ..model.date import CustomDateRange
 from .base import GUIPanel
 
 class CustomDateRangePanel(GUIPanel):
-    def __init__(self, mainwindow):
-        GUIPanel.__init__(self, mainwindow.document)
-        self.mainwindow = mainwindow
+    def __init__(self, drsel):
+        GUIPanel.__init__(self, drsel.mainwindow.document)
+        self.drsel = drsel
         self._start_date = date.today()
         self._end_date = date.today()
 
@@ -27,9 +26,9 @@ class CustomDateRangePanel(GUIPanel):
         start = self._start_date
         end = self._end_date
         if self.slot_index > 0:
-            self.mainwindow.save_custom_range(
+            self.drsel.save_custom_range(
                 self.slot_index-1, self.slot_name, start, end)
-        self.document.date_range = CustomDateRange(start, end, self.app.format_date)
+        self.drsel.select_custom_date_range(start, end)
 
     # --- Properties
     @property

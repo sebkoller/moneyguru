@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-02-18
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -16,7 +14,7 @@ from ...model.date import MonthRange
 # --- Month range, panel loaded
 def app_monthrange_panel_loaded():
     app = TestApp()
-    app.doc.date_range = MonthRange(date(2007, 10, 1))
+    app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
     app.drsel.select_custom_date_range()
     return app
 

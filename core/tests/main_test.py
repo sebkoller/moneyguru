@@ -137,7 +137,7 @@ def test_graph_xaxis(app):
 class TestRangeOnJuly2006:
     def do_setup(self):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2006, 7, 1))
+        app.drsel.set_date_range(MonthRange(date(2006, 7, 1)))
         app.show_nwview()
         return app
 
@@ -167,7 +167,7 @@ def app_one_empty_account_range_on_october_2007(monkeypatch):
     app = TestApp()
     app.add_account('Checking', 'EUR')
     app.show_account()
-    app.doc.date_range = MonthRange(date(2007, 10, 1))
+    app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
     app.clear_gui_calls()
     return app
 
@@ -251,7 +251,7 @@ class TestEntryInEditionMode:
         app.add_account()
         app.show_account()
         app.save_file()
-        app.doc.date_range = MonthRange(date(2007, 10, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
         app.etable.add()
         row = app.etable.edited
         row.date = '1/10/2007'
@@ -324,7 +324,7 @@ class TestOneEntryYearRange2007:
         app.add_account('Checking')
         app.show_account()
         app.add_entry('10/10/2007', 'Deposit', payee='Payee', transfer='Salary', increase='42.00', checkno='42')
-        app.doc.date_range = YearRange(date(2007, 1, 1))
+        app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
         return app
 
     def _test_entry_attribute_get_set(self, app, column, value='some_value'):
@@ -643,7 +643,7 @@ class TestTwoEntriesInTwoMonthsRangeOnSecond:
         app.show_account()
         app.add_entry('3/9/2007', 'first', increase='102.00')
         app.add_entry('10/10/2007', 'second', increase='42.00')
-        app.doc.date_range = MonthRange(date(2007, 10, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
         # When the second entry was added, the date was in the previous date range, making the
         # entry go *before* the Previous Entry, but we want the selection to be on the second item
         app.etable.select([1])
@@ -707,7 +707,7 @@ class TestTwoEntriesInRange:
         app = TestApp()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2007, 10, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
         app.add_entry('2/10/2007', 'first', increase='102')
         app.add_entry('4/10/2007', 'second', increase='42')
         app.etable.select([0])
@@ -787,7 +787,7 @@ class TestTwoEntryOnTheSameDate:
         app = TestApp()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2007, 10, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
         app.add_entry('3/10/2007', 'foo', increase='10000')
         app.add_entry('3/10/2007', 'bar', decrease='9000')
         app.etable.select([0])
@@ -822,7 +822,7 @@ class TestTwoAccountsTwoEntriesInTheFirst:
     # Second account is selected.
     def do_setup(self):
         app = TestApp()
-        app.doc.date_range = MonthRange(date(2007, 10, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
         app.add_account()
         app.show_account()
         app.add_entry('3/10/2007', 'first', increase='1')
@@ -845,7 +845,7 @@ class TestAssetIncomeWithDecrease:
         app = TestApp()
         app.add_account('Operations')
         app.show_account()
-        app.doc.date_range = MonthRange(date(2008, 3, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 3, 1)))
         app.add_entry('1/3/2008', description='MacroSoft', transfer='Salary', increase='42')
         app.add_entry('2/3/2008', description='Error Adjustment', transfer='Salary', decrease='2')
         return app
@@ -911,7 +911,7 @@ class TestLiabilityExpenseWithDecrease:
         app = TestApp()
         app.add_account('Visa', account_type=AccountType.Liability)
         app.show_account()
-        app.doc.date_range = MonthRange(date(2008, 3, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 3, 1)))
         # Visa is a liabilies, so increase/decrease are inverted
         # Clothes is created as an expense
         app.add_entry('1/3/2008', description='Shoes', transfer='Clothes', increase='42.00')
@@ -973,7 +973,7 @@ class TestThreeEntriesInThreeMonthsRangeOnThird:
         app = TestApp()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2007, 11, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 11, 1)))
         app.add_entry('3/9/2007', 'first', increase='1')
         app.add_entry('10/10/2007', 'second', increase='2')
         app.add_entry('1/11/2007', 'third', increase='3')
@@ -993,7 +993,7 @@ class TestEntriesWithZeroVariation:
         app = TestApp()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2007, 10, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
         app.add_entry('1/10/2007', 'first', increase='100')
         app.add_entry('3/10/2007', 'third')
         return app
@@ -1070,7 +1070,7 @@ class TestThreeEntriesInTheSameExpenseAccount:
     def test_graph_data_in_month_range(self, app):
         # The expense graph shows weekly totals when the month range is selected. The first bar
         # overflows the date range to complete the week.
-        app.doc.date_range = MonthRange(date(2008, 1, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 1, 1)))
         expected = [('31/12/2007', '07/01/2008', '142.00', '0.00'),
                     ('14/01/2008', '21/01/2008', '200.00', '0.00')]
         eq_(app.bar_graph_data(), expected)
@@ -1079,7 +1079,7 @@ class TestThreeEntriesInTheSameExpenseAccount:
     def test_graph_data_in_quarter_range(self, app):
         # The expense graph shows weekly totals when the quarter range is selected. The first bar
         # overflows the date range to complete the week.
-        app.doc.date_range = QuarterRange(date(2008, 1, 1))
+        app.drsel.set_date_range(QuarterRange(date(2008, 1, 1)))
         expected = [('31/12/2007', '07/01/2008', '142.00', '0.00'),
                      ('14/01/2008', '21/01/2008', '200.00', '0.00'),
                      ('31/03/2008', '07/04/2008', '150.00', '0.00')]
@@ -1092,7 +1092,7 @@ class TestThreeEntriesInTheSameExpenseAccount:
         app.doc.first_weekday = 0
         # The month of Jan 2008 has a monday on the 31st of december and another on the 4th of
         # january. All of this is 5 weeks (35 days)
-        app.doc.date_range = MonthRange(start)
+        app.drsel.set_date_range(MonthRange(start))
         eq_(app.bargraph.xmin, 0)
         # We add +1 to the xaxis' max date
         eq_(app.bargraph.xmax, 35+1)
@@ -1104,7 +1104,7 @@ class TestFourEntriesInRange:
         app = TestApp()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2007, 10, 1))
+        app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
         app.add_entry('3/10/2007', 'first', increase='1')
         app.add_entry('4/10/2007', 'second', decrease='2')
         app.add_entry('5/10/2007', 'third', increase='3')
@@ -1139,7 +1139,7 @@ class TestEightEntries:
         app.add_account()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2008, 1, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 1, 1)))
         app.add_entry('1/1/2007', description='previous', increase='1')
         app.add_entry('1/1/2008', description='entry 1', increase='9')
         app.add_entry('2/1/2008', description='entry 2', increase='20')
@@ -1247,7 +1247,7 @@ class TestFourEntriesOnTheSameDate:
         app = TestApp()
         app.add_account()
         app.show_account()
-        app.doc.date_range = MonthRange(date(2008, 1, 1))
+        app.drsel.set_date_range(MonthRange(date(2008, 1, 1)))
         app.add_entry('1/1/2008', description='entry 1', increase='42.00')
         app.add_entry('1/1/2008', description='entry 2', increase='42.00')
         app.add_entry('1/1/2008', description='entry 3', increase='42.00')
@@ -1292,7 +1292,7 @@ class TestFourEntriesOnTheSameDate:
         # After a save and load, moving entries around still works correctly (previously, all
         # positions would be set to 1 open loading).
         newapp = app.save_and_load() # no crash
-        newapp.doc.date_range = MonthRange(date(2008, 1, 1))
+        newapp.drsel.set_date_range(MonthRange(date(2008, 1, 1)))
         newapp.show_tview()
         newapp.ttable.select([3])
         newapp.ttable.move_up()

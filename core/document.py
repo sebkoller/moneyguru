@@ -16,7 +16,7 @@ from core.notify import Broadcaster
 from core.util import nonone, allsame, dedupe, extract, first, flatten
 from core.trans import tr
 
-from .const import NOEDIT, DATE_FORMAT_FOR_PREFERENCES
+from .const import NOEDIT
 from .exception import FileFormatError, OperationAborted
 from .gui.base import GUIObject
 from .loader import native
@@ -25,28 +25,14 @@ from .model.account import Group, GroupList, AccountType
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
 from .model.budget import BudgetList
-from .model.date import (
-    MonthRange, QuarterRange, YearRange, YearToDateRange, RunningYearRange,
-    AllTransactionsRange, CustomDateRange
-)
+from .model.date import YearRange
 from .model.oven import Oven
 from .model.transaction_list import TransactionList
 from .model.undo import Undoer, Action
 from .model.recurrence import find_schedule_of_ref
 from .saver.native import save as save_native
 
-SELECTED_DATE_RANGE_PREFERENCE = 'SelectedDateRange'
-SELECTED_DATE_RANGE_START_PREFERENCE = 'SelectedDateRangeStart'
-SELECTED_DATE_RANGE_END_PREFERENCE = 'SelectedDateRangeEnd'
 EXCLUDED_ACCOUNTS_PREFERENCE = 'ExcludedAccounts'
-
-DATE_RANGE_MONTH = 'month'
-DATE_RANGE_QUARTER = 'quarter'
-DATE_RANGE_YEAR = 'year'
-DATE_RANGE_YTD = 'ytd'
-DATE_RANGE_RUNNING_YEAR = 'running_year'
-DATE_RANGE_ALL_TRANSACTIONS = 'all_transactions'
-DATE_RANGE_CUSTOM = 'custom'
 
 class ScheduleScope:
     Local = 0
@@ -423,16 +409,8 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._date_range = YearRange(datetime.date.today())
         self._document_id = None
         self._dirty_flag = False
-        self._restore_preferences()
 
     # --- Private
-    def _adjust_date_range(self, new_date):
-        new_date_range = self.date_range.around(new_date)
-        if new_date_range == self.date_range:
-            return False
-        self.date_range = new_date_range
-        return True
-
     def _autosave(self):
         existing_names = [name for name in os.listdir(self.app.cache_path) if name.startswith('autosave')]
         existing_names.sort()
@@ -499,56 +477,13 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         materialized_split.reconciliation_date = reconciliation_date
         return materialized, materialized_split
 
-    def _restore_preferences(self):
-        start_date = self.app.get_default(SELECTED_DATE_RANGE_START_PREFERENCE)
-        if start_date:
-            start_date = datetime.datetime.strptime(start_date, DATE_FORMAT_FOR_PREFERENCES).date()
-        end_date = self.app.get_default(SELECTED_DATE_RANGE_END_PREFERENCE)
-        if end_date:
-            end_date = datetime.datetime.strptime(end_date, DATE_FORMAT_FOR_PREFERENCES).date()
-        selected_range = self.app.get_default(SELECTED_DATE_RANGE_PREFERENCE)
-        if selected_range == DATE_RANGE_MONTH:
-            self.select_month_range(start_date)
-        elif selected_range == DATE_RANGE_QUARTER:
-            self.select_quarter_range(start_date)
-        elif selected_range == DATE_RANGE_YEAR:
-            self.select_year_range(start_date)
-        elif selected_range == DATE_RANGE_YTD:
-            self.select_year_to_date_range()
-        elif selected_range == DATE_RANGE_RUNNING_YEAR:
-            self.select_running_year_range()
-        elif selected_range == DATE_RANGE_CUSTOM and start_date and end_date:
-            self.select_custom_date_range(start_date, end_date)
-
     def _restore_preferences_after_load(self):
         # some preference need the file loaded before attempting a restore
         logging.debug('restore_preferences_after_load() beginning')
         excluded_account_names = set(nonone(self.get_default(EXCLUDED_ACCOUNTS_PREFERENCE), []))
         self.excluded_accounts = {a for a in self.accounts if a.name in excluded_account_names}
-        selected_range = self.app.get_default(SELECTED_DATE_RANGE_PREFERENCE)
-        if selected_range == DATE_RANGE_ALL_TRANSACTIONS: # only works after load
-            self.select_all_transactions_range()
 
     def _save_preferences(self):
-        dr = self.date_range
-        selected_range = DATE_RANGE_MONTH
-        if isinstance(dr, QuarterRange):
-            selected_range = DATE_RANGE_QUARTER
-        elif isinstance(dr, YearRange):
-            selected_range = DATE_RANGE_YEAR
-        elif isinstance(dr, YearToDateRange):
-            selected_range = DATE_RANGE_YTD
-        elif isinstance(dr, RunningYearRange):
-            selected_range = DATE_RANGE_RUNNING_YEAR
-        elif isinstance(dr, AllTransactionsRange):
-            selected_range = DATE_RANGE_ALL_TRANSACTIONS
-        elif isinstance(dr, CustomDateRange):
-            selected_range = DATE_RANGE_CUSTOM
-        self.app.set_default(SELECTED_DATE_RANGE_PREFERENCE, selected_range)
-        str_start_date = dr.start.strftime(DATE_FORMAT_FOR_PREFERENCES)
-        self.app.set_default(SELECTED_DATE_RANGE_START_PREFERENCE, str_start_date)
-        str_end_date = dr.end.strftime(DATE_FORMAT_FOR_PREFERENCES)
-        self.app.set_default(SELECTED_DATE_RANGE_END_PREFERENCE, str_end_date)
         excluded_account_names = [a.name for a in self.excluded_accounts]
         self.set_default(EXCLUDED_ACCOUNTS_PREFERENCE, excluded_account_names)
 
@@ -790,8 +725,8 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action.change_transactions([original], self.schedules)
         self._undoer.record(action)
         BaseDocument.change_transaction(self, original, new, global_scope=global_scope)
-        if not self._adjust_date_range(original.date):
-            self.notify('document_changed')
+        self.date_range = self.date_range.around(original.date)
+        self.notify('document_changed')
 
     @handle_abort
     def change_transactions(
@@ -822,8 +757,8 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self, transactions, date=date, description=description, payee=payee, checkno=checkno,
             from_=from_, to=to, amount=amount, currency=currency, global_scope=global_scope
         )
-        if not self._adjust_date_range(transactions[-1].date):
-            self.notify('document_changed')
+        self.date_range = self.date_range.around(transactions[-1].date)
+        self.notify('document_changed')
         if action.changed_schedules:
             self.notify('document_changed')
 
@@ -924,8 +859,8 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             description=description, payee=payee, checkno=checkno, transfer=transfer,
             amount=amount, global_scope=global_scope
         )
-        if not self._adjust_date_range(entry.date):
-            self.notify('document_changed')
+        self.date_range = self.date_range.around(entry.date)
+        self.notify('document_changed')
 
     def toggle_entries_reconciled(self, entries):
         """Toggle the reconcile flag of `entries`.
@@ -1134,9 +1069,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._cook()
         self.notify('document_changed')
         self._undoer.set_save_point()
-        self.date_range = self.date_range.with_new_args(
-            year_start_month=self.year_start_month,
-            ahead_months=self.ahead_months)
         self._restore_preferences_after_load()
 
     def save_to_xml(self, filename, autosave=False):
@@ -1246,69 +1178,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._dirty_flag = True
 
     # --- Date Range
-    def select_month_range(self, starting_point):
-        """Sets :attr:`date_range` to a :class:`.MonthRange`.
-
-        :param starting_point: ``datetime.date`` around which to wrap the range.
-        """
-        self.date_range = MonthRange(starting_point)
-
-    def select_quarter_range(self, starting_point):
-        """Sets :attr:`date_range` to a :class:`.QuarterRange`.
-
-        :param starting_point: ``datetime.date`` around which to wrap the range.
-        """
-        self.date_range = QuarterRange(starting_point)
-
-    def select_year_range(self, starting_point):
-        """Sets :attr:`date_range` to a :class:`.YearRange`.
-
-        :param starting_point: ``datetime.date`` around which to wrap the range.
-        """
-        self.date_range = YearRange(starting_point, year_start_month=self.year_start_month)
-
-    def select_year_to_date_range(self):
-        """Sets :attr:`date_range` to a :class:`.YearToDateRange`."""
-        self.date_range = YearToDateRange(year_start_month=self.year_start_month)
-
-    def select_running_year_range(self):
-        """Sets :attr:`date_range` to a :class:`.RunningYearRange`."""
-        self.date_range = RunningYearRange(ahead_months=self.ahead_months)
-
-    def select_all_transactions_range(self):
-        """Sets :attr:`date_range` to a :class:`.AllTransactionsRange`."""
-        if not self.transactions:
-            return
-        first_date = self.transactions.first().date
-        last_date = self.transactions.last().date
-        self.date_range = AllTransactionsRange(
-            first_date=first_date, last_date=last_date,
-            ahead_months=self.ahead_months
-        )
-
-    def select_custom_date_range(self, start_date, end_date):
-        """Sets :attr:`date_range` to a :class:`.CustomDateRange`.
-
-        :param start_date: ``datetime.date``
-        :param end_date: ``datetime.date``
-        """
-        self.date_range = CustomDateRange(start_date, end_date, self.app.format_date)
-
-    def select_prev_date_range(self):
-        """If the current date range is navigable, select the previous range."""
-        if self.date_range.can_navigate:
-            self.date_range = self.date_range.prev()
-
-    def select_next_date_range(self):
-        """If the current date range is navigable, select the next range."""
-        if self.date_range.can_navigate:
-            self.date_range = self.date_range.next()
-
-    def select_today_date_range(self):
-        """If the current date range is navigable, select the range containing today."""
-        if self.date_range.can_navigate:
-            self.date_range = self.date_range.around(datetime.date.today())
-
     @property
     def date_range(self):
         """*get/set*. Current date range of the document.
@@ -1326,7 +1195,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             return
         self._date_range = date_range
         self.oven.continue_cooking(date_range.end)
-        self.notify('date_range_changed')
 
     # --- Undo
     def can_undo(self):
@@ -1394,32 +1262,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.set_dirty()
         self.notify('document_changed')
 
-    @property
-    def ahead_months(self):
-        return self._properties['ahead_months']
-
-    @ahead_months.setter
-    def ahead_months(self, value):
-        assert 0 <= value <= 11
-        if value == self._properties['ahead_months']:
-            return
-        self._properties['ahead_months'] = value
-        self.set_dirty()
-        self.date_range = self.date_range.with_new_args(ahead_months=value)
-
-    @property
-    def year_start_month(self):
-        return self._properties['year_start_month']
-
-    @year_start_month.setter
-    def year_start_month(self, value):
-        assert 1 <= value <= 12
-        if value == self._properties['year_start_month']:
-            return
-        self._properties['year_start_month'] = value
-        self.set_dirty()
-        self.date_range = self.date_range.with_new_args(year_start_month=value)
-
     @BaseDocument.default_currency.setter
     def default_currency(self, value):
         if value == self._properties['default_currency']:
@@ -1458,10 +1300,6 @@ class ImportDocument(BaseDocument):
         self.schedules = loader.schedules
         self.budgets = loader.budgets
         self.oven = loader.oven
-
-    @property
-    def ahead_months(self):
-        return 0
 
     def _get_dateformat(self):
 
