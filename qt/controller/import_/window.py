@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -7,7 +7,7 @@
 from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QWidget, QTabBar, QComboBox, QGroupBox, QPushButton, QVBoxLayout, QHBoxLayout, QSpacerItem,
+    QDialog, QTabBar, QComboBox, QGroupBox, QPushButton, QVBoxLayout, QHBoxLayout, QSpacerItem,
     QLabel, QSizePolicy, QGridLayout, QCheckBox, QAbstractItemView
 )
 
@@ -20,9 +20,9 @@ from .table import ImportTable
 
 tr = trget('ui')
 
-class ImportWindow(QWidget):
+class ImportWindow(QDialog):
     def __init__(self, mainwindow):
-        QWidget.__init__(self, mainwindow, Qt.Window)
+        QDialog.__init__(self, mainwindow, Qt.Window)
         self._setupUi()
         self.doc = mainwindow.doc
         self.model = mainwindow.model.import_window
@@ -34,12 +34,14 @@ class ImportWindow(QWidget):
         self.tabView.tabCloseRequested.connect(self.tabCloseRequested)
         self.tabView.currentChanged.connect(self.currentTabChanged)
         self.targetAccountComboBox.currentIndexChanged.connect(self.targetAccountChanged)
+        self.closeButton.clicked.connect(self.close)
         self.importButton.clicked.connect(self.importClicked)
         self.swapButton.clicked.connect(self.swapClicked)
 
     def _setupUi(self):
         self.setWindowTitle(tr("Import"))
         self.resize(557, 407)
+        self.setModal(True)
         self.verticalLayout = QVBoxLayout(self)
         self.tabView = QTabBar(self)
         self.tabView.setMinimumSize(QtCore.QSize(0, 20))
@@ -76,6 +78,8 @@ class ImportWindow(QWidget):
         self.horizontalLayout = QHBoxLayout()
         spacerItem1 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem1)
+        self.closeButton = QPushButton(tr("Close"))
+        self.horizontalLayout.addWidget(self.closeButton)
         self.importButton = QPushButton(tr("Import"))
         self.horizontalLayout.addWidget(self.importButton)
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -133,13 +137,6 @@ class ImportWindow(QWidget):
 
     def set_swap_button_enabled(self, enabled):
         self.swapButton.setEnabled(enabled)
-
-    def show(self):
-        # For non-modal dialogs, show() is not enough to bring the window at the forefront, we have
-        # to call raise() as well
-        QWidget.showNormal(self)
-        QWidget.raise_(self)
-        QWidget.activateWindow(self)
 
     def update_selected_pane(self):
         index = self.model.selected_pane_index
