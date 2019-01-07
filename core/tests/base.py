@@ -38,6 +38,9 @@ class PanelViewProvider:
     def __init__(self):
         self.current_panel = None
 
+    def close_panel(self):
+        self.current_panel = None
+
     def get_panel_view(self, model):
         for elem in vars(model).values():
             if elem is model:
@@ -172,7 +175,6 @@ class TestApp(TestAppBase):
         self.default_parent = self.mw
         self.sfield = link_gui(self.mw.search_field)
         self.drsel = link_gui(self.mw.daterange_selector)
-        self.csvopt = link_gui(self.mw.csv_options)
         # We have to link the import table's gui before we link iwin's
         # The order in which the gui is linked in linked_gui causes a crash in pref_test.
         # import_table.columns has to be linked first.

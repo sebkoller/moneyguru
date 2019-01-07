@@ -114,6 +114,9 @@ class CSVOptions(GUIObject):
             self._layouts = []
         self.layout = self._default_layout
 
+    def __del__(self):
+        self.save_preferences()
+
     # --- Private
     def _refresh_columns(self):
         self._colcount = len(self.mainwindow.loader.lines[0])
@@ -142,7 +145,7 @@ class CSVOptions(GUIObject):
         except FileLoadError as e:
             self.view.show_message(str(e))
         else:
-            self.view.hide()
+            self.view.close()
 
     def delete_selected_layout(self):
         if self.layout is self._default_layout:

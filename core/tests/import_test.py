@@ -85,9 +85,10 @@ def test_csv_import_tries_default_dateformat_first():
     # When guessing date format in a CSV file, try the default date format first.
     app = TestApp(app=Application(ApplicationGUI(), date_format='yy/dd/MM'))
     app.mw.parse_file_for_import(testdata.filepath('csv/ambiguous_date.csv'))
-    app.csvopt.set_column_field(0, CsvField.Date)
-    app.csvopt.set_column_field(1, CsvField.Amount)
-    app.csvopt.continue_import()
+    csvopt = app.panel_view_provider.current_panel
+    csvopt.set_column_field(0, CsvField.Date)
+    csvopt.set_column_field(1, CsvField.Amount)
+    csvopt.continue_import()
     # Normally, the dates we test are expected in our default, dd/MM/yyyy, but since we've changed
     # the date format...
     eq_(app.itable[0].date_import, '01/02/03')

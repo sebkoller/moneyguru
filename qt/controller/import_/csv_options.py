@@ -23,17 +23,16 @@ RENAME_LAYOUT = 'rename_layout'
 DELETE_LAYOUT = 'delete_layout'
 
 class CSVOptionsWindow(QDialog):
-    def __init__(self, mainwindow):
+    def __init__(self, model, mainwindow):
         QDialog.__init__(self, mainwindow, Qt.Window)
         self._setupUi()
         self.doc = mainwindow.doc
-        self.model = mainwindow.model.csv_options
+        self.model = model
         self.tableModel = CSVOptionsTableModel(self.model, self.tableView)
-        self.model.view = self
         self.encodingComboBox.addItems(SUPPORTED_ENCODINGS)
 
-        self.cancelButton.clicked.connect(self.hide)
-        self.continueButton.clicked.connect(self.model.continue_import)
+        self.cancelButton.clicked.connect(self.close)
+        self.continueButton.clicked.connect(self.continueImport)
         self.targetComboBox.currentIndexChanged.connect(self.targetIndexChanged)
         self.layoutComboBox.currentIndexChanged.connect(self.layoutIndexChanged)
         self.rescanButton.clicked.connect(self.rescanClicked)
@@ -120,6 +119,9 @@ class CSVOptionsWindow(QDialog):
             self.model.rename_selected_layout(name)
 
     # --- Event Handling
+    def continueImport(self):
+        self.model.continue_import()
+
     def layoutIndexChanged(self, index):
         # This one is a little complicated. We want to only be able to select the layouts. If
         # anything else is clicked, we revert back to the old index. If the item has user data,
@@ -148,7 +150,12 @@ class CSVOptionsWindow(QDialog):
         self.model.selected_target_index = index
 
     # --- model --> view
-    # hide() is called from the model, but is already covered by QWidget
+    def close(self):
+        # Make sure to break any circular reference.
+        del self.tableModel.model
+        del self.model
+        super().close()
+
     def refresh_columns(self):
         self.tableModel.beginResetModel()
         self.tableModel.endResetModel()

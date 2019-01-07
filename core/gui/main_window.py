@@ -105,7 +105,6 @@ class MainWindow(Listener, GUIObject):
         self.account_lookup = AccountLookup(self)
         self.completion_lookup = CompletionLookup(self)
 
-        self.csv_options = CSVOptions(self)
         self.import_window = ImportWindow(self)
 
         MESSAGES_DOCUMENT_CHANGED = {
@@ -348,7 +347,6 @@ class MainWindow(Listener, GUIObject):
             # risk getting view refresh bugs under Qt because in there, closing a document doesn't
             # always mean closing the window (unlike under Cocoa).
             self._current_pane.view.hide()
-        self.csv_options.save_preferences()
         self.import_window.save_preferences()
 
     def close_pane(self, index):
@@ -501,7 +499,9 @@ class MainWindow(Listener, GUIObject):
             raise FileFormatError(tr('%s is of an unknown format.') % filename)
         self.loader = loader
         if isinstance(self.loader, csv.Loader):
-            self.csv_options.show()
+            panel = CSVOptions(self)
+            panel.view = weakref.proxy(self.view.get_panel_view(panel))
+            panel.show()
         else:
             self.load_parsed_file_for_import()
 

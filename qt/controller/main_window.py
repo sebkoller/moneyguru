@@ -17,6 +17,7 @@ from core.trans import trget
 from core.const import PaneType, PaneArea
 from core.gui.main_window import MainWindow as MainWindowModel
 from core.gui.custom_date_range_panel import CustomDateRangePanel as CustomDateRangePanelModel
+from core.gui.csv_options import CSVOptions as CSVOptionsModel
 from core.exception import FileFormatError
 from core.document import Document as DocumentModel, ScheduleScope
 
@@ -95,7 +96,6 @@ class MainWindow(QMainWindow):
         self.drsel = DateRangeSelector(mainwindow=self, view=self.dateRangeSelectorView)
         self.sfield = SearchField(model=self.model.search_field, view=self.searchLineEdit)
         self.importWindow = ImportWindow(self)
-        self.csvOptionsWindow = CSVOptionsWindow(self)
         self.recentDocuments = Recent(self.app, 'recentDocuments')
         self.recentDocuments.addMenu(self.menuOpenRecent)
 
@@ -700,6 +700,8 @@ class MainWindow(QMainWindow):
     def get_panel_view(self, model):
         if isinstance(model, CustomDateRangePanelModel):
             return CustomDateRangePanel(model, self)
+        elif isinstance(model, CSVOptionsModel):
+            return CSVOptionsWindow(model, self)
         else:
             return ExportPanel(model, self)
 
