@@ -120,7 +120,9 @@ class CSVOptionsWindow(QDialog):
 
     # --- Event Handling
     def continueImport(self):
-        self.model.continue_import()
+        if self.model.continue_import() is not None:
+            # no problem with continue_import, so we close()
+            self.close()
 
     def layoutIndexChanged(self, index):
         # This one is a little complicated. We want to only be able to select the layouts. If

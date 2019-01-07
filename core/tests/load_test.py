@@ -238,13 +238,13 @@ class TestLoadImportWithTransactionInTheFuture:
     def do_setup(self, monkeypatch):
         monkeypatch.patch_today(2008, 2, 1) # before any txn date
         app = TestApp()
-        app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'simple.moneyguru'))
+        app.iwin = app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'simple.moneyguru'))
         return app
 
     @with_app(do_setup)
     def test_transactions_show_up(self, app):
         # even when there are txns in the future, they show up in the import panel
-        eq_(len(app.itable), 2)
+        eq_(len(app.iwin.import_table), 2)
 
 
 class TestLoadWithReferences1:
@@ -490,9 +490,9 @@ def test_save_load_qif(tmpdir):
         expanel.save()
         app.mw.close()
         newapp = TestApp()
-        newapp.mw.parse_file_for_import(filepath)
-        while newapp.iwin.panes:
-            newapp.iwin.import_selected_pane()
+        iwin = newapp.mw.parse_file_for_import(filepath)
+        while iwin.panes:
+            iwin.import_selected_pane()
         newapp.drsel.set_date_range(app.doc.date_range)
         newapp.doc._cook()
         compare_apps(app.doc, newapp.doc, qif_mode=True)

@@ -21,14 +21,15 @@ from .table import ImportTable
 tr = trget('ui')
 
 class ImportWindow(QDialog):
-    def __init__(self, mainwindow):
+    def __init__(self, model, mainwindow, prefs):
         QDialog.__init__(self, mainwindow, Qt.Window)
+        self.prefs = prefs
         self._setupUi()
+        self.prefs.restoreGeometry('importWindowGeometry', self)
         self.doc = mainwindow.doc
-        self.model = mainwindow.model.import_window
+        self.model = model
         self.swapOptionsComboBox = ComboboxModel(model=self.model.swap_type_list, view=self.swapOptionsComboBoxView)
         self.table = ImportTable(model=self.model.import_table, view=self.tableView)
-        self.model.view = self
         self._setupColumns() # Can only be done after the model has been connected
 
         self.tabView.tabCloseRequested.connect(self.tabCloseRequested)
@@ -95,6 +96,10 @@ class ImportWindow(QDialog):
         l.setAlignment(self.targetAccountComboBox, Qt.AlignTop)
 
     # --- Event Handlers
+    def close(self):
+        self.prefs.saveGeometry('importWindowGeometry', self)
+        super().close()
+
     def currentTabChanged(self, index):
         self.model.selected_pane_index = index
 
@@ -115,9 +120,6 @@ class ImportWindow(QDialog):
         self.table.updateColumnsVisibility()
 
     # --- model --> view
-    def close(self):
-        self.hide()
-
     def close_selected_tab(self):
         self.tabView.removeTab(self.tabView.currentIndex())
 

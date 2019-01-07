@@ -101,8 +101,8 @@ def test_add_transaction(app, checkstate):
 def test_import(app, checkstate):
     # When undoing an import that creates income/expense accounts, don't crash on auto account
     # removal
-    app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
-    app.iwin.import_selected_pane()
+    iwin = app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
+    iwin.import_selected_pane()
     checkstate()
 
 @with_app(TestApp)
@@ -639,8 +639,8 @@ def test_toggle_reconciled(app, checkstate):
 def app_import_ofx():
     app = TestApp()
     app.drsel.set_date_range(MonthRange(date(2008, 2, 1)))
-    app.mw.parse_file_for_import(testdata.filepath('ofx', 'desjardins.ofx'))
-    app.iwin.import_selected_pane()
+    iwin = app.mw.parse_file_for_import(testdata.filepath('ofx', 'desjardins.ofx'))
+    iwin.import_selected_pane()
     # same cheat as in LoadFile
     time.sleep(0.05)
     app.doc._cook()
@@ -666,10 +666,10 @@ def test_undo_delete_transaction_with_import_ref(app, checkstate):
 def test_undo_import(app, checkstate):
     # Undoing an import removes all accounts and transactions added by  that import. It also
     # undo changes that have been made.
-    app.mw.parse_file_for_import(testdata.filepath('ofx', 'desjardins2.ofx'))
+    iwin = app.mw.parse_file_for_import(testdata.filepath('ofx', 'desjardins2.ofx'))
     # this is the pane that has stuff in it
-    app.iwin.selected_target_account_index = 1
-    app.iwin.import_selected_pane()
+    iwin.selected_target_account_index = 1
+    iwin.import_selected_pane()
     checkstate()
 
 # ---

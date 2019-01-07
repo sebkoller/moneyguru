@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -140,8 +140,8 @@ class TestAssetsAndLiabilitiesInDifferentAccounts:
     @with_app(do_setup)
     def test_refresh_on_import(self, app):
         # When entries are imported, charts are refreshed
-        app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
-        app.iwin.import_selected_pane()
+        iwin = app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
+        iwin.import_selected_pane()
         # For the data itself, we just have to test that it changed. the QIF has data in 02/2008
         assert app.nw_graph_data()[0] != ('01/07/2008', '10.00')
         app.check_gui_calls(app.nwgraph_gui, ['refresh'])

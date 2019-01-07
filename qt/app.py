@@ -78,7 +78,6 @@ class MoneyGuru(QObject):
     # --- Event Handling
     def applicationFinishedLaunching(self):
         self.prefs.restoreGeometry('mainWindowGeometry', self.mainWindow)
-        self.prefs.restoreGeometry('importWindowGeometry', self.mainWindow.importWindow)
         self.mainWindow.show()
         if self.initialFilePath:
             self.mainWindow.open(self.initialFilePath, initial=True)
@@ -87,7 +86,6 @@ class MoneyGuru(QObject):
         self.mainWindow.model.close()
         self.willSavePrefs.emit()
         self.prefs.saveGeometry('mainWindowGeometry', self.mainWindow)
-        self.prefs.saveGeometry('importWindowGeometry', self.mainWindow.importWindow)
         self.prefs.save()
 
     # --- Signals

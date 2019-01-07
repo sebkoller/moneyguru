@@ -105,8 +105,6 @@ class MainWindow(Listener, GUIObject):
         self.account_lookup = AccountLookup(self)
         self.completion_lookup = CompletionLookup(self)
 
-        self.import_window = ImportWindow(self)
-
         MESSAGES_DOCUMENT_CHANGED = {
             'account_added', 'account_changed', 'account_deleted',
             'document_changed', 'transaction_deleted'
@@ -347,7 +345,6 @@ class MainWindow(Listener, GUIObject):
             # risk getting view refresh bugs under Qt because in there, closing a document doesn't
             # always mean closing the window (unlike under Cocoa).
             self._current_pane.view.hide()
-        self.import_window.save_preferences()
 
     def close_pane(self, index):
         if self.pane_count == 1: # don't close the last pane
@@ -403,7 +400,11 @@ class MainWindow(Listener, GUIObject):
         """
         self.loader.load()
         if any(a.is_balance_sheet_account() for a in self.loader.accounts) and self.loader.transactions:
-            self.import_window.show()
+            panel = ImportWindow(self)
+            panel.view = weakref.proxy(self.view.get_panel_view(panel))
+            panel.restore_view()
+            panel.show()
+            return panel
         else:
             raise FileFormatError('This file does not contain any account to import.')
 
@@ -502,8 +503,9 @@ class MainWindow(Listener, GUIObject):
             panel = CSVOptions(self)
             panel.view = weakref.proxy(self.view.get_panel_view(panel))
             panel.show()
+            return panel
         else:
-            self.load_parsed_file_for_import()
+            return self.load_parsed_file_for_import()
 
     def restore_view(self):
         self.daterange_selector.restore_view()
@@ -515,7 +517,6 @@ class MainWindow(Listener, GUIObject):
         self._update_area_visibility()
         for pane in self.panes:
             pane.view.restore_view()
-        self.import_window.restore_view()
 
     def save_to_xml(self, filename):
         self.stop_editing()
@@ -695,7 +696,6 @@ class MainWindow(Listener, GUIObject):
 
     def account_added(self):
         self._undo_stack_changed()
-        self.import_window.revalidate()
 
     def account_changed(self):
         self._undo_stack_changed()
@@ -703,11 +703,9 @@ class MainWindow(Listener, GUIObject):
         if tochange is not None:
             tochange.label = tochange.account.name
             self.view.refresh_panes()
-        self.import_window.revalidate()
 
     def account_deleted(self):
         self._undo_stack_changed()
-        self.import_window.revalidate()
 
     def document_changed(self):
         self.stop_editing()

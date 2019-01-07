@@ -41,12 +41,18 @@ class PanelViewProvider:
     def close_panel(self):
         self.current_panel = None
 
-    def get_panel_view(self, model):
+    @classmethod
+    def _logify(cls, model, ignore=None):
+        ignore = ignore or []
         for elem in vars(model).values():
-            if elem is model:
+            if elem is model or elem in ignore:
                 continue
             if isinstance(elem, GUIObject) and elem.view is None:
                 elem.view = CallLogger()
+                cls._logify(elem, ignore + [model])
+
+    def get_panel_view(self, model):
+        self._logify(model)
         self.current_panel = model
         # We have to hold onto this instance for a while
         self.current_panel_view = CallLogger()
@@ -175,12 +181,6 @@ class TestApp(TestAppBase):
         self.default_parent = self.mw
         self.sfield = link_gui(self.mw.search_field)
         self.drsel = link_gui(self.mw.daterange_selector)
-        # We have to link the import table's gui before we link iwin's
-        # The order in which the gui is linked in linked_gui causes a crash in pref_test.
-        # import_table.columns has to be linked first.
-        link_gui(self.mw.import_window.import_table.columns)
-        self.itable = link_gui(self.mw.import_window.import_table)
-        self.iwin = link_gui(self.mw.import_window)
         self.alookup = link_gui(self.mw.account_lookup)
         self.clookup = link_gui(self.mw.completion_lookup)
         self.mw.view = self.make_logger(MainWindowGUI(self))
@@ -436,9 +436,9 @@ class TestApp(TestAppBase):
         newapp = Application(ApplicationGUI(), default_currency=self.doc.default_currency)
         app = TestApp(app=newapp)
         try:
-            app.mw.parse_file_for_import(filepath)
-            while app.iwin.panes:
-                app.iwin.import_selected_pane()
+            iwin = app.mw.parse_file_for_import(filepath)
+            while iwin.panes:
+                iwin.import_selected_pane()
         except FileFormatError:
             pass
         compare_apps(self.doc, app.doc, qif_mode=True)
@@ -452,17 +452,22 @@ class TestApp(TestAppBase):
         # add one to the expected count, we use this method that subtract 1 to the len of etable.
         return len(self.etable) - 1
 
-    def fake_import(self, account_name, transactions, account_reference=None):
+    def fake_import(self, account_name, transactions, account_reference=None, in_iwin=None):
         # When you want to test the post-parsing import process, rather than going through the hoops,
         # use this methods. 'transactions' is a list of dicts, the dicts being attribute values.
         # dates are strings in the app's default date format.
         default_date_format = DateFormat(self.app.date_format).sys_format
         self.mw.loader = DictLoader(
             self.doc.default_currency, account_name, transactions,
-            default_date_format=default_date_format, account_reference=account_reference
+            default_date_format=default_date_format,
+            account_reference=account_reference
         )
-        self.mw.loader.load()
-        self.iwin.show()
+        if in_iwin is None:
+            return self.mw.load_parsed_file_for_import()
+        else:
+            self.mw.loader.load()
+            in_iwin.refresh_panes()
+            return in_iwin
 
     def get_current_panel(self):
         """Returns the instance of the last invoked panel.
@@ -561,7 +566,6 @@ class TestApp(TestAppBase):
         self.app.plugins = []
         self.app._load_plugin_module(fakemod)
         self.app._hook_currency_plugins()
-        self.iwin._receive_plugins(plugins)
 
     # --- Shortcut for selecting a view type.
     def current_view(self):

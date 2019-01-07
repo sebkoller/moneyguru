@@ -499,6 +499,11 @@ class ImportWindow(GUIObject):
         self._selected_pane_index = min(self._selected_pane_index, len(self.panes) - 1)
         if was_selected:
             self._update_selected_pane()
+        # ImportWindow is instantiated on-the-fly, which means that it won't
+        # receive calls for "save_preferences()" on application shutdown. It
+        # has to do so on close. close_pane() is the most reliable way we have
+        # to ensure that prefs are saved on close.
+        self.save_preferences()
 
     def import_selected_pane(self):
         """Import the selected pane into the ``Document`` via ``Document.import_entries`` method."""

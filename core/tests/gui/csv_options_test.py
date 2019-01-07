@@ -20,8 +20,7 @@ def test_invalid_default():
 # ---
 @with_app(TestApp)
 def test_dont_crash_on_invalid_utf8_characters(app):
-    app.mw.parse_file_for_import(testdata.filepath('csv/invalid_utf8_char.csv'))
-    csvopt = app.panel_view_provider.current_panel
+    csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/invalid_utf8_char.csv'))
     csvopt.encoding_index = 1
     csvopt.rescan() # no crash
     eq_(csvopt.lines[0][1], 'description')
@@ -30,8 +29,7 @@ def test_dont_crash_on_invalid_utf8_characters(app):
 # ---
 def app_import_fortis():
     app = TestApp()
-    app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
     expected_calls = ['refresh_layout_menu', 'refresh_columns', 'refresh_lines',
         'refresh_targets', 'show']
     app.csvopt.view.check_gui_calls(expected_calls)
@@ -45,8 +43,7 @@ def test_fortis_columns(app):
 def test_continue_import_without_columns(app):
     # because the columns haven't been set, the iwin is not supposed to be brought and an error
     # message is supposed to pop.
-    app.csvopt.continue_import()
-    app.iwin.view.check_gui_calls_partial(not_expected=['show'])
+    assert app.csvopt.continue_import() is None
     app.csvopt.view.check_gui_calls(['show_message'])
 
 @with_app(app_import_fortis)
@@ -79,8 +76,7 @@ def test_set_column_field(app):
 # ---
 def app_import_fortis_with_wrong_date_col():
     app = TestApp()
-    app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
     app.csvopt.set_column_field(5, CsvField.Date) #description
     app.csvopt.set_column_field(3, CsvField.Amount)
     app.csvopt.view.clear_calls()
@@ -102,8 +98,7 @@ def test_show_error_message_on_wrong_date_col(app):
 # ---
 def app_import_fortis_exclude_first_line_and_set_fields():
     app = TestApp()
-    app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
     app.csvopt.set_line_excluded(0, True)
     app.csvopt.set_column_field(0, CsvField.Reference)
     app.csvopt.set_column_field(1, CsvField.Date)
@@ -115,24 +110,23 @@ def app_import_fortis_exclude_first_line_and_set_fields():
 @with_app(app_import_fortis_exclude_first_line_and_set_fields)
 def test_continue_import_with_fields_set(app):
     # sets the columns in app.mw.loader and continues importing
-    app.csvopt.continue_import()
-    app.csvopt.view.check_gui_calls(['close'])
-    app.iwin.view.check_gui_calls(['refresh_tabs', 'refresh_target_accounts', 'show'])
-    eq_(len(app.iwin.panes), 1)
-    eq_(app.iwin.panes[0].name, 'CSV Import')
-    eq_(app.iwin.panes[0].count, 18)
-    eq_(len(app.itable), 18)
-    eq_(app.itable[0].date_import, '01/12/2008')
-    eq_(app.itable[0].description_import, 'RETRAIT A UN DISTRIBUTEUR FORTIS')
-    eq_(app.itable[0].amount_import, '-100.00')
+    iwin = app.csvopt.continue_import()
+    iwin.view.check_gui_calls(['refresh_tabs', 'refresh_target_accounts', 'show'])
+    eq_(len(iwin.panes), 1)
+    eq_(iwin.panes[0].name, 'CSV Import')
+    eq_(iwin.panes[0].count, 18)
+    eq_(len(iwin.import_table), 18)
+    eq_(iwin.import_table[0].date_import, '01/12/2008')
+    eq_(iwin.import_table[0].description_import, 'RETRAIT A UN DISTRIBUTEUR FORTIS')
+    eq_(iwin.import_table[0].amount_import, '-100.00')
 
 @with_app(app_import_fortis_exclude_first_line_and_set_fields)
 def test_continue_import_without_the_first_line_being_excluded(app):
     # When the user forgets to exclude a header line, just ignore that line in guess_date_format()
     app.csvopt.set_line_excluded(0, False)
-    app.csvopt.continue_import()
-    eq_(len(app.itable), 18)
-    eq_(app.itable[0].date_import, '01/12/2008')
+    iwin = app.csvopt.continue_import()
+    eq_(len(iwin.import_table), 18)
+    eq_(iwin.import_table[0].date_import, '01/12/2008')
 
 @with_app(app_import_fortis_exclude_first_line_and_set_fields)
 def test_create_and_navigate_layouts(app):
@@ -190,22 +184,20 @@ def test_set_wrong_increase_decrease_column_and_continue_import(app):
 # ---
 def app_lots_of_noise():
     app = TestApp()
-    app.mw.parse_file_for_import(testdata.filepath('csv/lots_of_noise.csv'))
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/lots_of_noise.csv'))
     return app
 
 @with_app(app_lots_of_noise)
 def test_use_latin1_encoding_initially(app):
     # This file contains umlauts encoded in latin-1. Make sure they are correctly decoded
-    csvopt = app.panel_view_provider.current_panel
-    s = csvopt.lines[0][0]
+    s = app.csvopt.lines[0][0]
     assert isinstance(s, str)
     assert 'ä' in s
 
 # ---
 def app_lots_of_noise_ready_to_import():
     app = TestApp()
-    app.mw.parse_file_for_import(testdata.filepath('csv/lots_of_noise.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/lots_of_noise.csv'))
     app.csvopt.set_line_excluded(0, True)
     app.csvopt.set_line_excluded(1, True)
     app.csvopt.set_line_excluded(2, True)
@@ -219,11 +211,11 @@ def app_lots_of_noise_ready_to_import():
 
 @with_app(app_lots_of_noise_ready_to_import)
 def test_continue_import_of_lots_of_noise(app):
-    app.csvopt.continue_import()
-    eq_(len(app.itable), 2)
-    eq_(app.itable[0].date_import, '14/01/2009')
-    eq_(app.itable[0].description_import, '1234512345123451 AMAZON.SER VICES S. 090114P3TX4612XG AMAZON.SERVICES S.A.R.L - E U-DE DR. THOMAS ECKHOLD')
-    eq_(app.itable[0].amount_import, '-99.99')
+    iwin = app.csvopt.continue_import()
+    eq_(len(iwin.import_table), 2)
+    eq_(iwin.import_table[0].date_import, '14/01/2009')
+    eq_(iwin.import_table[0].description_import, '1234512345123451 AMAZON.SER VICES S. 090114P3TX4612XG AMAZON.SERVICES S.A.R.L - E U-DE DR. THOMAS ECKHOLD')
+    eq_(iwin.import_table[0].amount_import, '-99.99')
 
 @with_app(app_lots_of_noise_ready_to_import)
 def test_load_fortis_after_lots_of_noise(app):
@@ -232,8 +224,7 @@ def test_load_fortis_after_lots_of_noise(app):
     app.csvopt.new_layout('fortis') # let's save it
     del app.csvopt
     app.panel_view_provider.close_panel()
-    app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-    csvopt = app.panel_view_provider.current_panel
+    csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
     csvopt.select_layout('fortis')
     assert not csvopt.line_is_excluded(6)
     assert not csvopt.line_is_excluded(7)
@@ -251,8 +242,7 @@ def test_reinclude_last_line(app):
 def app_fortis_with_two_layouts():
     app = TestApp()
     app.add_accounts('one', 'two', 'three')
-    app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
     app.csvopt.set_line_excluded(0, True)
     app.csvopt.set_column_field(0, CsvField.Reference)
     app.csvopt.set_column_field(1, CsvField.Date)
@@ -296,8 +286,7 @@ def test_load_another_import_selects_default_layout(app):
     # when a file is loaded, select the default layout, and reset it
     del app.csvopt
     app.panel_view_provider.close_panel()
-    app.mw.parse_file_for_import(testdata.filepath('csv/lots_of_noise.csv'))
-    csvopt = app.panel_view_provider.current_panel
+    csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/lots_of_noise.csv'))
     eq_(csvopt.layout.name, 'Default')
     assert csvopt.columns[5] is None
 
@@ -342,8 +331,7 @@ def app_fortis_with_loaded_layouts():
     app_gui.set_default(LAYOUT_PREFERENCE_NAME, [default, foobar])
     app = TestApp(app=Application(app_gui))
     app.add_accounts('one', 'two', 'three')
-    app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
     return app
 
 @with_app(app_fortis_with_loaded_layouts)
@@ -362,8 +350,7 @@ def test_layouts_correctly_load_from_prefs(app):
 def app_date_field_with_garbage():
     # The date field in date_field_with_garbage.csv has a date value with non-date data around the date
     app = TestApp()
-    app.mw.parse_file_for_import(testdata.filepath('csv/date_field_with_garbage.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/date_field_with_garbage.csv'))
     app.csvopt.set_column_field(0, CsvField.Date)
     app.csvopt.set_column_field(2, CsvField.Description)
     app.csvopt.set_column_field(3, CsvField.Amount)
@@ -372,16 +359,15 @@ def app_date_field_with_garbage():
 @with_app(app_date_field_with_garbage)
 def test_continue_import_parses_date_with_garbage_correctly(app):
     # the date with garbage is correctly parsed
-    app.csvopt.continue_import()
-    eq_(len(app.itable), 2)
-    eq_(app.itable[0].date_import, '14/01/2009')
+    iwin = app.csvopt.continue_import()
+    eq_(len(iwin.import_table), 2)
+    eq_(iwin.import_table[0].date_import, '14/01/2009')
 
 # ---
 def app_fortis_with_three_empty_accounts():
     app = TestApp()
     app.add_accounts('one', 'two', 'three')
-    app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
     return app
 
 @with_app(app_fortis_with_three_empty_accounts)
@@ -405,21 +391,19 @@ def test_set_fields_select_target_then_continue(app):
     app.csvopt.set_column_field(3, CsvField.Amount)
     app.csvopt.set_column_field(5, CsvField.Description)
     app.csvopt.selected_target_index = 2 # three
-    app.csvopt.continue_import()
-    eq_(app.iwin.selected_target_account_index, 2)
+    iwin = app.csvopt.continue_import()
+    eq_(iwin.selected_target_account_index, 2)
 
 # ---
 class TestImportFortisThenAnotherWithLessColumns:
     def do_setup(self):
         app = TestApp()
-        app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-        csvopt = app.panel_view_provider.current_panel
+        csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
         csvopt.new_layout('fortis')
         csvopt.set_column_field(6, CsvField.Transfer) # out of range of the other
         del csvopt
         app.panel_view_provider.close_panel()
-        app.mw.parse_file_for_import(testdata.filepath('csv/increase_decrease.csv')) # less columns (3)
-        app.csvopt = app.panel_view_provider.current_panel
+        app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/increase_decrease.csv')) # less columns (3)
         return app
 
     @with_app(do_setup)
@@ -438,8 +422,7 @@ class TestImportFortisThenAnotherWithLessColumns:
         app.csvopt.select_layout('fortis')
         del app.csvopt
         app.panel_view_provider.close_panel()
-        app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
-        csvopt = app.panel_view_provider.current_panel
+        csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/fortis.csv'))
         csvopt.select_layout('fortis')
         eq_(csvopt.columns[6], CsvField.Transfer)
 
@@ -450,8 +433,8 @@ class TestImportFortisThenAnotherWithLessColumns:
         app.csvopt.set_column_field(0, CsvField.Date)
         app.csvopt.set_column_field(1, CsvField.Increase)
         app.csvopt.set_column_field(2, CsvField.Decrease)
-        app.csvopt.continue_import() # no crash
-        eq_(len(app.itable), 3)
+        iwin = app.csvopt.continue_import() # no crash
+        eq_(len(iwin.import_table), 3)
 
 
 # ---
@@ -460,8 +443,7 @@ class TestIncreaseDecrease:
         # This file has two columns for amounts: increase and decrease. To make the matter worse,
         # it has a negative value in the decrease column, which must be ignored
         app = TestApp()
-        app.mw.parse_file_for_import(testdata.filepath('csv/increase_decrease.csv'))
-        app.csvopt = app.panel_view_provider.current_panel
+        app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/increase_decrease.csv'))
         app.csvopt.set_column_field(0, CsvField.Date)
         app.csvopt.set_column_field(1, CsvField.Increase)
         app.csvopt.set_column_field(2, CsvField.Decrease)
@@ -470,11 +452,11 @@ class TestIncreaseDecrease:
 
     @with_app(do_setup)
     def test_continue_import(self, app):
-        app.csvopt.continue_import()
-        eq_(len(app.itable), 3)
-        eq_(app.itable[0].amount_import, '10.00')
-        eq_(app.itable[1].amount_import, '-10.00')
-        eq_(app.itable[2].amount_import, '-10.00')
+        iwin = app.csvopt.continue_import()
+        eq_(len(iwin.import_table), 3)
+        eq_(iwin.import_table[0].amount_import, '10.00')
+        eq_(iwin.import_table[1].amount_import, '-10.00')
+        eq_(iwin.import_table[2].amount_import, '-10.00')
 
 
 # ---
@@ -484,8 +466,7 @@ class TestWeirdSep:
         # as a field sep, but through the csv options panel, it should be possible to specify
         # another field sep.
         app = TestApp()
-        app.mw.parse_file_for_import(testdata.filepath('csv/weird_sep.csv'))
-        app.csvopt = app.panel_view_provider.current_panel
+        app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/weird_sep.csv'))
         return app
 
     @with_app(do_setup)
@@ -526,8 +507,7 @@ class TestAmountWithDollarSign:
     def do_setup(self):
         # This file has a $ sign in its amount values.
         app = TestApp()
-        app.mw.parse_file_for_import(testdata.filepath('csv/amount_with_dollar_sign.csv'))
-        app.csvopt = app.panel_view_provider.current_panel
+        app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/amount_with_dollar_sign.csv'))
         app.csvopt.set_column_field(0, CsvField.Date)
         app.csvopt.set_column_field(1, CsvField.Amount)
         return app
@@ -535,9 +515,9 @@ class TestAmountWithDollarSign:
     @with_app(do_setup)
     def test_import(self, app):
         # No crash and the correct amounts are parsed
-        app.csvopt.continue_import() # no crash
-        eq_(app.itable[0].amount_import, '10.00')
-        eq_(app.itable[1].amount_import, '-42.00')
+        iwin = app.csvopt.continue_import() # no crash
+        eq_(iwin.import_table[0].amount_import, '10.00')
+        eq_(iwin.import_table[1].amount_import, '-42.00')
 
 
 # ---
@@ -545,8 +525,7 @@ class TestShortDates:
     def do_setup(self):
         # This file has very short dates in m/d/y format
         app = TestApp()
-        app.mw.parse_file_for_import(testdata.filepath('csv/short_dates.csv'))
-        app.csvopt = app.panel_view_provider.current_panel
+        app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/short_dates.csv'))
         app.csvopt.set_column_field(0, CsvField.Date)
         app.csvopt.set_column_field(1, CsvField.Amount)
         return app
@@ -554,9 +533,9 @@ class TestShortDates:
     @with_app(do_setup)
     def test_import(self, app):
         # No crash and the correct amounts are parsed
-        app.csvopt.continue_import() # no crash
-        eq_(app.itable[0].date_import, '04/01/2010')
-        eq_(app.itable[1].date_import, '29/01/2010')
+        iwin = app.csvopt.continue_import() # no crash
+        eq_(iwin.import_table[0].date_import, '04/01/2010')
+        eq_(iwin.import_table[1].date_import, '29/01/2010')
 
 
 # ---
@@ -564,8 +543,7 @@ class TestUtf8Encoded:
     def do_setup(self):
         # This file has utf8-encoded non-ascii descriptions
         app = TestApp()
-        app.mw.parse_file_for_import(testdata.filepath('csv/utf8_encoded.csv'))
-        app.csvopt = app.panel_view_provider.current_panel
+        app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/utf8_encoded.csv'))
         # At this point, the CSV file is parsed with latin-1 encoding, it's normal. The user is
         # supposed to select the utf-8 encoding and click Rescan.
         return app
@@ -584,8 +562,7 @@ class TestUtf16Encoded:
     def do_setup(self):
         # This file has utf16-encoded non-ascii descriptions
         app = TestApp()
-        app.mw.parse_file_for_import(testdata.filepath('csv/utf16_encoded.csv'))
-        app.csvopt = app.panel_view_provider.current_panel
+        app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/utf16_encoded.csv'))
         # At this point, the CSV file is parsed with latin-1 encoding, it's normal. The user is
         # supposed to select the utf-16 encoding and click Rescan.
         return app
@@ -602,8 +579,7 @@ class TestUtf16Encoded:
 # ---
 def app_simple_csv():
     app = TestApp()
-    app.mw.parse_file_for_import(testdata.filepath('csv/simple.csv'))
-    app.csvopt = app.panel_view_provider.current_panel
+    app.csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/simple.csv'))
     app.csvopt.set_column_field(0, CsvField.Date)
     app.csvopt.set_column_field(1, CsvField.Description)
     app.csvopt.set_column_field(2, CsvField.Payee)
@@ -615,12 +591,12 @@ def app_simple_csv():
 def test_two_columns_with_description(app):
     # When two columns have a Description field, merge them together.
     app.csvopt.set_column_field(3, CsvField.Description)
-    app.csvopt.continue_import()
-    eq_(app.itable[0].description_import, 'description whatever')
+    iwin = app.csvopt.continue_import()
+    eq_(iwin.import_table[0].description_import, 'description whatever')
 
 @with_app(app_simple_csv)
 def test_two_columns_with_payee(app):
     # When two columns have a Payee field, merge them together.
     app.csvopt.set_column_field(3, CsvField.Payee)
-    app.csvopt.continue_import()
-    eq_(app.itable[0].payee_import, 'payee whatever')
+    iwin = app.csvopt.continue_import()
+    eq_(iwin.import_table[0].payee_import, 'payee whatever')

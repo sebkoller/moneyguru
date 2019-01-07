@@ -141,11 +141,10 @@ class CSVOptions(GUIObject):
         target_name = self.layout.target_account_name
         loader.target_account = first(t for t in self._target_accounts if t.name == target_name)
         try:
-            self.mainwindow.load_parsed_file_for_import()
+            return self.mainwindow.load_parsed_file_for_import()
         except FileLoadError as e:
             self.view.show_message(str(e))
-        else:
-            self.view.close()
+            return None
 
     def delete_selected_layout(self):
         if self.layout is self._default_layout:

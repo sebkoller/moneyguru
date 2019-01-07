@@ -17,9 +17,9 @@ from ..model.date import MonthRange, YearRange
 
 
 def importall(app, filename):
-    app.mw.parse_file_for_import(filename)
-    while app.iwin.panes:
-        app.iwin.import_selected_pane()
+    iwin = app.mw.parse_file_for_import(filename)
+    while iwin.panes:
+        iwin.import_selected_pane()
 
 # --- Pristine
 @with_app(TestApp)
@@ -84,22 +84,21 @@ def test_account_only_qif_is_invalid(app):
 def test_csv_import_tries_default_dateformat_first():
     # When guessing date format in a CSV file, try the default date format first.
     app = TestApp(app=Application(ApplicationGUI(), date_format='yy/dd/MM'))
-    app.mw.parse_file_for_import(testdata.filepath('csv/ambiguous_date.csv'))
-    csvopt = app.panel_view_provider.current_panel
+    csvopt = app.mw.parse_file_for_import(testdata.filepath('csv/ambiguous_date.csv'))
     csvopt.set_column_field(0, CsvField.Date)
     csvopt.set_column_field(1, CsvField.Amount)
-    csvopt.continue_import()
+    iwin = csvopt.continue_import()
     # Normally, the dates we test are expected in our default, dd/MM/yyyy, but since we've changed
     # the date format...
-    eq_(app.itable[0].date_import, '01/02/03')
+    eq_(iwin.import_table[0].date_import, '01/02/03')
 
 def test_qif_import_tries_native_dateformat_first():
     # When guessing date format in a QIF file, try the *native* date format first, that is,
     # mm/dd/yy.
     app = TestApp(app=Application(ApplicationGUI(), date_format='dd/MM/yy'))
-    app.mw.parse_file_for_import(testdata.filepath('qif/ambiguous_date.qif'))
+    iwin = app.mw.parse_file_for_import(testdata.filepath('qif/ambiguous_date.qif'))
     # We parsed "01/02/03" with mm/dd/yy
-    eq_(app.itable[0].date_import, '02/01/03')
+    eq_(iwin.import_table[0].date_import, '02/01/03')
 
 @with_app(TestApp)
 def test_import_updates_undo_description(app):
@@ -326,7 +325,7 @@ def test_split_wasnt_touched():
     # When matching transaction and encountering a case where the old transaction was changed
     # into a split, bail out and don't touch the amounts.
     app = app_double_ofx_import_with_split_in_the_middle()
-    tpanel = app.get_current_panel()
+    tpanel = app.mw.edit_item()
     stable = tpanel.split_table
     eq_(len(stable), 4)
     eq_(stable[2].credit, '1.00')
@@ -384,11 +383,11 @@ def app_transfer_between_two_referenced_accounts():
     # test that bound amount modification works correctly.
     row.debit = '43'
     app.etable.save_edits()
-    app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'with_references3.moneyguru')) # Contains Account 4
+    app.iwin = app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'with_references3.moneyguru')) # Contains Account 4
     # The entry from Account 4 doesn't match yet because they don't have the same reference, but
     # it will be fixed after the import
     app.iwin.selected_target_account_index = 3 # Account 4
-    app.itable.bind(0, 1)
+    app.iwin.import_table.bind(0, 1)
     app.iwin.import_selected_pane()
     # The 2 entries are now linked in the same txn.
     return app
@@ -396,17 +395,17 @@ def app_transfer_between_two_referenced_accounts():
 @with_app(app_transfer_between_two_referenced_accounts)
 def test_first_side_matches(app):
     # When importing entries from Account 1, these entries are matched correctly
-    app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'with_references1.moneyguru'))
+    iwin = app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'with_references1.moneyguru'))
     # All entries should be matched
-    eq_(len(app.itable), 2) # 2 entries means they all match
+    eq_(len(iwin.import_table), 2) # 2 entries means they all match
 
 @with_app(app_transfer_between_two_referenced_accounts)
 def test_second_side_matches(app):
     # When importing entries from Account 3, these entries are matched correctly
-    app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'with_references3.moneyguru'))
+    iwin = app.mw.parse_file_for_import(testdata.filepath('moneyguru', 'with_references3.moneyguru'))
     # target account should be correct, and all entries should be matched
     eq_(app.iwin.selected_target_account_index, 3) # Account 4
-    eq_(len(app.itable), 1) # 1 entry means they all match
+    eq_(len(iwin.import_table), 1) # 1 entry means they all match
 
 @with_app(app_transfer_between_two_referenced_accounts)
 def test_bound_amount_correctly_imported(app):
@@ -442,8 +441,8 @@ def test_date_format_guessing(tmpdir):
         app = TestApp()
         contents = "!Type:Bank\nD{str_date}\nT42.32\n^".format(str_date=str_date)
         open(filepath, 'wt', encoding='utf-8').write(contents)
-        app.mw.parse_file_for_import(filepath)
-        eq_(app.itable[0].date_import, expected_date)
+        iwin = app.mw.parse_file_for_import(filepath)
+        eq_(iwin.import_table[0].date_import, expected_date)
 
     check('12/20/2010', '20/12/2010')
     check('28/Jun/2010', '28/06/2010')

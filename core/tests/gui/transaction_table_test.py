@@ -78,8 +78,8 @@ def test_refresh_on_import(app):
     # When entries are imported, ttable is refreshed
     app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.clear_gui_calls()
-    app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
-    app.iwin.import_selected_pane()
+    iwin = app.mw.parse_file_for_import(testdata.filepath('qif', 'checkbook.qif'))
+    iwin.import_selected_pane()
     assert app.ttable.row_count != 0
     app.check_gui_calls_partial(app.ttable_gui, ['refresh'])
 
