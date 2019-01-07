@@ -156,6 +156,14 @@ class MainWindow(Listener, GUIObject):
         plugin_inst = plugin(self)
         return ViewPane(plugin_inst.view, plugin_inst.NAME)
 
+    def _ensure_selection_valid(self):
+        self._explicitly_selected_transactions = [
+            t for t in self._explicitly_selected_transactions
+            if t in self.document.transactions]
+        self._selected_transactions = [
+            t for t in self._selected_transactions
+            if t in self.document.transactions]
+
     def _get_view_for_pane_type(self, pane_type, account):
         if pane_type == PaneType.Account: # we don't cache Account panes
             result = AccountView(self, account)
@@ -689,7 +697,10 @@ class MainWindow(Listener, GUIObject):
         return self._current_pane.view.status_line
 
     # --- Event callbacks
-    def _undo_stack_changed(self):
+    def document_changed(self):
+        self.stop_editing()
+        self._close_irrelevant_account_panes()
+        self._ensure_selection_valid()
         self.view.refresh_undo_actions()
         self._current_pane.view.revalidate()
         # An account might have been renamed. If so, update pane metadata.
@@ -697,15 +708,3 @@ class MainWindow(Listener, GUIObject):
         if tochange is not None:
             tochange.label = tochange.account.name
             self.view.refresh_panes()
-
-    def document_changed(self):
-        self.stop_editing()
-        self._close_irrelevant_account_panes()
-        self._undo_stack_changed()
-
-    def transaction_deleted(self):
-        self._explicitly_selected_transactions = []
-        self._selected_transactions = []
-        self._close_irrelevant_account_panes() # after an auto-clean
-        self.view.refresh_undo_actions()
-        self._current_pane.view.revalidate()

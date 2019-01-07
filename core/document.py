@@ -216,7 +216,7 @@ class BaseDocument:
         If any transaction in ``transactions`` is a schedule :class:`.Spawn`, the UI will be queried
         for a scope, which might result in the deletion being aborted.
 
-        After the transaction deletion, ``transaction_deleted`` is broadcasted.
+        After the transaction deletion, ``document_changed`` is broadcasted.
 
         ``from_account`` represents, in the UI, the account from which this deletion was triggered.
         By specifying it, you will prevent it from being automatically purged by
@@ -782,9 +782,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         BaseDocument.delete_transactions(
             self, transactions, from_account=from_account, global_scope=global_scope
         )
-        self.notify('transaction_deleted')
-        if action.changed_schedules:
-            self.notify('document_changed')
+        self.notify('document_changed')
 
     def duplicate_transactions(self, transactions):
         """Create copies of ``transactions`` in the document.
