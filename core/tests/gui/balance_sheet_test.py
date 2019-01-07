@@ -232,7 +232,7 @@ def test_save_edits(app):
     app.bsheet.selected = app.bsheet.assets[1]
     app.bsheet.selected.name = 'foobar'
     app.bsheet.save_edits()
-    app.check_gui_calls(app.bsheet_gui, ['refresh'])
+    app.check_gui_calls_partial(app.bsheet_gui, ['refresh'])
 
 # --- One account
 def app_one_account():
@@ -356,7 +356,7 @@ def test_save_edits_on_group(app):
     app.bsheet.selected = app.bsheet.assets[0]
     app.bsheet.selected.name = 'foobar'
     app.bsheet.save_edits()
-    app.check_gui_calls(app.bsheet_gui, ['refresh'])
+    app.check_gui_calls_partial(app.bsheet_gui, ['refresh'])
 
 # --- Group in editing mode
 def app_group_in_editing_mode():

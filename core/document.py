@@ -493,7 +493,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             account_number=NOEDIT, inactive=NOEDIT, notes=NOEDIT):
         """Properly sets properties for ``accounts``.
 
-        Sets ``accounts``' properties in a proper manner and post a ``account_changed``
+        Sets ``accounts``' properties in a proper manner and post a ``document_changed``
         notification. Attributes corresponding to arguments set to ``NOEDIT`` will not be touched.
 
         :param accounts: List of :class:`.Account` to be changed.
@@ -532,7 +532,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._undoer.record(action)
         self._cook()
         self.transactions.clear_cache()
-        self.notify('account_changed')
+        self.notify('document_changed')
         return True
 
     def delete_accounts(self, accounts, reassign_to=None):
@@ -580,7 +580,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
                 budget.reset_spawn_cache()
             self.accounts.remove(account)
         self._cook()
-        self.notify('account_deleted')
+        self.notify('document_changed')
 
     def new_account(self, type, group):
         """Create a new account in the document.
@@ -588,7 +588,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         Creates a new account of type ``type``, within the ``group`` (which can be ``None`` to
         indicate no group). The new account will have a unique name based on the string
         "New Account" (if it exists already, a unique number will be appended to it). Once created,
-        the account is added to the account list, and ``account_added`` is broadcasted.
+        the account is added to the account list, and ``document_changed`` is broadcasted.
 
         :param type: :class:`.AccountType`
         :param group: :class:`.Group`
@@ -601,7 +601,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action.added_accounts.add(account.copy())
         self._undoer.record(action)
         self.touch()
-        self.notify('account_added')
+        self.notify('document_changed')
         return account
 
     def toggle_accounts_exclusion(self, accounts):
@@ -621,7 +621,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
     def change_group(self, group, name=NOEDIT):
         """Properly sets properties for ``group``.
 
-        Sets ``group``'s properties in a proper manner and post a ``account_changed`` notification.
+        Sets ``group``'s properties in a proper manner and post a ``document_changed`` notification.
         Attributes corresponding to arguments set to ``NOEDIT`` will not be touched.
 
         :param group: :class:`.Group` to be changed
@@ -641,13 +641,13 @@ class Document(BaseDocument, Broadcaster, GUIObject):
                     account.groupname = name
         self._undoer.record(action)
         self.touch()
-        self.notify('account_changed')
+        self.notify('document_changed')
         return True
 
     def delete_groups(self, groups):
         """Removes ``groups`` from the document.
 
-        Removes ``groups`` from the group list and broadcasts ``account_deleted``. All accounts
+        Removes ``groups`` from the group list and broadcasts ``document_changed``. All accounts
         belonging to the deleted group have their :attr:`.Account.group` attribute set to ``None``.
 
         :param groups: list of :class:`.Group`
@@ -664,14 +664,14 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         for account in accounts:
             account.groupname = None
         self.touch()
-        self.notify('account_deleted')
+        self.notify('document_changed')
 
     def new_group(self, type):
         """Creates a new group of type ``type``.
 
         The new group will have a unique name based on the string "New Group" (if it exists, a
         unique number will be appended to it). Once created, the group is added to the group list,
-        and ``account_added`` is broadcasted.
+        and ``document_changed`` is broadcasted.
 
         :param type: :class:`.AccountType`
         :rtype: :class:`.Group`
@@ -683,7 +683,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._undoer.record(action)
         self.groups.append(group)
         self.touch()
-        self.notify('account_added')
+        self.notify('document_changed')
         return group
 
     # --- Transaction

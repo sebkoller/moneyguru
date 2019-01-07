@@ -106,7 +106,6 @@ class MainWindow(Listener, GUIObject):
         self.completion_lookup = CompletionLookup(self)
 
         MESSAGES_DOCUMENT_CHANGED = {
-            'account_added', 'account_changed', 'account_deleted',
             'document_changed', 'transaction_deleted'
         }
         self.bind_messages(MESSAGES_DOCUMENT_CHANGED, self._invalidate_visible_entries)
@@ -693,19 +692,11 @@ class MainWindow(Listener, GUIObject):
     def _undo_stack_changed(self):
         self.view.refresh_undo_actions()
         self._current_pane.view.revalidate()
-
-    def account_added(self):
-        self._undo_stack_changed()
-
-    def account_changed(self):
-        self._undo_stack_changed()
+        # An account might have been renamed. If so, update pane metadata.
         tochange = first(p for p in self.panes if p.account is not None and p.account.name != p.label)
         if tochange is not None:
             tochange.label = tochange.account.name
             self.view.refresh_panes()
-
-    def account_deleted(self):
-        self._undo_stack_changed()
 
     def document_changed(self):
         self.stop_editing()
