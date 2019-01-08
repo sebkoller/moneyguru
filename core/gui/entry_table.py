@@ -134,6 +134,7 @@ class EntryTable(EntryTableBase):
         """Toggle the reconcile flag of selected entries"""
         entries = [row.entry for row in self.selected_rows if row.can_reconcile()]
         self.document.toggle_entries_reconciled(entries)
+        self.mainwindow.revalidate()
 
     # --- Properties
     @property

@@ -831,7 +831,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             amount=amount, global_scope=global_scope
         )
         self.date_range = self.date_range.around(entry.date)
-        self.notify('document_changed')
 
     def toggle_entries_reconciled(self, entries):
         """Toggle the reconcile flag of `entries`.
@@ -862,7 +861,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             for entry in entries:
                 entry.split.reconciliation_date = None
         self._cook(from_date=min_date)
-        self.notify('document_changed')
 
     # --- Budget
     def budgeted_amount_for_target(self, target, date_range, filter_excluded=True):
