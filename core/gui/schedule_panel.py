@@ -133,6 +133,7 @@ class SchedulePanel(PanelWithTransaction, PanelWithScheduleMixIn):
             self.original, self.transaction, repeat_type=repeat_type, repeat_every=repeat_every,
             stop_date=stop_date
         )
+        self.mainwindow.revalidate()
 
     # --- Private
     def _load_schedule(self, schedule):

@@ -48,6 +48,7 @@ class ScheduleTable(GUITable, TableWithAmountMixin):
     # --- Public
     def delete(self):
         self.document.delete_schedules(self.selected_schedules)
+        self.mainwindow.revalidate()
 
     def edit(self):
         self.mainwindow.edit_item()

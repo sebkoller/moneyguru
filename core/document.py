@@ -983,7 +983,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         if schedule not in self.schedules:
             self.schedules.append(schedule)
         self._cook(from_date=min_date)
-        self.notify('document_changed')
 
     def delete_schedules(self, schedules):
         """Removes ``schedules`` from the document.
@@ -999,7 +998,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self.schedules.remove(schedule)
         min_date = min(s.ref.date for s in schedules)
         self._cook(from_date=min_date)
-        self.notify('document_changed')
 
     # --- Load / Save / Import
     def load_from_xml(self, filename):
