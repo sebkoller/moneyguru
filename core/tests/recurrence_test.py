@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -119,7 +119,7 @@ def test_change_spawn_cancel(app):
     eq_(app.ttable[1].description, 'foobar')
     # The schedule scoping logic used to take place after the under had recorded. What we're
     # testing here is that the undoer, due to the cancellation, has *not* recorded anything
-    app.doc.undo()
+    app.mw.undo()
     eq_(app.ttable.row_count, 0) # the schedule creation has been undone
 
 @with_app(app_daily_schedule)

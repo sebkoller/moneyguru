@@ -391,9 +391,9 @@ def test_undo_redo_while_filtered(app):
     # undo/redo while a filter is applied correctly refreshes the ttable
     app.sfield.text = 'description'
     app.ttable.delete()
-    app.doc.undo()
+    app.mw.undo()
     eq_(app.ttable.row_count, 1)
-    app.doc.redo()
+    app.mw.redo()
     eq_(app.ttable.row_count, 0)
 
 @with_app(app_one_transaction)

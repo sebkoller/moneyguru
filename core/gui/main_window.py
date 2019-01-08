@@ -103,11 +103,6 @@ class MainWindow(Listener, DocumentGUIObject):
         self.account_lookup = AccountLookup(self)
         self.completion_lookup = CompletionLookup(self)
 
-        MESSAGES_DOCUMENT_CHANGED = {
-            'document_changed', 'transaction_deleted'
-        }
-        self.bind_messages(MESSAGES_DOCUMENT_CHANGED, self._invalidate_visible_entries)
-
     # --- Private
     def _add_pane(self, pane):
         self.panes.append(pane)
@@ -320,6 +315,7 @@ class MainWindow(Listener, DocumentGUIObject):
     # --- Override
     def _revalidate(self):
         self.stop_editing()
+        self._invalidate_visible_entries()
         self._close_irrelevant_account_panes()
         self._ensure_selection_valid()
         self.view.refresh_undo_actions()
@@ -528,6 +524,10 @@ class MainWindow(Listener, DocumentGUIObject):
         else:
             return self.load_parsed_file_for_import()
 
+    def redo(self):
+        self.document.redo()
+        self.revalidate()
+
     def restore_view(self):
         self.daterange_selector.restore_view()
         window_frame = self.document.get_default(Preference.WindowFrame)
@@ -592,6 +592,10 @@ class MainWindow(Listener, DocumentGUIObject):
         else:
             self.hidden_areas.add(area)
         self._update_area_visibility()
+
+    def undo(self):
+        self.document.undo()
+        self.revalidate()
 
     def update_status_line(self):
         self.view.refresh_status_line()

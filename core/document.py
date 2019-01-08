@@ -1175,7 +1175,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         """Undo the last undoable action."""
         self._undoer.undo()
         self._cook()
-        self.notify('document_changed')
 
     def can_redo(self):
         """Returns whether the document has something to redo."""
@@ -1189,7 +1188,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         """Redo the last redoable action."""
         self._undoer.redo()
         self._cook()
-        self.notify('document_changed')
 
     # --- Misc
     def clear(self):

@@ -354,8 +354,8 @@ class MainWindow(QMainWindow):
         self.actionMoveUp.triggered.connect(self.moveUpTriggered)
         self.actionMoveDown.triggered.connect(self.moveDownTriggered)
         self.actionDuplicateTransaction.triggered.connect(self.model.duplicate_item)
-        self.actionUndo.triggered.connect(self.doc.undo)
-        self.actionRedo.triggered.connect(self.doc.redo)
+        self.actionUndo.triggered.connect(self.model.undo)
+        self.actionRedo.triggered.connect(self.model.redo)
 
         # Open / Save / Import / Export / New
         self.actionNewDocument.triggered.connect(self.new)
