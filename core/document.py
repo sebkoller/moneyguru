@@ -1131,7 +1131,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
                 if entry.transaction not in self.transactions:
                     self.transactions.add(entry.transaction)
         self._cook()
-        self.notify('document_changed')
 
     def is_dirty(self):
         """Returns whether the document has been modified since the last time it was saved."""

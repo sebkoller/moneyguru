@@ -587,6 +587,7 @@ class ImportWindow(GUIObject):
                 target_account = pane_account  # pane.account == new account
 
             self.document.import_entries(target_account, pane_account, new_matches)
+            self.mainwindow.revalidate()
 
         except OperationAborted:
             pass
