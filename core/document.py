@@ -120,16 +120,10 @@ class BaseDocument:
                 self.transactions.move_last(transaction)
         self.transactions.clear_cache()
 
-    def _clear(self):
+    def clear(self):
         self.accounts.clear()
         self.transactions.clear()
         self._cook()
-
-    def _cook(self, from_date=None):
-        # Without date ranges and spawns, it's OK to pass `None` as an `until_date`.
-        self.oven.cook(from_date=from_date, until_date=None)
-        # Whenever we cook, we touch. That saves us some touch() repetitions.
-        self.touch()
 
     # --- Public
     def change_transaction(self, original, new, global_scope=False):
@@ -336,10 +330,6 @@ class BaseDocument:
         transactions = dedupe(e.transaction for e in entries)
         self.delete_transactions(transactions, from_account=from_account)
 
-    def clear(self):
-        """Removes all data from the document (transactions, accounts, schedules, etc.)."""
-        self._clear()
-
     def format_amount(self, amount, force_explicit_currency=False, **kwargs):
         if force_explicit_currency:
             default_currency = None
@@ -422,16 +412,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.save_to_xml(op.join(self.app.cache_path, autosave_name), autosave=True)
         if len(existing_names) >= AUTOSAVE_BUFFER_COUNT:
             os.remove(op.join(self.app.cache_path, existing_names[0]))
-
-    def _clear(self):
-        self._document_id = None
-        self.groups.clear()
-        del self.schedules[:]
-        del self.budgets[:]
-        self._undoer.clear()
-        self._dirty_flag = False
-        self.excluded_accounts = set()
-        BaseDocument._clear(self)
 
     def _cook(self, from_date=None):
         self.oven.cook(from_date=from_date, until_date=self.date_range.end)
@@ -1029,10 +1009,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.notify('document_changed')
 
     # --- Load / Save / Import
-    def clear(self):
-        """Removes all data from the document (transactions, accounts, schedules, etc.)."""
-        self._clear()
-
     def load_from_xml(self, filename):
         """Clears the document and loads data from ``filename``.
 
@@ -1223,6 +1199,16 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.notify('document_changed')
 
     # --- Misc
+    def clear(self):
+        self._document_id = None
+        self.groups.clear()
+        del self.schedules[:]
+        del self.budgets[:]
+        self._undoer.clear()
+        self._dirty_flag = False
+        self.excluded_accounts = set()
+        BaseDocument.clear(self)
+
     def close(self):
         self._save_preferences()
 
@@ -1297,16 +1283,6 @@ class ImportDocument(BaseDocument):
         self.schedules = loader.schedules
         self.budgets = loader.budgets
         self.oven = loader.oven
-
-    def _get_dateformat(self):
-
-        # We sometimes want to utilize the parsing date format
-        # vs the application date format, so this method was added
-        # to override that default behavior in document.
-        if self.parsing_date_format is None:
-            return BaseDocument._get_dateformat(self)
-        else:
-            return self.parsing_date_format
 
     def cook(self):
         """Refresh account entries for the purpose of importing.
