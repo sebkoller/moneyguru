@@ -12,7 +12,6 @@ import os
 import os.path as op
 from functools import wraps
 
-from core.notify import Broadcaster
 from core.util import nonone, allsame, dedupe, extract, first, flatten
 from core.trans import tr
 
@@ -350,7 +349,7 @@ class BaseDocument:
         return self._properties['default_currency']
 
 
-class Document(BaseDocument, Broadcaster, GUIObject):
+class Document(BaseDocument, GUIObject):
     """Manages everything (including views) about an opened document.
 
     If there's one core class in moneyGuru, this is it. It represents a new or opened document and
@@ -367,13 +366,11 @@ class Document(BaseDocument, Broadcaster, GUIObject):
     dates are ``datetime.date`` instances, amounts are :class:`Amount` instances, indexes are
     ``int``.
 
-    Subclasses :class:`BaseDocument`, :class:`core.notify.Broadcaster` and
-    :class:`hscommon.gui.base.GUIObject`.
+    Subclasses :class:`BaseDocument` and :class:`hscommon.gui.base.GUIObject`.
     """
 
     def __init__(self, app):
         BaseDocument.__init__(self, app)
-        Broadcaster.__init__(self)
         GUIObject.__init__(self)
         self._properties.update({
             'first_weekday': 0,

@@ -177,7 +177,6 @@ class TestApp(TestAppBase):
         # return value of TestApp.show_*view() and access its child GUI objects through that
         # reference.
         self.mw = self.mainwindow # shortcut. This one is often typed
-        self.mw.connect()
         self.default_parent = self.mw
         self.sfield = link_gui(self.mw.search_field)
         self.drsel = link_gui(self.mw.daterange_selector)

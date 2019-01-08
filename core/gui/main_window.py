@@ -7,7 +7,6 @@
 import logging
 import weakref
 
-from core.notify import Listener
 from core.util import first, minmax, nonone
 from core.trans import tr
 
@@ -71,7 +70,7 @@ class ViewPane:
             return None
 
 
-class MainWindow(Listener, DocumentGUIObject):
+class MainWindow(DocumentGUIObject):
     # --- model -> view calls:
     # change_current_pane()
     # get_panel_view(model)
@@ -85,8 +84,7 @@ class MainWindow(Listener, DocumentGUIObject):
     # update_area_visibility()
 
     def __init__(self, document):
-        Listener.__init__(self, document)
-        DocumentGUIObject.__init__(self, document)
+        super().__init__(document)
         self._current_pane = None
         self._selected_transactions = []
         self._explicitly_selected_transactions = []
