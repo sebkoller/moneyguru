@@ -17,7 +17,7 @@ from ..model.date import inc_month, DateFormat
 from ..model.recurrence import Recurrence, RepeatType
 from ..model.transaction import txn_matches
 from ..loader import csv, qif, ofx, native
-from .base import GUIObject
+from .base import DocumentGUIObject
 from .search_field import SearchField
 from .date_range_selector import DateRangeSelector
 from .account_lookup import AccountLookup
@@ -71,7 +71,7 @@ class ViewPane:
             return None
 
 
-class MainWindow(Listener, GUIObject):
+class MainWindow(Listener, DocumentGUIObject):
     # --- model -> view calls:
     # change_current_pane()
     # get_panel_view(model)
@@ -86,10 +86,8 @@ class MainWindow(Listener, GUIObject):
 
     def __init__(self, document):
         Listener.__init__(self, document)
-        GUIObject.__init__(self)
+        DocumentGUIObject.__init__(self, document)
         self._current_pane = None
-        self.document = document
-        self.app = document.app
         self._selected_transactions = []
         self._explicitly_selected_transactions = []
         self._selected_schedules = []
@@ -320,6 +318,18 @@ class MainWindow(Listener, GUIObject):
         return entries
 
     # --- Override
+    def _revalidate(self):
+        self.stop_editing()
+        self._close_irrelevant_account_panes()
+        self._ensure_selection_valid()
+        self.view.refresh_undo_actions()
+        self._current_pane.view.revalidate()
+        # An account might have been renamed. If so, update pane metadata.
+        tochange = first(p for p in self.panes if p.account is not None and p.account.name != p.label)
+        if tochange is not None:
+            tochange.label = tochange.account.name
+            self.view.refresh_panes()
+
     def _view_updated(self):
         self.daterange_selector.refresh()
         self.daterange_selector.refresh_custom_ranges()
@@ -333,6 +343,10 @@ class MainWindow(Listener, GUIObject):
         if self._current_pane is not None:
             view = self._current_pane.view
             view.apply_date_range(new_date_range, prev_date_range)
+
+    def clear(self):
+        self.document.clear()
+        self.revalidate()
 
     def close(self):
         """Cleanup the document and close it.
@@ -698,13 +712,4 @@ class MainWindow(Listener, GUIObject):
 
     # --- Event callbacks
     def document_changed(self):
-        self.stop_editing()
-        self._close_irrelevant_account_panes()
-        self._ensure_selection_valid()
-        self.view.refresh_undo_actions()
-        self._current_pane.view.revalidate()
-        # An account might have been renamed. If so, update pane metadata.
-        tochange = first(p for p in self.panes if p.account is not None and p.account.name != p.label)
-        if tochange is not None:
-            tochange.label = tochange.account.name
-            self.view.refresh_panes()
+        self._revalidate()

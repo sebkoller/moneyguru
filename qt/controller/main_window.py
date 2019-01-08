@@ -505,7 +505,7 @@ class MainWindow(QMainWindow):
             return
         self.model.close()
         self.documentPath = None
-        self.doc.clear()
+        self.model.clear()
         self.documentPathChanged()
 
     def open(self, docpath, initial=False):

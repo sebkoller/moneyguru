@@ -45,7 +45,7 @@ def test_excluded_accounts_are_cleared_on_clear(app):
     app.add_account()
     app.bsheet.toggle_excluded()
     print(app.doc.excluded_accounts)
-    app.doc.clear() # no segfault
+    app.mw.clear() # no segfault
     app.mw.close() # no segfault
     # The test doesn't segfault/fail reliably when it should, let's cheat a
     # little bit on the API and confirm that excluded accounts are empty

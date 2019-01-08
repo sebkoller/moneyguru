@@ -561,7 +561,7 @@ class TestTwoBoundEntries:
         # Also, since the currently shown account in etable has been deleted, the current view
         # in the main window is kicked back to the bsheet.
         app.clear_gui_calls()
-        app.doc.clear()
+        app.mw.clear()
         eq_(app.mainwindow.current_pane_index, 0)
         eq_(app.account_node_subaccount_count(app.bsheet.assets), 0)
         app.show_tview()

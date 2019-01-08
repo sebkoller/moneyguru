@@ -1032,7 +1032,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
     def clear(self):
         """Removes all data from the document (transactions, accounts, schedules, etc.)."""
         self._clear()
-        self.notify('document_changed')
 
     def load_from_xml(self, filename):
         """Clears the document and loads data from ``filename``.
