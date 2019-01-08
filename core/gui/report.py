@@ -96,7 +96,8 @@ class Report(ViewChild, tree.Tree):
             account_group = None
         if account_group is not None:
             account_group.expanded = True
-        account = self.document.new_account(account_type, account_group) # refresh happens on account_added
+        account = self.document.new_account(account_type, account_group)
+        self.mainwindow.revalidate()
         self.selected = self._node_of_account(account)
         self.view.update_selection()
         self.view.start_editing()
@@ -113,6 +114,7 @@ class Report(ViewChild, tree.Tree):
             path = self.selected_path
             account_type = self[1].type if path and path[0] == 1 else self[0].type
         group = self.document.new_group(account_type)
+        self.mainwindow.revalidate()
         self.selected = self.find(lambda n: getattr(n, 'group', None) is group)
         self.view.update_selection()
         self.view.start_editing()
@@ -174,6 +176,7 @@ class Report(ViewChild, tree.Tree):
                 panel.load(accounts)
             else:
                 self.document.delete_accounts(accounts)
+        self.mainwindow.revalidate()
 
     def expand_node(self, node):
         self._expanded_paths.add(tuple(node.path))
@@ -240,6 +243,7 @@ class Report(ViewChild, tree.Tree):
             self.document.change_accounts(accounts, group=None, type=dest_node.type)
         elif dest_node.is_group:
             self.document.change_accounts(accounts, group=dest_node.group, type=dest_node.group.type)
+        self.mainwindow.revalidate()
 
     def refresh(self, refresh_view=True):
         selected_accounts = self.selected_accounts
@@ -285,6 +289,7 @@ class Report(ViewChild, tree.Tree):
             success = self.document.change_accounts([node.account], name=node.name)
         else:
             success = self.document.change_group(node.group, name=node.name)
+        self.mainwindow.revalidate()
         if not success:
             msg = tr("The account '{0}' already exists.").format(node.name)
             # we use _name because we don't want to change self.edited

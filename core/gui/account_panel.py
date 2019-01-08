@@ -87,6 +87,7 @@ class AccountPanel(GUIPanel):
         if self.can_change_currency:
             kwargs['currency'] = self.currency
         self.document.change_accounts([self.account], **kwargs)
+        self.mainwindow.revalidate()
 
     # --- Private
     def _init_fields(self):

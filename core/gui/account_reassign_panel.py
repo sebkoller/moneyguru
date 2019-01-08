@@ -30,4 +30,5 @@ class AccountReassignPanel(GUIPanel):
     def _save(self):
         reassign_to = self._target_accounts[self.account_list.selected_index]
         self.document.delete_accounts(self.deleted_accounts, reassign_to=reassign_to)
+        self.mainwindow.revalidate()
 

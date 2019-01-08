@@ -305,6 +305,7 @@ class TestApp(TestAppBase):
         group = self.doc.new_group(account_type)
         if name is not None:
             self.doc.change_group(group, name=name)
+        self.mw.revalidate()
 
     def add_schedule(self, start_date=None, description='', account=None, amount='0',
             repeat_type_index=0, repeat_every=1, stop_date=None):
@@ -498,7 +499,7 @@ class TestApp(TestAppBase):
     def save_and_load(self):
         # saves the current document and returns a new app with that document loaded
         filepath = op.join(self.tmppath(), 'foo.xml')
-        self.doc.save_to_xml(str(filepath))
+        self.mw.save_to_xml(str(filepath))
         self.mw.close()
         newapp = TestApp(app=self.app)
         newapp.mw.load_from_xml(str(filepath))
@@ -506,7 +507,7 @@ class TestApp(TestAppBase):
 
     def save_file(self):
         filename = op.join(self.tmppath(), 'foo.xml')
-        self.doc.save_to_xml(filename) # reset the dirty flag
+        self.mw.save_to_xml(filename) # reset the dirty flag
         return filename
 
     def select_account(self, account_name):

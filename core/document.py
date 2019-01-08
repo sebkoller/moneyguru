@@ -511,7 +511,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._undoer.record(action)
         self._cook()
         self.transactions.clear_cache()
-        self.notify('document_changed')
         return True
 
     def delete_accounts(self, accounts, reassign_to=None):
@@ -559,7 +558,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
                 budget.reset_spawn_cache()
             self.accounts.remove(account)
         self._cook()
-        self.notify('document_changed')
 
     def new_account(self, type, group):
         """Create a new account in the document.
@@ -567,7 +565,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         Creates a new account of type ``type``, within the ``group`` (which can be ``None`` to
         indicate no group). The new account will have a unique name based on the string
         "New Account" (if it exists already, a unique number will be appended to it). Once created,
-        the account is added to the account list, and ``document_changed`` is broadcasted.
+        the account is added to the account list.
 
         :param type: :class:`.AccountType`
         :param group: :class:`.Group`
@@ -580,7 +578,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action.added_accounts.add(account.copy())
         self._undoer.record(action)
         self.touch()
-        self.notify('document_changed')
         return account
 
     def toggle_accounts_exclusion(self, accounts):
@@ -620,7 +617,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
                     account.groupname = name
         self._undoer.record(action)
         self.touch()
-        self.notify('document_changed')
         return True
 
     def delete_groups(self, groups):
@@ -643,7 +639,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         for account in accounts:
             account.groupname = None
         self.touch()
-        self.notify('document_changed')
 
     def new_group(self, type):
         """Creates a new group of type ``type``.
@@ -662,7 +657,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._undoer.record(action)
         self.groups.append(group)
         self.touch()
-        self.notify('document_changed')
         return group
 
     # --- Transaction
