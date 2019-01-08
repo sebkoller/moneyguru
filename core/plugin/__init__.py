@@ -9,7 +9,7 @@ from ..gui.column import Column # noqa
 
 from .api import ( # noqa
     Plugin, ViewPlugin, ReadOnlyTableRow, ReadOnlyTable, ReadOnlyTableView, ReadOnlyTablePlugin,
-    CurrencyProviderPlugin, ImportActionPlugin, ImportBindPlugin, EntryMatch
+    CurrencyProviderPlugin, ImportBindPlugin, EntryMatch
 )
 
 def get_plugins_from_mod(mod):
@@ -26,7 +26,7 @@ def get_all_core_plugin_modules():
     from . import (
         account_list, currency_rates, payee_breakdown,
         stale_currency_provider,
-        base_import_actions, base_import_bind,
+        base_import_bind,
         fuzzy_date_bind,
     )
     return [
@@ -34,7 +34,6 @@ def get_all_core_plugin_modules():
         currency_rates,
         payee_breakdown,
         stale_currency_provider,
-        base_import_actions,
         base_import_bind,
         fuzzy_date_bind,
     ]

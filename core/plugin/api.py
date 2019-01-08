@@ -273,35 +273,6 @@ class CurrencyProviderPlugin(Plugin):
         """
         raise NotImplementedError()
 
-class ImportActionPlugin(Plugin):
-    """
-    Plugin allowing certain kinds of actions to be performed on import.
-    By subclassing this plugin, you can add new currencies to moneyGuru and also add a new source
-    to fetch those currencies' exchange rates.
-    Subclasses :class:`Plugin`
-    """
-    TYPE_NAME = "Import Action"
-
-    # Signal to the import window to change the name in our drop down list
-    action_name_changed = 'action_name_changed'
-
-    # The name that appears in our drop down list
-    ACTION_NAME = None
-
-    def on_selected_pane_changed(self, selected_pane):
-        """This method is called whenever the import window has changed it's selected pane."""
-        pass
-
-    def always_perform_action(self):
-        return False
-
-    def can_perform_action(self, import_document, transactions, panes, selected_rows=None):
-        return True
-
-    def perform_action(self, import_document, transactions, panes, selected_rows=None):
-        pass
-
-
 EntryMatch = namedtuple('EntryMatch', 'existing imported will_import weight')
 
 

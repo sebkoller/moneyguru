@@ -16,7 +16,7 @@ from ..model.date import DateFormat
 from .base import GUIObject
 from .import_table import ImportTable
 from .selectable_list import LinkedSelectableList
-from core.plugin import ImportActionPlugin, ImportBindPlugin, EntryMatch
+from core.plugin import ImportBindPlugin, EntryMatch
 from core.document import ImportDocument
 from core.model._ccore import AccountList, Entry
 
@@ -37,6 +37,136 @@ class ActionSelectionOptions:
     ApplyToPane = 0
     ApplyToAll = 1
     ApplyToSelection = 2
+
+
+class ImportAction:
+    # The name that appears in our drop down list
+    ACTION_NAME = None
+
+    def on_selected_pane_changed(self, selected_pane):
+        """This method is called whenever the import window has changed it's selected pane."""
+        pass
+
+    def can_perform_action(self, import_document, transactions, panes, selected_rows=None):
+        return True
+
+    def perform_action(self, import_document, transactions, panes, selected_rows=None):
+        pass
+
+class BaseSwapFields(ImportAction):
+    def _switch_function(self, transaction):
+        pass
+
+    def perform_action(self, import_document, transactions, panes, selected_rows=None):
+        for txn in transactions:
+            new = txn.replicate()
+            self._switch_function(new)
+            import_document.change_transaction(txn, new)
+
+
+def last_two_digits(year):
+    return year - ((year // 100) * 100)
+
+def swapped_date(date, first, second):
+    attrs = {DAY: date.day, MONTH: date.month, YEAR: last_two_digits(date.year)}
+    newattrs = {first: attrs[second], second: attrs[first]}
+    if YEAR in newattrs:
+        newattrs[YEAR] += 2000
+    return date.replace(**newattrs)
+
+
+def swap_format_elements(format, first, second):
+    # format is a DateFormat
+    swapped = format.copy()
+    elems = swapped.elements
+    TYPE2CHAR = {DAY: 'd', MONTH: 'M', YEAR: 'y'}
+    first_char = TYPE2CHAR[first]
+    second_char = TYPE2CHAR[second]
+    first_index = [i for i, x in enumerate(elems) if x.startswith(first_char)][0]
+    second_index = [i for i, x in enumerate(elems) if x.startswith(second_char)][0]
+    elems[first_index], elems[second_index] = elems[second_index], elems[first_index]
+    return swapped
+
+
+class BaseSwapDateFields(BaseSwapFields):
+    def __init__(self):
+        super().__init__()
+        self._first_field = None
+        self._second_field = None
+
+    def _switch_function(self, transaction):
+        transaction.date = swapped_date(transaction.date, self._first_field, self._second_field)
+
+    def on_selected_pane_changed(self, selected_pane):
+        self._change_name(selected_pane.parsing_date_format)
+
+    def _change_name(self, parsing_date_format):
+        basefmt = parsing_date_format
+        swapped = swap_format_elements(basefmt, self._first_field, self._second_field)
+        self.ACTION_NAME = "{} --> {}".format(basefmt.iso_format, swapped.iso_format)
+
+    def can_perform_action(self, import_document, transactions, panes, selected_rows=None):
+        try:
+            for txn in transactions:
+                swapped_date(txn.date, self._first_field, self._second_field)
+            return True
+        except ValueError:
+            return False
+
+    def perform_action(self, import_document, transactions, panes, selected_rows=None):
+        BaseSwapFields.perform_action(self, import_document, transactions, panes, selected_rows=None)
+        # Now, lets' change the date format on these panes
+        for pane in panes:
+            basefmt = pane.parsing_date_format
+            swapped = swap_format_elements(basefmt, self._first_field, self._second_field)
+            pane.parsing_date_format = swapped
+
+        self._change_name(panes[0].parsing_date_format)
+
+
+class SwapDayMonth(BaseSwapDateFields):
+    ACTION_NAME = "<placeholder> Day <--> Month"
+
+    def __init__(self):
+        super().__init__()
+        self._first_field = DAY
+        self._second_field = MONTH
+
+
+class SwapMonthYear(BaseSwapDateFields):
+    ACTION_NAME = "<placeholder> Month <--> Year"
+
+    def __init__(self):
+        super().__init__()
+        self._first_field = MONTH
+        self._second_field = YEAR
+
+
+class SwapDayYear(BaseSwapDateFields):
+    ACTION_NAME = "<placeholder> Day <--> Year"
+
+    def __init__(self):
+        super().__init__()
+        self._first_field = DAY
+        self._second_field = YEAR
+
+
+class SwapDescriptionPayeeAction(BaseSwapFields):
+    ACTION_NAME = tr("Description <--> Payee")
+
+    def _switch_function(self, txn):
+        txn.description, txn.payee = txn.payee, txn.description
+
+
+class InvertAmounts(ImportAction):
+    ACTION_NAME = tr("Invert Amount")
+
+    def perform_action(self, import_document, transactions, panes, selected_rows=None):
+        for transaction in transactions:
+            new = transaction.replicate()
+            for split in new.splits:
+                split.amount = -split.amount
+            import_document.change_transaction(transaction, new)
 
 
 class AccountPane:
@@ -324,15 +454,14 @@ class ImportWindow(GUIObject):
         self._tmpaccounts = AccountList(self.document.default_currency)
         self._selected_pane_index = 0
         self._selected_target_index = 0
-        self._import_action_plugins = []
-        self._always_import_action_plugins = []
-
-        self._receive_plugins(self.app.get_enabled_plugins())
+        self._import_actions = [
+            SwapDayMonth(), SwapMonthYear(), SwapDayYear(),
+            SwapDescriptionPayeeAction(), InvertAmounts()]
 
         def setfunc(index):
             self.view.set_swap_button_enabled(self.can_perform_swap())
         self.swap_type_list = LinkedSelectableList(items=[
-            plugin.ACTION_NAME for plugin in self._import_action_plugins
+            action.ACTION_NAME for action in self._import_actions
         ], setfunc=setfunc)
         self.swap_type_list.selected_index = 0
         self.panes = []
@@ -420,10 +549,6 @@ class ImportWindow(GUIObject):
         # swap list items could have been altered during perform_action()
         self._refresh_swap_list_items()
 
-    def _always_perform_actions(self):
-        for plugin in self._always_import_action_plugins:
-            self._perform_action(plugin, True)
-
     def _refresh_target_selection(self):
         if not self.panes:
             return
@@ -444,29 +569,19 @@ class ImportWindow(GUIObject):
         # comment that exists refresh panes, we aren't kicking off the seleced pane change
         # in time.  So we'll just tell it that the selected pane changed even if it hasn't.
 
-        for index, plugin in enumerate(self._import_action_plugins):
-            plugin.on_selected_pane_changed(self.selected_pane)
-        names = [plugin.ACTION_NAME for plugin in self._import_action_plugins]
+        for index, action in enumerate(self._import_actions):
+            action.on_selected_pane_changed(self.selected_pane)
+        names = [action.ACTION_NAME for action in self._import_actions]
         self.swap_type_list[:] = names
 
     def _update_selected_pane(self):
         self.import_table.refresh()
         if self.selected_pane:
-            for plugin in self._import_action_plugins:
-                plugin.on_selected_pane_changed(self.selected_pane)
+            for action in self._import_actions:
+                action.on_selected_pane_changed(self.selected_pane)
         self._refresh_swap_list_items()
         self.view.update_selected_pane()
         self.view.set_swap_button_enabled(self.can_perform_swap())
-
-    def _receive_plugins(self, plugins):
-        extended_plugins = [plugin() for plugin in plugins
-                            if issubclass(plugin, ImportActionPlugin)]
-
-        select_actions = [p for p in extended_plugins if not p.always_perform_action()]
-        always_actions = [p for p in extended_plugins if p.always_perform_action()]
-
-        self._import_action_plugins.extend(select_actions)
-        self._always_import_action_plugins.extend(always_actions)
 
     # --- Override
     def _view_updated(self):
@@ -478,7 +593,7 @@ class ImportWindow(GUIObject):
 
     def can_perform_swap(self):
         index = self.swap_type_list.selected_index
-        import_action = self._import_action_plugins[index]
+        import_action = self._import_actions[index]
         action_params = self._collect_action_params(import_action, True)
         # We actually perform can_perform_action as part of the _collect_action_params
         # so we don't need to run the explicit check twice, just check to see if
@@ -597,7 +712,7 @@ class ImportWindow(GUIObject):
 
     def perform_swap(self, apply=ActionSelectionOptions.ApplyToPane):
         index = self.swap_type_list.selected_index
-        import_action = self._import_action_plugins[index]
+        import_action = self._import_actions[index]
         self._perform_action(import_action, apply)
 
     def refresh_targets(self):
@@ -643,7 +758,6 @@ class ImportWindow(GUIObject):
                 import_document, self.document, account, target_account))
         # XXX Should replace by _update_selected_pane()?
 
-        self._always_perform_actions()
         self._refresh_target_selection()
         self._refresh_swap_list_items()
         self.import_table.refresh()
