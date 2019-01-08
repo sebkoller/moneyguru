@@ -104,6 +104,7 @@ class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, Table
                 txn = row.transaction
                 if txn.is_spawn and txn.date <= datetime.date.today():
                     self.document.materialize_spawn(txn)
+                    self.mainwindow.revalidate()
         super().save_edits()
 
     def show(self):

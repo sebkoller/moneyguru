@@ -260,7 +260,6 @@ class BaseDocument:
         self._undoer.record(action)
         self.transactions.add(materialized)
         self._cook(from_date=materialized.date)
-        self.notify('document_changed')
 
     def move_transactions(self, transactions, to_transaction):
         """Re-orders ``transactions`` so that they are right before ``to_transaction``.
