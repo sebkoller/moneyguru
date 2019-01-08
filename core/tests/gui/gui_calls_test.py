@@ -71,14 +71,12 @@ def test_change_column_visibility(app):
 def test_change_default_currency():
     # When the default currency is changed, all gui refresh themselves
     app = app_cleared_gui_calls()
+    dpview = app.show_dpview()
+    dpview.currency_list.select([1]) # EUR
     app.show_nwview()
-    app.doc.default_currency = 'EUR'
     app.check_gui_calls_partial(app.bsheet_gui, ['refresh'])
     app.check_gui_calls_partial(app.nwgraph_gui, ['refresh'])
     app.check_gui_calls_partial(app.nwview.pie.view, ['refresh'])
-    # but not if it stays the same
-    app.doc.default_currency = 'EUR'
-    app.check_gui_calls_partial(app.bsheet_gui, not_expected=['refresh'])
 
 @with_app(app_cleared_gui_calls)
 def test_mainwindow_move_pane(app):

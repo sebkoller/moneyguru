@@ -1234,7 +1234,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             return
         self._properties['first_weekday'] = value
         self.set_dirty()
-        self.notify('document_changed')
 
     @BaseDocument.default_currency.setter
     def default_currency(self, value):
@@ -1244,7 +1243,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self.set_dirty()
         self.accounts.default_currency = value
         self.touch()
-        self.notify('document_changed')
 
 
 class ImportDocument(BaseDocument):
