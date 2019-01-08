@@ -90,7 +90,6 @@ class MainWindow(QMainWindow):
 
         # Create base elements
         self.model = MainWindowModel(document=self.doc)
-        self.model.connect()
         self.model2view = {}
         self.alookup = Lookup(self, model=self.model.account_lookup)
         self.clookup = Lookup(self, model=self.model.completion_lookup)
