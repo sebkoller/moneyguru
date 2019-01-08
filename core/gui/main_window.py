@@ -32,7 +32,6 @@ from .schedule_view import ScheduleView
 from .budget_view import BudgetView
 from .general_ledger_view import GeneralLedgerView
 from .docprops_view import DocPropsView
-from .pluginlist_view import PluginListView
 from .empty_view import EmptyView
 
 PANETYPE2LABEL = {
@@ -43,7 +42,6 @@ PANETYPE2LABEL = {
     PaneType.Budget: tr("Budgets"),
     PaneType.GeneralLedger: tr("General Ledger"),
     PaneType.DocProps: tr("Document Properties"),
-    PaneType.PluginList: tr("Plugin Management"),
     PaneType.Empty: tr("New Tab"),
 }
 
@@ -176,8 +174,6 @@ class MainWindow(DocumentGUIObject):
             result = GeneralLedgerView(self)
         elif pane_type == PaneType.DocProps:
             result = DocPropsView(self)
-        elif pane_type == PaneType.PluginList:
-            result = PluginListView(self)
         elif pane_type == PaneType.Empty:
             result = EmptyView(self)
         else:
@@ -254,17 +250,10 @@ class MainWindow(DocumentGUIObject):
         self._current_pane_index = -1
         self.panes = []
         for pane_type, arg in pane_data:
-            if pane_type >= PaneType.Plugin:
-                plugin = first(p for p in self.app.get_enabled_plugins() if p.plugin_id() == arg)
-                if plugin is not None:
-                    self.panes.append(self._create_pane_from_plugin(plugin))
-                else:
-                    self.panes.append(self._create_pane(PaneType.NetWorth))
-            else:
-                try:
-                    self.panes.append(self._create_pane(pane_type, account=arg))
-                except ValueError:
-                    self.panes.append(self._create_pane(PaneType.NetWorth))
+            try:
+                self.panes.append(self._create_pane(pane_type, account=arg))
+            except ValueError:
+                self.panes.append(self._create_pane(PaneType.NetWorth))
         self.view.refresh_panes()
         self.current_pane_index = 0
 

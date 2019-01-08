@@ -37,8 +37,6 @@ class PreferenceNames:
     DayFirstDateEntry = 'DayFirstDateEntry'
     CustomRanges = 'CustomRanges'
     ShowScheduleScopeDialog = 'ShowScheduleScopeDialog'
-    DisabledCorePlugins = 'DisabledCorePlugins'
-    EnabledUserPlugins = 'EnabledUserPlugins'
 
 # http://stackoverflow.com/questions/1606436/adding-docstrings-to-namedtuples-in-python
 class SavedCustomRange(namedtuple('SavedCustomRange', 'name start end')):
@@ -165,11 +163,6 @@ class Application:
         self.saved_custom_ranges = [None] * 3
         self._load_custom_ranges()
         self.plugins = []
-        # Plugins with ENABLED_BY_DEFAULT = True are implicitly enabled and must be explicitly
-        # disabled.
-        self._disabled_plugins = set(self.get_default(PreferenceNames.DisabledCorePlugins, []))
-        # User plugins are disabled by default.
-        self._enabled_plugins = set(self.get_default(PreferenceNames.EnabledUserPlugins, []))
         self._load_core_plugins()
         self._hook_currency_plugins()
         self._update_date_entry_order()
@@ -295,35 +288,11 @@ class Application:
         self.saved_custom_ranges[slot] = SavedCustomRange(name, start, end)
         self._save_custom_ranges()
 
-    def open_plugin_folder(self):
-        """Open the plugin folder in the user's file explorer."""
-        plpath = op.join(self.appdata_path, 'moneyguru_plugins')
-        self.view.reveal_path(plpath)
-
     def get_enabled_plugins(self):
         return [p for p in self.plugins if self.is_plugin_enabled(p)]
 
     def is_plugin_enabled(self, plugin):
-        pid = plugin.plugin_id()
-        if plugin.is_core() and plugin.ENABLED_BY_DEFAULT:
-            return pid not in self._disabled_plugins
-        else:
-            return pid in self._enabled_plugins
-
-    def set_plugin_enabled(self, plugin, enabled):
-        pid = plugin.plugin_id()
-        if plugin.is_core() and plugin.ENABLED_BY_DEFAULT:
-            if enabled:
-                self._disabled_plugins.discard(pid)
-            else:
-                self._disabled_plugins.add(pid)
-            self.set_default(PreferenceNames.DisabledCorePlugins, list(self._disabled_plugins))
-        else:
-            if enabled:
-                self._enabled_plugins.add(pid)
-            else:
-                self._enabled_plugins.discard(pid)
-            self.set_default(PreferenceNames.EnabledUserPlugins, list(self._enabled_plugins))
+        return plugin.is_core() and plugin.ENABLED_BY_DEFAULT
 
     def get_default(self, key, fallback_value=None):
         """Returns moneyGuru user pref for ``key``.

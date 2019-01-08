@@ -37,9 +37,7 @@ from .transaction.view import TransactionView
 from .schedule.view import ScheduleView
 from .general_ledger.view import GeneralLedgerView
 from .docprops_view import DocPropsView
-from .pluginlist_view import PluginListView
 from .new_view import NewView
-from .readonly_table_plugin_view import ReadOnlyTablePluginView
 from .lookup import Lookup
 from .export_panel import ExportPanel
 from .custom_date_range_panel import CustomDateRangePanel
@@ -59,7 +57,6 @@ PANETYPE2ICON = {
     PaneType.Budget: 'budget_16',
     PaneType.GeneralLedger: 'gledger_16',
     PaneType.DocProps: 'gledger_16',
-    PaneType.PluginList: '',
 }
 
 PANETYPE2VIEWCLASS = {
@@ -71,9 +68,7 @@ PANETYPE2VIEWCLASS = {
     PaneType.Budget: BudgetView,
     PaneType.GeneralLedger: GeneralLedgerView,
     PaneType.DocProps: DocPropsView,
-    PaneType.PluginList: PluginListView,
     PaneType.Empty: NewView,
-    PaneType.ReadOnlyTablePlugin: ReadOnlyTablePluginView,
 }
 
 # IMPORTANT NOTE ABOUT TABS
@@ -217,7 +212,6 @@ class MainWindow(QMainWindow):
         self.actionShowPreviousView = QAction(tr("Previous View"), self)
         self.actionShowPreviousView.setShortcut("Ctrl+Shift+[")
         self.actionNewDocument = QAction(tr("New Document"), self)
-        self.actionOpenPluginFolder = QAction(tr("Open Plugin Folder"), self)
         self.actionImport = QAction(tr("Import..."), self)
         self.actionImport.setShortcut("Ctrl+Alt+I")
         self.actionExport = QAction(tr("Export..."), self)
@@ -265,7 +259,6 @@ class MainWindow(QMainWindow):
         self.menuFile.addAction(self.actionNewTab)
         self.menuFile.addAction(self.actionOpenDocument)
         self.menuFile.addAction(self.menuOpenRecent.menuAction())
-        self.menuFile.addAction(self.actionOpenPluginFolder)
         self.menuFile.addAction(self.actionImport)
         self.menuFile.addSeparator()
         self.menuFile.addAction(self.actionCloseTab)
@@ -359,7 +352,6 @@ class MainWindow(QMainWindow):
         # Open / Save / Import / Export / New
         self.actionNewDocument.triggered.connect(self.new)
         self.actionOpenDocument.triggered.connect(self.openDocument)
-        self.actionOpenPluginFolder.triggered.connect(self.model.app.open_plugin_folder)
         self.actionImport.triggered.connect(self.importDocument)
         self.actionSave.triggered.connect(self.save)
         self.actionSaveAs.triggered.connect(self.saveAs)
