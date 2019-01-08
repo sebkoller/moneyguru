@@ -140,8 +140,6 @@ class BaseDocument:
         If ``original`` is a schedule :class:`.Spawn`, the UI will be queried for a scope, which
         might result in the change being aborted.
 
-        After the transaction change, ``document_changed`` is broadcasted.
-
         :param original: :class:`.Transaction`
         :param new: :class:`.Transaction`, a modified copy of ``original``.
         :param bool global_scope: Whether this changes affect the whole recurrence (if applicable)
@@ -173,8 +171,6 @@ class BaseDocument:
 
         If any transaction in ``transactions`` is a schedule :class:`.Spawn`, the UI will be queried
         for a scope, which might result in the change being aborted.
-
-        After the transaction change, ``document_changed`` is broadcasted.
 
         :param date: ``datetime.date``
         :param description: ``str``
@@ -210,8 +206,6 @@ class BaseDocument:
         If any transaction in ``transactions`` is a schedule :class:`.Spawn`, the UI will be queried
         for a scope, which might result in the deletion being aborted.
 
-        After the transaction deletion, ``document_changed`` is broadcasted.
-
         ``from_account`` represents, in the UI, the account from which this deletion was triggered.
         By specifying it, you will prevent it from being automatically purged by
         `clean_empty_categories` (we don't want to delete an account that is actively being
@@ -241,8 +235,6 @@ class BaseDocument:
         For each transaction in ``transactions``, add a new transaction with the same attributes to
         the document.
 
-        After the operation, ``document_changed`` is broadcasted.
-
         :param transactions: a collection of :class:`.Transaction` to duplicate.
         """
         duplicated = [txn.replicate() for txn in transactions]
@@ -269,8 +261,6 @@ class BaseDocument:
 
         Make sure your move is legal by calling :meth:`can_move_transactions` first.
 
-        After the move, ``document_changed`` is broadcasted.
-
         :param transactions: a collection of :class:`.Transaction` to move.
         :param to_transaction: target :class:`.Transaction` to move to.
         """
@@ -283,9 +273,9 @@ class BaseDocument:
             checkno=NOEDIT, transfer=NOEDIT, amount=NOEDIT, global_scope=False):
         """Properly sets properties for ``entry``.
 
-        Changes the attributes of ``entry`` (and the transaction in which ``entry`` is) to specified
-        values and then post a ``document_changed`` notification. Attributes with ``NOEDIT``
-        values are not touched.
+        Changes the attributes of ``entry`` (and the transaction in which
+        ``entry`` is) to specified values. Attributes with ``NOEDIT`` values
+        are not touched.
 
         ``transfer`` is the name of the transfer to assign the entry to. If it's not found, a new
         account will be created.
@@ -472,8 +462,8 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             account_number=NOEDIT, inactive=NOEDIT, notes=NOEDIT):
         """Properly sets properties for ``accounts``.
 
-        Sets ``accounts``' properties in a proper manner and post a ``document_changed``
-        notification. Attributes corresponding to arguments set to ``NOEDIT`` will not be touched.
+        Sets ``accounts``' properties in a proper manner. Attributes
+        corresponding to arguments set to ``NOEDIT`` will not be touched.
 
         :param accounts: List of :class:`.Account` to be changed.
         :param name: ``str``
@@ -597,7 +587,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
     def change_group(self, group, name=NOEDIT):
         """Properly sets properties for ``group``.
 
-        Sets ``group``'s properties in a proper manner and post a ``document_changed`` notification.
+        Sets ``group``'s properties in a proper manner.
         Attributes corresponding to arguments set to ``NOEDIT`` will not be touched.
 
         :param group: :class:`.Group` to be changed
@@ -622,7 +612,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
     def delete_groups(self, groups):
         """Removes ``groups`` from the document.
 
-        Removes ``groups`` from the group list and broadcasts ``document_changed``. All accounts
+        Removes ``groups`` from the group list. All accounts
         belonging to the deleted group have their :attr:`.Account.group` attribute set to ``None``.
 
         :param groups: list of :class:`.Group`
@@ -644,8 +634,7 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         """Creates a new group of type ``type``.
 
         The new group will have a unique name based on the string "New Group" (if it exists, a
-        unique number will be appended to it). Once created, the group is added to the group list,
-        and ``document_changed`` is broadcasted.
+        unique number will be appended to it). Once created, the group is added to the group list.
 
         :param type: :class:`.AccountType`
         :rtype: :class:`.Group`
@@ -699,7 +688,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         self._undoer.record(action)
         BaseDocument.change_transaction(self, original, new, global_scope=global_scope)
         self.date_range = self.date_range.around(original.date)
-        self.notify('document_changed')
 
     @handle_abort
     def change_transactions(
@@ -731,9 +719,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             from_=from_, to=to, amount=amount, currency=currency, global_scope=global_scope
         )
         self.date_range = self.date_range.around(transactions[-1].date)
-        self.notify('document_changed')
-        if action.changed_schedules:
-            self.notify('document_changed')
 
     @handle_abort
     def delete_transactions(self, transactions, from_account=None):
@@ -755,7 +740,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         BaseDocument.delete_transactions(
             self, transactions, from_account=from_account, global_scope=global_scope
         )
-        self.notify('document_changed')
 
     def duplicate_transactions(self, transactions):
         """Create copies of ``transactions`` in the document.
@@ -773,7 +757,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action.added_transactions |= set(duplicated)
         self._undoer.record(action)
         self._add_transactions(duplicated)
-        self.notify('document_changed')
 
     def move_transactions(self, transactions, to_transaction):
         """Re-orders ``transactions`` so that they are right before ``to_transaction``.
@@ -792,7 +775,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         action.change_transactions(affected, self.schedules)
         self._undoer.record(action)
         BaseDocument.move_transactions(self, transactions, to_transaction)
-        self.notify('document_changed')
 
     # --- Entry
     @handle_abort

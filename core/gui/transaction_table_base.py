@@ -138,6 +138,7 @@ class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, Table
 
     def duplicate_selected(self):
         self.document.duplicate_transactions(self.selected_transactions)
+        self.mainwindow.revalidate()
 
     def move(self, row_indexes, to_index):
         try:
@@ -148,6 +149,7 @@ class TransactionTableBase(GUITable, ViewChild, TransactionSelectionMixin, Table
         # we can use any from_index, let's use the first
         transactions = [self[index].transaction for index in row_indexes]
         self.document.move_transactions(transactions, to_transaction)
+        self.mainwindow.revalidate()
 
     def move_down(self):
         """Moves the selected entry down one slot if possible"""

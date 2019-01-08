@@ -369,6 +369,7 @@ class EntryTableBase(TransactionTableBase):
         entries = self.selected_entries
         if entries:
             self.document.delete_entries(entries)
+            self.mainwindow.revalidate()
 
     def add(self):
         if self._get_current_account() is not None:

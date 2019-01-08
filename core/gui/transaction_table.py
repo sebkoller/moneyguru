@@ -50,6 +50,7 @@ class TransactionTable(TransactionTableBase):
         transactions = self.selected_transactions
         if transactions:
             self.document.delete_transactions(transactions)
+            self.mainwindow.revalidate()
 
     def _fill(self):
         self._all_amounts_are_native = True
@@ -166,6 +167,7 @@ class TransactionTableRow(Row, RowWithDateMixIn):
         if self.can_edit_amount:
             changed_fields['amount'] = self._amount
         self.document.change_transactions([transaction], **changed_fields)
+        self.table.mainwindow.revalidate()
         self.load()
 
     def sort_key_for_column(self, column_name):

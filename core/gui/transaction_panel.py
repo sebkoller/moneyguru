@@ -106,6 +106,7 @@ class TransactionPanel(PanelWithTransaction):
 
     def _save(self):
         self.document.change_transaction(self.original, self.transaction)
+        self.mainwindow.revalidate()
 
     # --- Public
     def mct_balance(self):

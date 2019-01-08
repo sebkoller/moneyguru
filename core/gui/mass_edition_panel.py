@@ -156,4 +156,5 @@ class MassEditionPanel(GUIPanel):
             kw['currency'] = self.currency
         if kw:
             self.document.change_transactions(transactions, **kw)
+            self.mainwindow.revalidate()
 
