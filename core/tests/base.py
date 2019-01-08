@@ -565,7 +565,7 @@ class TestApp(TestAppBase):
             plugin.ENABLED_BY_DEFAULT = True
         self.app.plugins = []
         self.app._load_plugin_module(fakemod)
-        self.app._hook_currency_plugins()
+        self.app._hook_currency_providers()
 
     # --- Shortcut for selecting a view type.
     def current_view(self):

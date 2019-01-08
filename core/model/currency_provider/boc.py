@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,8 +8,7 @@ from datetime import date, datetime
 from urllib.request import urlopen
 import json
 
-from core.model.currency import RateProviderUnavailable
-from core.plugin import CurrencyProviderPlugin
+from core.model.currency import RateProviderUnavailable, CurrencyProvider
 
 CURRENCY2BOCID = {
     'USD': 'IEXE0101',
@@ -69,11 +68,7 @@ CURRENCY2BOCID = {
     'VND': 'IEXE6503',
 }
 
-class BOCProviderPlugin(CurrencyProviderPlugin):
-    NAME = 'Bank of Canada currency rates fetcher'
-    AUTHOR = "Virgil Dupras"
-    ENABLED_BY_DEFAULT = True
-
+class BOCProvider(CurrencyProvider):
     def register_currencies(self):
         self.supported_currency_codes |= {'USD', 'EUR'} # already added
         # In order we want to list them

@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -260,4 +260,110 @@ def initialize_db(path):
     """Initialize the app wide currency db if not already initialized."""
     ratesdb = RatesDB(str(path))
     Currencies.set_rates_db(ratesdb)
+
+class CurrencyProvider:
+    """Allows the creation of new currencies and the fetching of their rates.
+
+    By subclassing this provider, you can add new currencies to moneyGuru and
+    also add a new source to fetch those currencies' exchange rates.
+    """
+    def __init__(self):
+        self.supported_currency_codes = set()
+        try:
+            for code, name, exponent, fallback_rate in self.register_currencies():
+                self.register_currency(code, name, exponent=exponent, latest_rate=fallback_rate)
+        except TypeError: # We return None, which means we registered all currencies manually.
+            pass
+        Currencies.sort_currencies()
+
+    def wrapped_get_currency_rates(self, currency_code, start_date, end_date):
+        """Tries to fetch exchange rates for ``currency_code``.
+
+        If our currency is supported by our provider, we first try the "simple" fetching
+        (:meth:`get_currency_rate_today`). If it's not implemented, we try the "complex" one
+        (:meth:`get_currency_rates`). We return the result of the first method to work.
+
+        If we can't get results, either because our currency isn't supported or because our
+        implementation is incomplete, :exc:`.CurrencyNotSupportedException` is raised.
+
+        This method isn't designed to be overriden.
+        """
+        if currency_code not in self.supported_currency_codes:
+            raise CurrencyNotSupportedException()
+        try:
+            simple_result = self.get_currency_rate_today(currency_code)
+            if simple_result is not None:
+                return [(date.today(), simple_result)]
+            else:
+                return []
+        except NotImplementedError:
+            try:
+                return self.get_currency_rates(currency_code, start_date, end_date)
+            except NotImplementedError:
+                raise CurrencyNotSupportedException()
+
+    def register_currency(self, code, name, **kwargs):
+        """Register a currency.
+
+        Calling this gives more options than the simple return scheme of :meth:`register_currencies`.
+
+        ``**kwargs`` is passed directly to :meth:`Currency.register`.
+
+        Returns the resulting currency instance.
+        """
+        result = Currencies.register(code, name, **kwargs)
+        self.supported_currency_codes.add(code)
+        return result
+
+    def register_currencies(self):
+        """Override this and return a list of new currencies to support.
+
+        The expected return value is a list of tuples ``(code, name, exponent, fallback_rate)``.
+
+        If you need to set more option, call :meth:`register_currency` instead.
+
+        ``exponent`` is the number of decimal numbers that should be displayed when formatting
+        amounts in this currency.
+
+        ``fallback_rate`` is the rate to use in case we can't fetch a rate. You can use the rate
+        that is in effect when you write the provider. Of course, it will become wildly innaccurate
+        over time, but it's still better than a rate of ``1``.
+        """
+        raise NotImplementedError()
+
+    def get_currency_rate_today(self, currency_code):
+        """Override this if you have a 'simple' provider.
+
+        If your provider doesn't give rates for any other date than today, overriding this method
+        instead of get_currency_rate() is the simplest choice.
+
+        ``currency_code`` is a string representing the code of the currency to fetch, 'USD' for
+        example.
+
+        Return a float representing the value of 1 unit of your currency in CAD.
+
+        If you can't get a rate, return ``None``.
+
+        This method is called asynchronously, so it won't block moneyGuru if it takes time to
+        resolve.
+        """
+        raise NotImplementedError()
+
+    def get_currency_rates(self, currency_code, start_date, end_date):
+        """Override this if your provider gives rates for past dates.
+
+        If your provider gives rates for past dates, it's better (although a bit more complicated)
+        to override this method so that moneyGuru can have more accurate rates.
+
+        You must return a list of tuples (date, rate) with all rates you can fetch between
+        start_date and end_date. You don't need to have one item for every single date in the range
+        (for example, most of the time we don't have values during week-ends), moneyGuru correctly
+        handles holes in those values. Simply return whatever you can get.
+
+        If you can't get a rate, return an empty list.
+
+        This method is called asynchronously, so it won't block moneyGuru if it takes time to
+        resolve.
+        """
+        raise NotImplementedError()
 

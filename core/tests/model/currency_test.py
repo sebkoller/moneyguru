@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -13,7 +13,7 @@ from ..testutil import jointhreads, eq_
 from ...model.amount import convert_amount
 from ...model.currency import (
     Currencies, RateProviderUnavailable, RatesDB)
-from ...plugin import boc_currency_provider
+from ...model.currency_provider import boc
 from ..base import Amount
 
 def slow_down(func):
@@ -113,18 +113,18 @@ def exception_raiser(exception):
 def test_no_internet(monkeypatch):
     # No crash occur if the computer don't have access to internet.
     from socket import gaierror
-    monkeypatch.setattr(boc_currency_provider, 'urlopen', exception_raiser(gaierror()))
+    monkeypatch.setattr(boc, 'urlopen', exception_raiser(gaierror()))
     with raises(RateProviderUnavailable):
-        boc_currency_provider.BOCProviderPlugin().wrapped_get_currency_rates(
+        boc.BOCProvider().wrapped_get_currency_rates(
             'USD', date(2008, 5, 20), date(2008, 5, 20)
         )
 
 def test_connection_timeout(monkeypatch):
     # No crash occur the connection times out.
     from socket import error
-    monkeypatch.setattr(boc_currency_provider, 'urlopen', exception_raiser(error()))
+    monkeypatch.setattr(boc, 'urlopen', exception_raiser(error()))
     with raises(RateProviderUnavailable):
-        boc_currency_provider.BOCProviderPlugin().wrapped_get_currency_rates(
+        boc.BOCProvider().wrapped_get_currency_rates(
             'USD', date(2008, 5, 20), date(2008, 5, 20)
         )
 

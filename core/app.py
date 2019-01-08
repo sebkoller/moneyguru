@@ -19,8 +19,9 @@ from .const import DATE_FORMAT_FOR_PREFERENCES
 from .model import currency
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
+from .model.currency_provider import get_providers
 from .model.date import parse_date, format_date
-from .plugin import CurrencyProviderPlugin, get_all_core_plugin_modules, get_plugins_from_mod
+from .plugin import get_all_core_plugin_modules, get_plugins_from_mod
 
 class PreferenceNames:
     """Holds a list of preference key constants used in moneyGuru.
@@ -164,7 +165,7 @@ class Application:
         self._load_custom_ranges()
         self.plugins = []
         self._load_core_plugins()
-        self._hook_currency_plugins()
+        self._hook_currency_providers()
         self._update_date_entry_order()
 
     # --- Private
@@ -193,9 +194,8 @@ class Application:
         for mod in get_all_core_plugin_modules():
             self._load_plugin_module(mod)
 
-    def _hook_currency_plugins(self):
-        currency_plugins = [p for p in self.get_enabled_plugins() if issubclass(p, CurrencyProviderPlugin)]
-        for p in currency_plugins:
+    def _hook_currency_providers(self):
+        for p in get_providers():
             Currencies.get_rates_db().register_rate_provider(p().wrapped_get_currency_rates)
 
     def _save_custom_ranges(self):

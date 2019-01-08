@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,11 +9,11 @@ from datetime import date
 import pytest
 from ..testutil import eq_
 
-from ...plugin.boc_currency_provider import BOCProviderPlugin
+from ...model.currency_provider.boc import BOCProvider
 
 @pytest.mark.needs_network
 def test_boc_currency_provider_EUR():
-    provider = BOCProviderPlugin()
+    provider = BOCProvider()
     rates = provider.get_currency_rates('EUR', date(2017, 8, 6), date(2017, 8, 12))
     EXPECTED = [
         (date(2017, 8, 8), 1.4911),
@@ -28,7 +28,7 @@ def test_boc_currency_provider_EUR():
 def test_boc_currency_provider_historical_EUR():
     # historical rates fetching work too (before 2017, rates are fetched
     # differently)
-    provider = BOCProviderPlugin()
+    provider = BOCProvider()
     rates = provider.get_currency_rates('EUR', date(2016, 8, 6), date(2016, 8, 12))
     EXPECTED = [
         (date(2016, 8, 8), 1.4598),

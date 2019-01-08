@@ -24,7 +24,7 @@ def get_plugins_from_mod(mod):
 
 def get_all_core_plugin_modules():
     from . import (
-        account_list, currency_rates, payee_breakdown, boc_currency_provider,
+        account_list, currency_rates, payee_breakdown,
         stale_currency_provider,
         base_import_actions, base_import_bind,
         fuzzy_date_bind,
@@ -33,7 +33,6 @@ def get_all_core_plugin_modules():
         account_list,
         currency_rates,
         payee_breakdown,
-        boc_currency_provider,
         stale_currency_provider,
         base_import_actions,
         base_import_bind,
