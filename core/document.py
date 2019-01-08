@@ -1033,7 +1033,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self.budgets.append(budget)
         self.accounts.default_currency = self.default_currency
         self._cook()
-        self.notify('document_changed')
         self._undoer.set_save_point()
         self._restore_preferences_after_load()
 

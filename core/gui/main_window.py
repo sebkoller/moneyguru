@@ -407,6 +407,7 @@ class MainWindow(Listener, DocumentGUIObject):
     def load_from_xml(self, filename):
         self.document.load_from_xml(filename)
         self.restore_view()
+        self.revalidate()
 
     def load_parsed_file_for_import(self):
         """Load a parsed file for import and trigger the opening of the Import window.
