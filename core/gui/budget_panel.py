@@ -60,6 +60,7 @@ class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
 
     def _save(self):
         self.document.change_budget(self.original, self.budget)
+        self.mainwindow.revalidate()
 
     # --- Private
     def _load_budget(self, budget):

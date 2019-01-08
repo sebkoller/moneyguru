@@ -929,7 +929,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
         if original not in self.budgets:
             self.budgets.append(original)
         self._cook(from_date=min_date)
-        self.notify('document_changed')
 
     def delete_budgets(self, budgets):
         """Removes ``budgets`` from the document.
@@ -945,7 +944,6 @@ class Document(BaseDocument, Broadcaster, GUIObject):
             self.budgets.remove(budget)
         min_date = min(b.start_date for b in budgets)
         self._cook(from_date=min_date)
-        self.notify('document_changed')
 
     # --- Schedule
     def change_schedule(self, schedule, new_ref, repeat_type, repeat_every, stop_date):
