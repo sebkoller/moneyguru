@@ -124,11 +124,14 @@ class MainWindow(DocumentGUIObject):
         self.view.change_current_pane()
         self.update_status_line()
 
-    def _close_irrelevant_account_panes(self):
+    def _close_irrelevant_account_panes(self, close_all=False):
+        # close all is if we want to close all accounts, not only "irrelevant"
+        # ones
         indexes_to_close = []
         for index, pane in enumerate(self.panes):
-            if pane.view.VIEW_TYPE == PaneType.Account and pane.account not in self.document.accounts:
-                indexes_to_close.append(index)
+            if pane.view.VIEW_TYPE == PaneType.Account:
+                if close_all or pane.account not in self.document.accounts:
+                    indexes_to_close.append(index)
         if self.current_pane_index in indexes_to_close:
             self.select_pane_of_type(PaneType.NetWorth)
         for index in reversed(indexes_to_close):
@@ -392,6 +395,7 @@ class MainWindow(DocumentGUIObject):
         self.account_lookup.show()
 
     def load_from_xml(self, filename):
+        self._close_irrelevant_account_panes(close_all=True)
         self.document.load_from_xml(filename)
         self.restore_view()
         self.revalidate()

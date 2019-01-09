@@ -196,7 +196,6 @@ def test_change_currency_from_income_account():
     app.show_account()
     eq_(app.etable[0].increase, 'PLN 12.00')
 
-@pytest.mark.skip(reason="randomly segfaulting. TODO: figure it out")
 def test_ensures_rates(tmpdir, fake_server, monkeypatch):
     # Upon calling save and load, rates are asked for both EUR and PLN.
     app = app_entry_with_foreign_currency()
