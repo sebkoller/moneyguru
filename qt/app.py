@@ -20,7 +20,6 @@ from .controller.preferences_panel import PreferencesPanel
 from .support.about_box import AboutBox
 from .support.date_edit import DateEdit
 from .preferences import Preferences
-from .util import getAppData
 
 class MoneyGuru(QObject):
     VERSION = MoneyGuruModel.VERSION
@@ -40,11 +39,10 @@ class MoneyGuru(QObject):
         decimalSep = locale.decimalPoint()
         groupingSep = locale.groupSeparator()
         cachePath = QStandardPaths.standardLocations(QStandardPaths.CacheLocation)[0]
-        appdata = getAppData()
         DateEdit.DATE_FORMAT = dateFormat
         self.model = MoneyGuruModel(
             view=self, date_format=dateFormat, decimal_sep=decimalSep,
-            grouping_sep=groupingSep, cache_path=cachePath, appdata_path=appdata,
+            grouping_sep=groupingSep, cache_path=cachePath
         )
         self.mainWindow = MainWindow(app=self)
         self.preferencesPanel = PreferencesPanel(self.mainWindow, app=self)

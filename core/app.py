@@ -21,7 +21,6 @@ from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
 from .model.currency_provider import get_providers
 from .model.date import parse_date, format_date
-from .plugin import get_all_core_plugin_modules, get_plugins_from_mod
 
 class PreferenceNames:
     """Holds a list of preference key constants used in moneyGuru.
@@ -123,9 +122,6 @@ class Application:
     :param str cache_path: The path (a folder) in which we put our "cache" stuff, that is, the
                            SQLite currency rate cache DB and autosaved files. If ``None``, the
                            currency cache will be in-memory and autosaves will not happen.
-    :param str appdata_path: Path in which we put user-specific files we need for moneyGuru to work
-                             well, but that don't qualify as "cache". For now, it's where we put
-                             the plugins. If ``None``, plugins are disabled.
     """
 
     APP_NAME = "moneyGuru"
@@ -135,7 +131,7 @@ class Application:
 
     def __init__(
             self, view, date_format='dd/MM/yyyy', decimal_sep='.', grouping_sep='',
-            default_currency='USD', cache_path=None, appdata_path=None):
+            default_currency='USD', cache_path=None):
         self.view = view
         self.cache_path = cache_path
         # cache_path is required, but for tests, we don't want to bother specifying it. When
@@ -146,9 +142,6 @@ class Application:
             db_path = op.join(cache_path, 'currency.db')
         else:
             db_path = ':memory:'
-        self.appdata_path = appdata_path
-        if appdata_path and not op.exists(appdata_path):
-            os.makedirs(appdata_path)
         currency.initialize_db(db_path)
         self.is_first_run = not self.get_default(PreferenceNames.HadFirstLaunch, False)
         if self.is_first_run:
@@ -163,8 +156,6 @@ class Application:
         self._show_schedule_scope_dialog = self.get_default(PreferenceNames.ShowScheduleScopeDialog, True)
         self.saved_custom_ranges = [None] * 3
         self._load_custom_ranges()
-        self.plugins = []
-        self._load_core_plugins()
         self._hook_currency_providers()
         self._update_date_entry_order()
 
@@ -184,15 +175,6 @@ class Application:
                 self.saved_custom_ranges[index] = SavedCustomRange(name, start, end)
             else:
                 self.saved_custom_ranges[index] = None
-
-    def _load_plugin_module(self, plugin_module):
-        for x in get_plugins_from_mod(plugin_module):
-            if all(p.NAME != x.NAME for p in self.plugins):
-                self.plugins.append(x)
-
-    def _load_core_plugins(self):
-        for mod in get_all_core_plugin_modules():
-            self._load_plugin_module(mod)
 
     def _hook_currency_providers(self):
         for p in get_providers():
@@ -287,12 +269,6 @@ class Application:
         """
         self.saved_custom_ranges[slot] = SavedCustomRange(name, start, end)
         self._save_custom_ranges()
-
-    def get_enabled_plugins(self):
-        return [p for p in self.plugins if self.is_plugin_enabled(p)]
-
-    def is_plugin_enabled(self, plugin):
-        return plugin.is_core() and plugin.ENABLED_BY_DEFAULT
 
     def get_default(self, key, fallback_value=None):
         """Returns moneyGuru user pref for ``key``.
