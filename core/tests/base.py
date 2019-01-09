@@ -20,6 +20,7 @@ from ..loader import base
 from ..model.account import AccountType, ACCOUNT_SORT_KEY
 from ..model.amount import parse_amount
 from ..model.date import DateFormat
+from ..util import flatten
 from .testutil import eq_, CallLogger, TestApp as TestAppBase, TestData
 from .testutil import with_app # noqa
 
@@ -127,27 +128,32 @@ class MainWindowGUI(CallLogger):
 class DictLoader(base.Loader):
     """Used for fake_import"""
     def __init__(
-            self, default_currency, account_name, transactions, default_date_format='%d/%m/%Y',
-            account_reference=None):
+            self, default_currency, infos, default_date_format='%d/%m/%Y'):
+        # `infos` look like:
+        # [{'name': 'account name',
+        #   'reference': ...,
+        #   'txns': [{'date': ..., 'description': ...}]
+        # }]
         base.Loader.__init__(self, default_currency, default_date_format)
-        self.account_name = account_name
-        self.account_reference = account_reference
-        self.transaction_dicts = transactions
-        str_dates = [txn['date'] for txn in transactions]
+        self.infos = infos
+        alltxns = flatten(info['txns'] for info in infos)
+        str_dates = [txn['date'] for txn in alltxns]
         self.parsing_date_format = self.guess_date_format(str_dates)
 
     def _parse(self, infile):
         pass
 
     def _load(self):
-        self.account_info.name = self.account_name
-        self.account_info.reference = self.account_reference
-        for txn in self.transaction_dicts:
-            self.start_transaction()
-            for attr, value in txn.items():
-                if attr == 'date':
-                    value = self.parse_date_str(value)
-                setattr(self.transaction_info, attr, value)
+        for info in self.infos:
+            self.account_info.name = info['name']
+            self.account_info.reference = info.get('reference')
+            for txn in info['txns']:
+                self.start_transaction()
+                for attr, value in txn.items():
+                    if attr == 'date':
+                        value = self.parse_date_str(value)
+                    setattr(self.transaction_info, attr, value)
+            self.flush_account()
 
 class TestApp(TestAppBase):
     __test__ = False
@@ -452,22 +458,21 @@ class TestApp(TestAppBase):
         # add one to the expected count, we use this method that subtract 1 to the len of etable.
         return len(self.etable) - 1
 
-    def fake_import(self, account_name, transactions, account_reference=None, in_iwin=None):
+    def fake_import(self, account_name, transactions, account_reference=None):
         # When you want to test the post-parsing import process, rather than going through the hoops,
         # use this methods. 'transactions' is a list of dicts, the dicts being attribute values.
         # dates are strings in the app's default date format.
         default_date_format = DateFormat(self.app.date_format).sys_format
+        infos = [{
+            'name': account_name,
+            'reference': account_reference,
+            'txns': transactions,
+        }]
         self.mw.loader = DictLoader(
-            self.doc.default_currency, account_name, transactions,
-            default_date_format=default_date_format,
-            account_reference=account_reference
+            self.doc.default_currency, infos,
+            default_date_format=default_date_format
         )
-        if in_iwin is None:
-            return self.mw.load_parsed_file_for_import()
-        else:
-            self.mw.loader.load()
-            in_iwin.refresh_panes()
-            return in_iwin
+        return self.mw.load_parsed_file_for_import()
 
     def get_current_panel(self):
         """Returns the instance of the last invoked panel.

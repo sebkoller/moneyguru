@@ -4,65 +4,24 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from collections import defaultdict
-
-# To avoid clashing with "first" in the "first/second" pattern being all over the place in this
-# unit, we rename our imported first() function here
-from core.util import flatten, dedupe, first as getfirst
+from core.util import dedupe, first as getfirst
 from core.trans import tr
 
-from ..exception import OperationAborted
 from ..model.date import DateFormat
 from .base import GUIObject
 from .import_table import ImportTable
 from .selectable_list import LinkedSelectableList
-from core.plugin import ImportBindPlugin, EntryMatch
-from core.document import ImportDocument
-from core.model._ccore import AccountList, Entry
-
 
 DAY = 'day'
 MONTH = 'month'
 YEAR = 'year'
 
-# Could be a good target for core.util?
-def unique_groups(lst, keyfunc):
-    """Given a list and a keyfunction, return lists of all objects with the same key"""
-    results = defaultdict(list)
-    for itm in lst:
-        results[keyfunc(itm)].append(itm)
-    return results.values()
-
-class ActionSelectionOptions:
-    ApplyToPane = 0
-    ApplyToAll = 1
-    ApplyToSelection = 2
-
-
-class ImportAction:
-    # The name that appears in our drop down list
-    ACTION_NAME = None
-
-    def on_selected_pane_changed(self, selected_pane):
-        """This method is called whenever the import window has changed it's selected pane."""
-        pass
-
-    def can_perform_action(self, import_document, transactions, panes, selected_rows=None):
-        return True
-
-    def perform_action(self, import_document, transactions, panes, selected_rows=None):
-        pass
-
-class BaseSwapFields(ImportAction):
-    def _switch_function(self, transaction):
-        pass
-
-    def perform_action(self, import_document, transactions, panes, selected_rows=None):
-        for txn in transactions:
-            new = txn.replicate()
-            self._switch_function(new)
-            import_document.change_transaction(txn, new)
-
+class SwapType:
+    DayMonth = 0
+    MonthYear = 1
+    DayYear = 2
+    DescriptionPayee = 3
+    InvertAmount = 4
 
 def last_two_digits(year):
     return year - ((year // 100) * 100)
@@ -73,7 +32,6 @@ def swapped_date(date, first, second):
     if YEAR in newattrs:
         newattrs[YEAR] += 2000
     return date.replace(**newattrs)
-
 
 def swap_format_elements(format, first, second):
     # format is a DateFormat
@@ -87,323 +45,74 @@ def swap_format_elements(format, first, second):
     elems[first_index], elems[second_index] = elems[second_index], elems[first_index]
     return swapped
 
-
-class BaseSwapDateFields(BaseSwapFields):
-    def __init__(self):
-        super().__init__()
-        self._first_field = None
-        self._second_field = None
-
-    def _switch_function(self, transaction):
-        transaction.date = swapped_date(transaction.date, self._first_field, self._second_field)
-
-    def on_selected_pane_changed(self, selected_pane):
-        self._change_name(selected_pane.parsing_date_format)
-
-    def _change_name(self, parsing_date_format):
-        basefmt = parsing_date_format
-        swapped = swap_format_elements(basefmt, self._first_field, self._second_field)
-        self.ACTION_NAME = "{} --> {}".format(basefmt.iso_format, swapped.iso_format)
-
-    def can_perform_action(self, import_document, transactions, panes, selected_rows=None):
-        try:
-            for txn in transactions:
-                swapped_date(txn.date, self._first_field, self._second_field)
-            return True
-        except ValueError:
-            return False
-
-    def perform_action(self, import_document, transactions, panes, selected_rows=None):
-        BaseSwapFields.perform_action(self, import_document, transactions, panes, selected_rows=None)
-        # Now, lets' change the date format on these panes
-        for pane in panes:
-            basefmt = pane.parsing_date_format
-            swapped = swap_format_elements(basefmt, self._first_field, self._second_field)
-            pane.parsing_date_format = swapped
-
-        self._change_name(panes[0].parsing_date_format)
-
-
-class SwapDayMonth(BaseSwapDateFields):
-    ACTION_NAME = "<placeholder> Day <--> Month"
-
-    def __init__(self):
-        super().__init__()
-        self._first_field = DAY
-        self._second_field = MONTH
-
-
-class SwapMonthYear(BaseSwapDateFields):
-    ACTION_NAME = "<placeholder> Month <--> Year"
-
-    def __init__(self):
-        super().__init__()
-        self._first_field = MONTH
-        self._second_field = YEAR
-
-
-class SwapDayYear(BaseSwapDateFields):
-    ACTION_NAME = "<placeholder> Day <--> Year"
-
-    def __init__(self):
-        super().__init__()
-        self._first_field = DAY
-        self._second_field = YEAR
-
-
-class SwapDescriptionPayeeAction(BaseSwapFields):
-    ACTION_NAME = tr("Description <--> Payee")
-
-    def _switch_function(self, txn):
-        txn.description, txn.payee = txn.payee, txn.description
-
-
-class InvertAmounts(ImportAction):
-    ACTION_NAME = tr("Invert Amount")
-
-    def perform_action(self, import_document, transactions, panes, selected_rows=None):
-        for transaction in transactions:
-            new = transaction.replicate()
-            for split in new.splits:
-                split.amount = -split.amount
-            import_document.change_transaction(transaction, new)
-
-
 class AccountPane:
-    def __init__(self, import_document, document, account, target_account):
-        self.import_document = import_document
-        self.document = document
-        self.parsing_date_format = self.import_document.parsing_date_format
+    def __init__(self, iwin, account, target_account, parsing_date_format):
+        self.iwin = iwin
         self.account = account
-        self.binding_plugins = [
-            plugin() for plugin in self.import_document.app.get_enabled_plugins()
-            if issubclass(plugin, ImportBindPlugin)
-        ]
         self._selected_target = target_account
         self.name = account.name
-        entries = import_document.accounts.entries_for_account(account)
+        entries = iwin.loader.accounts.entries_for_account(account)
         self.count = len(entries)
         self.matches = [] # [[ref, imported]]
+        self.parsing_date_format = parsing_date_format
         self.max_day = 31
         self.max_month = 12
-        self.max_year = 99  # 2 digits
-        self._match_entries = dict()
-        self._user_binds = dict()  # tracks binds / unbinds as indicated by the user.
-        self.to_import = dict()
-        self.match_flag = False
-        self.match_entries()
+        self.max_year = 99 # 2 digits
+        self._match_entries()
+        self._swap_possibilities = set()
+        self._compute_swap_possibilities()
 
-    def _remove_match(self, match):
-        if match.existing in self._match_entries:
-            del self._match_entries[match.existing]
-        if match.imported in self._match_entries:
-            del self._match_entries[match.imported]
+    def _compute_swap_possibilities(self):
+        entries = list(self.iwin.loader.accounts.entries_for_account(self.account))
+        if not entries:
+            return
+        self._swap_possibilities = set([(DAY, MONTH), (MONTH, YEAR), (DAY, YEAR)])
+        for first, second in self._swap_possibilities.copy():
+            for entry in entries:
+                try:
+                    swapped_date(entry.date, first, second)
+                except ValueError:
+                    self._swap_possibilities.remove((first, second))
+                    break
 
-    def _determine_best_matches(self, matches):
-        """Given the provided list of ``EntryMatch`` objects, use the best match by weight."""
-
-        def check_better(key, weight):
-            conflict = self._match_entries.get(key, None)
-            if conflict and conflict.weight < weight:
-                self._remove_match(conflict)
-
-        # Take existing entry that is recommended to be mapped to an import entry
-        for existing_entry, imported_entry, will_import, weight in matches:
-            if existing_entry is None or imported_entry is None:
-                continue
-            # If there is a better mapping for existing entries, use it.
-            check_better(existing_entry, weight)
-            # if there is a better mapping for imported entries, use it.
-            check_better(imported_entry, weight)
-
-            if (existing_entry not in self._match_entries and
-                    imported_entry not in self._match_entries):
-                # If no other recommendations for the existing or imported entries existed,
-                # then this is the first recommendation and we will use it.
-                new_match = EntryMatch(existing_entry, imported_entry, will_import, weight)
-                self._match_entries[existing_entry] = new_match
-                self._match_entries[imported_entry] = new_match
-
-
-    def _convert_matches(self):
-        """Take the best matches from plugins and override with user entered matches.
-
-        Takes the ``_match_entries``, ``import_entries``, and ``existing_entries`` data structures
-        and determines the best matches given the matches provided in ``_user_binds``.
-
-        """
-
-        import_entries = self.import_entries
-
-        existing_entries = self.existing_entries
-
-        # ``matches`` is our final set of matches between existing and imported entries.
-        # If the user pressed the import button, this is the structure that is iterated over.
-        # Other structures, like ``_user_binds``, ``_match_entires``, etc exist to build
-        # the contents of this structure.
-
-        self.matches.clear()
-        # The ``to_import`` map holds references from the ``matches`` set to a boolean value that
-        # indicates which import entries are to be passed to the
-        # ``Document.import_entries`` method.
-        self.to_import.clear()
-
-        processed = set()
-
-        def append_entry(entry, is_import):
-
-
-            # If we have already looked at this entry before, continue.
-            if entry in processed:
-                return
-
-            # Find a recommendation for a match provided by a plugin.
-            match_entry = self._match_entries.get(entry, None)
-
-            # If there is a recommendations
-            if (match_entry and
-                    match_entry.existing not in processed and
-                    match_entry.imported not in processed):
-                if is_import:
-                    # If it's an import entry, we don't need to "refresh" the existing
-                    # entry because it is not recooked.
-                    self.matches.append([match_entry.existing, entry])
+    def _match_entries(self):
+        to_import = list(self.iwin.loader.accounts.entries_for_account(self.account))
+        reference2entry = {}
+        for entry in (e for e in to_import if e.reference):
+            reference2entry[entry.reference] = entry
+        self.matches = []
+        if self.selected_target is not None:
+            entries = self.iwin.document.accounts.entries_for_account(self.selected_target)
+            for entry in entries:
+                if entry.reference in reference2entry:
+                    other = reference2entry[entry.reference]
+                    if entry.reconciled:
+                        self.iwin.import_table.dont_import.add(other)
+                    to_import.remove(other)
+                    del reference2entry[entry.reference]
                 else:
-                    # Otherwise, we have to search through our import entries based on equality
-                    # because the reference will have changed between cooks.
-                    [import_entry] = [e for e in import_entries
-                                      if e == match_entry.imported]
-                    self.matches.append([entry, import_entry])
-
-                # Add both items to our processed set.
-                processed.add(match_entry.existing)
-                processed.add(match_entry.imported)
-
-                if match_entry.will_import:
-                    # ``EntryMatch`` objects have a ``will_import`` attribute, which indicate
-                    # the preference of the plugin on whether or not this entry should be imported.
-                    self.to_import[match_entry.imported] = match_entry.will_import
-                elif match_entry.existing.reconciled:
-                    # If the existing entry is already reconciled, then we don't want to import it.
-                    self.to_import[match_entry.imported] = False
-
-            # And from here down is simply adding those entries without recommendation.
-            elif is_import:
-                self.matches.append([None, entry])
-            elif not entry.reconciled:
-                self.matches.append([entry, None])
-
-            processed.add(entry)
-
-
-        # This has four loops to ensure that we have matched each import entry correctly
-
-        # First, we must put in our user binds.
-        user_binds = list(self._user_binds.items())
-        for (existing_entry, import_entry), bound in user_binds:
-            new_import_entry = self._get_matching_entry(import_entry, import_entries)
-            if new_import_entry is None:
-                # If a plugin has modified our imports such that the imported entry
-                # no longer exists, then clean up that record in ``_user_binds``.
-                del self._user_binds[(existing_entry, import_entry)]
-                continue
-            if bound:
-                # If there is a recommendation by a plugin about an import entry, then
-                # adding the user chosen bind to our processed list will ignore the
-                # plugin's recommendation.
-                self.matches.append([existing_entry, import_entry])
-                processed.add(existing_entry)
-                processed.add(import_entry)
-
-        # Then we put in all the recommendations for existing entries.
-        for existing_entry in existing_entries:
-            append_entry(existing_entry, False)
-
-        # And all recommendations for imported entries.
-        for import_entry in import_entries:
-            append_entry(import_entry, True)
-
-        # By this point, we should have iterated over all existing and imported entries, and
-        # they should all be matched (or the fact that no match exists annotated in the ``matches``
-        # set.
-
-        # So our last step is to ensure that if a plugin has made a recommendation about a match
-        # that the user has indicated was incorrect, we must make sure that match is broken.
-        for (existing_entry, import_entry), bound in self._user_binds.items():
-            if not bound:
-                import_entry = self._get_matching_entry(import_entry, import_entries)
-                match = [[e, i] for [e, i] in self.matches if
-                         e and i and
-                         (e, i) == (existing_entry, import_entry)]
-                if match:
-                    [[e, i]] = match
-                    self.matches.remove([e, i])
-                else:
-                    continue
-                # if not e.reconciled?
-                # So here, the end effect is that if the entry is reconciled the existing
-                # entry disappears when the bind is broken.
-                self.matches.append([e, None])
-                self.matches.append([None, i])
-
-    @staticmethod
-    def _get_matching_entry(entry, entry_list):
-        for e in entry_list:
-            if e == entry:
-                return e
-        return None
-
-    def match_entries(self, binding_plugins=None, import_entries=None):
-        """Match existing to imported entries.
-
-        This is called by the owning ``ImportWindow`` class.
-        """
-        self.account = self.import_document.accounts.find(self.name)
-        entries = self.import_document.accounts.entries_for_account(self.account)
-        import_entries = list(entries) if not import_entries else import_entries
-        existing_entries = self.existing_entries
-
-        for plugin in self.binding_plugins:
-            # Each matching plugin makes it's own recommendations
-            matches = plugin.match_entries(self.selected_target,
-                                           None,
-                                           self.import_document,
-                                           existing_entries,
-                                           import_entries)
-
-            # The best is chosen by weight
-            self._determine_best_matches(matches)
-
-        # And mixed in
-        self._convert_matches()
+                    other = None
+                if other is not None or not entry.reconciled:
+                    self.matches.append([entry, other])
+        self.matches += [[None, entry] for entry in to_import]
         self._sort_matches()
-        self.match_flag = True
 
     def _sort_matches(self):
-        def key_func(t):
-
-            # Sort by import date, existing entry date,
-            # and secondary sort by if there is no import-to-existing
-            # bind.
-
-            if None not in t:
-                return_date = t[1].date
-            elif t[0]:
-                return_date = t[0].date
-            else:
-                return_date = t[1].date
-            return return_date, t[0] is None
-
-        self.matches.sort(key=key_func)
+        self.matches.sort(key=lambda t: t[0].date if t[0] is not None else t[1].date)
 
     def bind(self, existing, imported):
-        self._user_binds[(existing, imported)] = True  # Bind
-        self._convert_matches()
-        self._sort_matches()
+        [match1] = [m for m in self.matches if m[0] is existing]
+        [match2] = [m for m in self.matches if m[1] is imported]
+        match1[1] = match2[1]
+        self.matches.remove(match2)
+
+    def can_swap_date_fields(self, first, second): # 'day', 'month', 'year'
+        return (first, second) in self._swap_possibilities or (second, first) in self._swap_possibilities
 
     def unbind(self, existing, imported):
-        self._user_binds[(existing, imported)] = False  # Unbind
-        self._convert_matches()
+        [match] = [m for m in self.matches if m[0] is existing and m[1] is imported]
+        match[1] = None
+        self.matches.append([None, imported])
         self._sort_matches()
 
     @property
@@ -412,27 +121,8 @@ class AccountPane:
 
     @selected_target.setter
     def selected_target(self, value):
-        if self._selected_target is value:
-            return
         self._selected_target = value
-        self._user_binds.clear()
-        self._match_entries.clear()
-        self.matches.clear()
-        self.match_entries()
-
-    @property
-    def import_entries(self):
-        account = self.import_document.accounts.find(self.name)
-        entries = self.import_document.accounts.entries_for_account(account)
-        return list(entries)
-
-    @property
-    def existing_entries(self):
-        if not self.selected_target:
-            return []
-        else:
-            entries = self.document.accounts.entries_for_account(self.selected_target)
-            return list(entries)
+        self._match_entries()
 
 
 class ImportWindow(GUIObject):
@@ -451,103 +141,41 @@ class ImportWindow(GUIObject):
         self.mainwindow = mainwindow
         self.document = mainwindow.document
         self.app = self.document.app
-        self._tmpaccounts = AccountList(self.document.default_currency)
         self._selected_pane_index = 0
         self._selected_target_index = 0
-        self._import_actions = [
-            SwapDayMonth(), SwapMonthYear(), SwapDayYear(),
-            SwapDescriptionPayeeAction(), InvertAmounts()]
 
         def setfunc(index):
             self.view.set_swap_button_enabled(self.can_perform_swap())
         self.swap_type_list = LinkedSelectableList(items=[
-            action.ACTION_NAME for action in self._import_actions
+            "<placeholder> Day <--> Month",
+            "<placeholder> Month <--> Year",
+            "<placeholder> Day <--> Year",
+            tr("Description <--> Payee"),
+            tr("Invert Amounts"),
         ], setfunc=setfunc)
-        self.swap_type_list.selected_index = 0
+        self.swap_type_list.selected_index = SwapType.DayMonth
         self.panes = []
         self.import_table = ImportTable(self)
 
     # --- Private
+    def _can_swap_date_fields(self, first, second): # 'day', 'month', 'year'
+        pane = self.selected_pane
+        if pane is None:
+            return False
+        return pane.can_swap_date_fields(first, second)
 
-    def _collect_action_params(self, import_action, apply=ActionSelectionOptions.ApplyToPane):
-        if apply == ActionSelectionOptions.ApplyToSelection:
-            if not self.selected_pane:
-                return []
-
-            panes = [self.selected_pane]
-            selected_rows = self.import_table.selected_rows
-
-            if not selected_rows:
-                return []
-
-            transactions = [row.imported.transaction for row in selected_rows if row.imported]
-            transactions = dedupe(transactions)
-            can_perform_action = import_action.can_perform_action(panes[0].import_document,
-                                                                  transactions,
-                                                                  panes,
-                                                                  selected_rows)
-            if not can_perform_action:
-                return []
-
-            return [(panes[0].import_document, transactions, panes, selected_rows)]
-
-        if apply == ActionSelectionOptions.ApplyToAll:
-            panes = self.panes.copy()
+    def _invert_amounts(self, apply_to_all):
+        if apply_to_all:
+            panes = self.panes
         else:
             panes = [self.selected_pane]
-        results = []
-
-        # Groups of panes which share the same import document
-        pane_groups = unique_groups(panes, lambda p: p.import_document)
-        selected_group = None
-        for ps in pane_groups:
-            def getentries(p):
-                return p.import_document.accounts.entries_for_account(p.account)
-
-            transactions = [e.transaction for p in ps for e in getentries(p)]
-            transactions = dedupe(transactions)
-            can_perform_action = import_action.can_perform_action(ps[0].import_document, transactions, ps)
-            if not can_perform_action:
-                continue
-            if self.selected_pane in ps:
-                selected_group = (ps[0].import_document, transactions, ps)
-            else:
-                results.append((ps[0].import_document, transactions, ps))
-        # We want to ensure that the selected pane group is the last to be called
-        # allowing the name of the plugin to update.
-        if selected_group:
-            results.append(selected_group)
-        return results
-
-    def _perform_action(self, import_action, apply=ActionSelectionOptions.ApplyToPane):
-        if self.selected_pane is None:
-            return
-
-        action_params = self._collect_action_params(import_action, apply)
-
-        if not action_params:
-            return
-
-        panes = dedupe(flatten((grp[2] for grp in action_params)))
-
         for pane in panes:
-            pane.match_flag = False
-            pane.import_document.cook_flag = False
-
-        for action_param in action_params:
-            import_action.perform_action(*action_param)
-
-        for pane in panes:
-            if not pane.import_document.cook_flag:
-                pane.import_document.cook()
-
-        for pane in panes:
-            if not pane.match_flag:
-                pane.match_entries()
-
+            entries = self.loader.accounts.entries_for_account(pane.account)
+            txns = dedupe(e.transaction for e in entries)
+            for txn in txns:
+                for split in txn.splits:
+                    split.amount = -split.amount
         self.import_table.refresh()
-        # swap list items could have been altered during perform_action()
-        self._refresh_swap_list_items()
 
     def _refresh_target_selection(self):
         if not self.panes:
@@ -559,26 +187,63 @@ class ImportWindow(GUIObject):
                 self._selected_target_index = self.target_accounts.index(target) + 1
             except ValueError:
                 pass
-        self.import_table.refresh()
 
     def _refresh_swap_list_items(self):
         if not self.panes:
             return
+        items = []
+        basefmt = self.selected_pane.parsing_date_format
+        for first, second in [(DAY, MONTH), (MONTH, YEAR), (DAY, YEAR)]:
+            swapped = swap_format_elements(basefmt, first, second)
+            items.append("{} --> {}".format(basefmt.iso_format, swapped.iso_format))
+        self.swap_type_list[:3] = items
 
-        # I think, possibly due to the "XXX should be replaced with _updated_selected...
-        # comment that exists refresh panes, we aren't kicking off the seleced pane change
-        # in time.  So we'll just tell it that the selected pane changed even if it hasn't.
+    def _swap_date_fields(self, first, second, apply_to_all): # 'day', 'month', 'year'
+        assert self._can_swap_date_fields(first, second)
+        if apply_to_all:
+            panes = [p for p in self.panes if p.can_swap_date_fields(first, second)]
+        else:
+            panes = [self.selected_pane]
 
-        for index, action in enumerate(self._import_actions):
-            action.on_selected_pane_changed(self.selected_pane)
-        names = [action.ACTION_NAME for action in self._import_actions]
-        self.swap_type_list[:] = names
+        def switch_func(txn):
+            txn.date = swapped_date(txn.date, first, second)
+
+        self._swap_fields(panes, switch_func)
+        # Now, lets' change the date format on these panes
+        for pane in panes:
+            basefmt = self.selected_pane.parsing_date_format
+            swapped = swap_format_elements(basefmt, first, second)
+            pane.parsing_date_format = swapped
+            pane._sort_matches()
+        self.import_table.refresh()
+        self._refresh_swap_list_items()
+
+    def _swap_description_payee(self, apply_to_all):
+        if apply_to_all:
+            panes = self.panes
+        else:
+            panes = [self.selected_pane]
+
+        def switch_func(txn):
+            txn.description, txn.payee = txn.payee, txn.description
+
+        self._swap_fields(panes, switch_func)
+
+    def _swap_fields(self, panes, switch_func):
+        seen = set()
+        for pane in panes:
+            entries = self.loader.accounts.entries_for_account(pane.account)
+            txns = dedupe(e.transaction for e in entries)
+            for txn in txns:
+                if txn.affected_accounts() & seen:
+                    # We've already swapped this txn in a previous pane.
+                    continue
+                switch_func(txn)
+            seen.add(pane.account)
+        self.import_table.refresh()
 
     def _update_selected_pane(self):
         self.import_table.refresh()
-        if self.selected_pane:
-            for action in self._import_actions:
-                action.on_selected_pane_changed(self.selected_pane)
         self._refresh_swap_list_items()
         self.view.update_selected_pane()
         self.view.set_swap_button_enabled(self.can_perform_swap())
@@ -586,22 +251,17 @@ class ImportWindow(GUIObject):
     # --- Override
     def _view_updated(self):
         if self.document.can_restore_from_prefs():
-            # See MainWindow._view_updated() comment.
             self.restore_view()
 
     # --- Public
-
     def can_perform_swap(self):
         index = self.swap_type_list.selected_index
-        import_action = self._import_actions[index]
-        action_params = self._collect_action_params(import_action, True)
-        # We actually perform can_perform_action as part of the _collect_action_params
-        # so we don't need to run the explicit check twice, just check to see if
-        # the seleced pane was one of the "passing" panes.
-        # Also, we consider having no panes unable to perform all actions (mimicing
-        # prior implementation)
-        if not action_params:
-            return False
+        if index == SwapType.DayMonth:
+            return self._can_swap_date_fields(DAY, MONTH)
+        elif index == SwapType.MonthYear:
+            return self._can_swap_date_fields(MONTH, YEAR)
+        elif index == SwapType.DayYear:
+            return self._can_swap_date_fields(DAY, YEAR)
         else:
             return True
 
@@ -614,164 +274,73 @@ class ImportWindow(GUIObject):
         self._selected_pane_index = min(self._selected_pane_index, len(self.panes) - 1)
         if was_selected:
             self._update_selected_pane()
-        # ImportWindow is instantiated on-the-fly, which means that it won't
-        # receive calls for "save_preferences()" on application shutdown. It
-        # has to do so on close. close_pane() is the most reliable way we have
-        # to ensure that prefs are saved on close.
-        self.save_preferences()
+
 
     def import_selected_pane(self):
-        """Import the selected pane into the ``Document`` via ``Document.import_entries`` method."""
         pane = self.selected_pane
-        matches = []
-        # Iterate over the pane's matches filtering out those items unncessary to the import
-        for ref, e in pane.matches:
-
-            # If the import entry is None, we don't bother to add it.
-            if e is None:
-                continue
-
-            # Otherwise, we have to check if this entry will be imported.
-            # We assume an __will__ be imported if it does not occur in
-            # the map.  Also, we use the mapped boolean value as another
-            # hint about whether or not to
-            if e in pane.to_import and not pane.to_import[e]:
-                continue
-
-            # And the ``Document.import_entries`` takes import then existing reference
-            # entry (rather than reference then import as it is stored in the ``pane.matches``
-            # structure.
-            matches.append((e, ref))
-
-
-        # It was evident in some early testing that accounts that were imported through
-        # references in the imported ``Entry``/``Transaction``/``Split`` objects were
-        # being modified in the ``Document`` when changed in ``ImportDocument.  So we actually
-        # have to ensure that what is passed to the ``Document`` object is not a reference
-        # to a account that lives in the ``ImportDocument`` which is achieved by copying.
-
-        # I think that some of that was done in the ``Document.import_entries`` method,
-        # but not to the degree that was necessary (and which never became evident because
-        # the accounts from the loader were effectively read only after load).
-
-        # The remainder of the code is ensure the separation of the ``Document`` and
-        # ``ImportDocument``.
-
-        name2account = pane.import_document.exported_accounts
-        cached_txn = pane.import_document.cached_transactions
-
-        def copy_account(acct):
-            if acct is None:
-                return None
-            if acct.name not in name2account:
-                copied_account = acct.copy()
-                copied_account.reference = acct.reference
-                name2account[acct.name] = copied_account
-                return copied_account
-            else:
-                return name2account[acct.name]
-
-        def copy_transaction(txn):
-            if txn not in cached_txn:
-                new_txn = txn.replicate()
-                cached_txn[txn] = new_txn
-                return new_txn
-            else:
-                return cached_txn[txn]
-
-
-        try:
-            pane_account = copy_account(pane.account)
-
-            new_matches = []
-
-            for (e, ref) in matches:
-                transaction = copy_transaction(e.transaction)
-                for split in transaction.splits:
-                    split.account = copy_account(split.account)
-
-                split = transaction.splits[e.split.index]
-                new_entry = Entry(split, transaction)
-                new_matches.append((new_entry, ref))
-
-
-            if pane.selected_target is not None:
-                # We import in an existing account, adjust all the transactions accordingly
-                target_account = pane.selected_target
-            else:
-                target_account = pane_account  # pane.account == new account
-
-            self.document.import_entries(target_account, pane_account, new_matches)
-            self.mainwindow.revalidate()
-
-        except OperationAborted:
-            pass
+        matches = pane.matches
+        matches = [
+            (e, ref) for ref, e in matches
+            if e is not None and e not in self.import_table.dont_import]
+        if pane.selected_target is not None:
+            # We import in an existing account, adjust all the transactions accordingly
+            target_account = pane.selected_target
         else:
-            self.close_pane(self.selected_pane_index)
-            self.view.close_selected_tab()
+            target_account = None
+        self.document.import_entries(target_account, pane.account, matches)
+        self.mainwindow.revalidate()
+        self.close_pane(self.selected_pane_index)
+        self.view.close_selected_tab()
 
-    def perform_swap(self, apply=ActionSelectionOptions.ApplyToPane):
+    def perform_swap(self, apply_to_all=False):
         index = self.swap_type_list.selected_index
-        import_action = self._import_actions[index]
-        self._perform_action(import_action, apply)
+        if index == SwapType.DayMonth:
+            self._swap_date_fields(DAY, MONTH, apply_to_all=apply_to_all)
+        elif index == SwapType.MonthYear:
+            self._swap_date_fields(MONTH, YEAR, apply_to_all=apply_to_all)
+        elif index == SwapType.DayYear:
+            self._swap_date_fields(DAY, YEAR, apply_to_all=apply_to_all)
+        elif index == SwapType.DescriptionPayee:
+            self._swap_description_payee(apply_to_all=apply_to_all)
+        elif index == SwapType.InvertAmount:
+            self._invert_amounts(apply_to_all=apply_to_all)
 
     def refresh_targets(self):
         self.target_accounts = [a for a in self.document.accounts if a.is_balance_sheet_account()]
         self.target_accounts.sort(key=lambda a: a.name.lower())
 
     def refresh_panes(self):
-        for pane in self.panes:
-            pane.import_document.cook()
-
         if not hasattr(self.mainwindow, 'loader'):
             return
-
-        # Each loader gets it's own ``ImportDocument`` class.
-        import_document = ImportDocument(self.app)
-
+        self.loader = self.mainwindow.loader
         self.refresh_targets()
-
-        parsing_date_format = DateFormat.from_sysformat(self.mainwindow.loader.parsing_date_format)
-        import_document.reset_from_loader(self.mainwindow.loader, parsing_date_format)
-        import_document.cook()
-
-        def getentries(a):
-            return import_document.accounts.entries_for_account(a)
-
-        accounts = [
-            a for a in self.mainwindow.loader.accounts
-            if a.is_balance_sheet_account() if getentries(a)]
-
+        accounts = []
+        for account in self.loader.accounts:
+            if account.is_balance_sheet_account():
+                entries = self.loader.accounts.entries_for_account(account)
+                if len(entries):
+                    new_name = self.document.accounts.new_name(account.name)
+                    if new_name != account.name:
+                        self.loader.accounts.rename_account(account, new_name)
+                    accounts.append(account)
+        parsing_date_format = DateFormat.from_sysformat(self.loader.parsing_date_format)
         for account in accounts:
-            # Make sure that account names don't clash with target document.
-            newname = self.document.accounts.new_name(account.name)
-            if newname != account.name:
-                import_document.accounts.rename_account(account, newname)
             target_account = None
-            if self.mainwindow.loader.target_account is not None:
-                target_account = self.mainwindow.loader.target_account
+            if self.loader.target_account is not None:
+                target_account = self.loader.target_account
             elif account.reference:
                 target_account = getfirst(
                     t for t in self.target_accounts if t.reference == account.reference
                 )
-            self.panes.append(AccountPane(
-                import_document, self.document, account, target_account))
+            self.panes.append(
+                AccountPane(self, account, target_account, parsing_date_format))
         # XXX Should replace by _update_selected_pane()?
-
         self._refresh_target_selection()
         self._refresh_swap_list_items()
         self.import_table.refresh()
 
     def restore_view(self):
         self.import_table.columns.restore_columns()
-
-    def revalidate(self):
-        self.refresh_targets()
-        self._refresh_target_selection()
-        self.view.refresh_target_accounts()
-
-    def save_preferences(self):
-        self.import_table.columns.save_columns()
 
     def show(self):
         self.refresh_panes()

@@ -1,19 +1,16 @@
-# Created By: Virgil Dupras
-# Created On: 2008-08-08
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2019 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from core.trans import trget
 from .column import Column
 from .table import GUITable, Row
-from .transaction_table_base import TransactionSelectionMixin
 
 trcol = trget('columns')
 
-class ImportTable(GUITable, TransactionSelectionMixin):
+class ImportTable(GUITable):
     SAVENAME = 'ImportTable'
     COLUMNS = [
         Column('will_import', display=''),
@@ -28,34 +25,14 @@ class ImportTable(GUITable, TransactionSelectionMixin):
         Column('transfer_import', display=trcol("Transfer")),
         Column('amount_import', display=trcol("Amount")),
     ]
-    
+
     def __init__(self, import_window):
         GUITable.__init__(self, document=import_window.document)
         self.window = import_window
         self._is_two_sided = False
-        self.__last_explicitly_selected = []
-    
+        self.dont_import = set()
+
     # --- Override
-    def select_transactions(self, transactions):
-        selected_indexes = []
-        for index, row in enumerate(self):
-            indexed_row = row.imported.transaction if row.imported else row.entry.transaction
-            if indexed_row in transactions:
-                selected_indexes.append(index)
-        self.selected_indexes = selected_indexes
-
-    @property
-    def selected_transactions(self):
-        return [row.imported.transaction if row.imported
-                else row.entry.transaction for row in self.selected_rows]
-
-    @property
-    def _explicitly_selected_transactions(self):
-        return self.__last_explicitly_selected
-
-    def _update_selection(self):
-        self.__last_explicitly_selected = self.selected_transactions
-
     def _fill(self):
         self._is_two_sided = False
         self.pane = self.window.selected_pane
@@ -65,44 +42,44 @@ class ImportTable(GUITable, TransactionSelectionMixin):
             if existing is not None:
                 self._is_two_sided = True
             self.append(ImportTableRow(self, existing, imported))
-    
+
     # --- Public
     def bind(self, source_index, dest_index):
         source = self[source_index]
         dest = self[dest_index]
         source.bind(dest)
         self.refresh()
-    
+
     def can_bind(self, source_index, dest_index):
         source = self[source_index]
         dest = self[dest_index]
         return source.can_bind(dest)
-    
+
     def delete(self):
         rows = self.selected_rows
         for row in rows:
             row.will_import = False
         self.view.refresh()
-    
+
     def toggle_import_status(self):
         for row in self.selected_rows:
             row.will_import = not row.will_import
         self.view.refresh()
-    
+
     def unbind(self, index):
         row = self[index]
         if not row.bound:
             return
         row.unbind()
         self.refresh()
-    
+
     # --- Properties
     @property
     def is_two_sided(self):
         """Returns whether the table should show columns to display matches from the target account.
         """
         return self._is_two_sided
-    
+
 
 class ImportTableRow(Row):
     def __init__(self, table, entry, imported):
@@ -110,23 +87,23 @@ class ImportTableRow(Row):
         self.entry = entry
         self.imported = imported
         self.load()
-    
+
     def bind(self, other):
         assert self.can_bind(other)
         existing = self.entry or other.entry
         imported = self.imported or other.imported
         self.table.pane.bind(existing, imported)
-    
+
     def can_bind(self, other):
         return ((self.imported is None) != (other.imported is None)) and \
                ((self.entry is None) != (other.entry is None))
-    
+
     def can_edit_cell(self, column_name):
         if column_name == 'will_import':
             return Row.can_edit_cell(self, column_name)
         else:
             return False
-    
+
     def load(self):
         self._date = self.entry.date if self.entry else None
         self._description = self.entry.description if self.entry else ''
@@ -137,65 +114,66 @@ class ImportTableRow(Row):
         self._checkno_import = self.imported.checkno if self.imported else ''
         self._transfer_import = ', '.join(s.name for s in self.imported.transfer) if self.imported else ''
         self._amount_import = self.imported.amount if self.imported else None
-    
+
     def unbind(self):
         self.table.pane.unbind(self.entry, self.imported)
-    
+
     # --- Properties
     @property
     def date(self):
         return self.table.document.app.format_date(self._date) if self._date else ''
-    
+
     @property
     def description(self):
         return self._description
-    
+
     @property
     def amount(self):
         return self.table.document.format_amount(self._amount)
-    
+
     @property
     def bound(self):
         return self.entry is not None and self.imported is not None
-    
+
     @property
     def date_import(self):
         return self.table.document.app.format_date(self._date_import) if self._date_import else ''
-    
+
     @property
     def description_import(self):
         return self._description_import
-    
+
     @property
     def payee_import(self):
         return self._payee_import
-    
+
     @property
     def checkno_import(self):
         return self._checkno_import
-    
+
     @property
     def transfer_import(self):
         return self._transfer_import
-    
+
     @property
     def amount_import(self):
         return self.table.document.format_amount(self._amount_import)
-    
+
     @property
     def can_edit_will_import(self):
         return self.imported is not None
-    
+
     @property
     def will_import(self):
-        pane = self.table.window.selected_pane
-        if not self.imported:
+        if self.imported is not None:
+            return self.imported not in self.table.dont_import
+        else:
             return False
-        pane = self.table.window.selected_pane
-        return pane.to_import.get(self.imported, True)
-    
+
     @will_import.setter
     def will_import(self, value):
-        pane = self.table.window.selected_pane
-        if self.imported is not None:
-            pane.to_import[self.imported] = value
+        if self.imported:
+            if value:
+                self.table.dont_import.discard(self.imported)
+            else:
+                self.table.dont_import.add(self.imported)

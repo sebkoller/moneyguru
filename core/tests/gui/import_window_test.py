@@ -5,53 +5,12 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from datetime import date
-from collections import defaultdict
 
 from ..testutil import eq_
 
 from ..base import TestApp, with_app, DictLoader, testdata
 from ...model.date import YearRange
-from ...gui.import_window import ActionSelectionOptions
-
-from core.plugin import ImportBindPlugin, EntryMatch
-
-# Legacy structure
-# This used to list the possible swap operations. Since the introduction of import plugins, this
-# structure no longer makes sense. Because old tests are built around it, we keep it around, but
-# only here.
-class SwapType:
-    DayMonth = 0
-    MonthYear = 1
-    DayYear = 2
-    DescriptionPayee = 3
-    InvertAmount = 4
-
-
-class ValueImportBind(ImportBindPlugin):
-    """A simple import binder that checks date + description + payee
-
-    Match score increases with the number of fields that are the same
-    """
-    NAME = "Value Import Bind"
-
-    def match_entries(self, target_account, document, import_document, existing_entries, imported_entries):
-        matches = []
-        import_date2entry = defaultdict(set)
-        for e in imported_entries:
-            import_date2entry[e.date].add(e)
-        for existing_entry in existing_entries:
-            if existing_entry.date not in import_date2entry:
-                continue
-            matching = import_date2entry[existing_entry.date]
-            for import_entry in matching:
-                score = 0.3
-                if import_entry.description == existing_entry.description:
-                    score += 0.3
-                if import_entry.payee == existing_entry.payee:
-                    score += 0.3
-                matches.append(EntryMatch(existing_entry, import_entry, True, score))
-
-        return matches
+from ...gui.import_window import SwapType
 
 # --- No setup
 
@@ -64,35 +23,6 @@ def test_MMM_date_formats_are_supported(app):
     app.iwin.import_selected_pane()
     eq_(app.iwin.import_table[0].date_import, '16/09/2012')
     eq_(app.iwin.swap_type_list[0], "dd MMM yyyy --> MMM dd yyyy")
-
-@with_app(TestApp)
-def test_fuzzy_matching_plugin(app):
-    # Verify that fuzzily matching entries on import can actually ever work (core plugins don't do
-    # that (yet) so that's why we can only verify this with a dummy plugin).
-    # Here, our higest score (date+desc+payee are matched, the last entry) is bound to our existing
-    # entry. The rest is unbound.
-    app.set_plugins([ValueImportBind])
-    TXNS = [
-        {'date': '22/06/2015', 'description': 'foo', 'payee': 'foo', 'amount': '1'},
-    ]
-    app.iwin = app.fake_import('foo', TXNS, account_reference='foo')
-    app.iwin.import_selected_pane()
-    TXNS = [
-        {'date': '22/06/2015', 'description': 'bar', 'payee': 'bar', 'amount': '2'}, # date matching
-        {'date': '22/06/2015', 'description': 'foo', 'payee': 'bar', 'amount': '3'}, # date+desc matching
-        {'date': '22/06/2015', 'description': 'foo', 'payee': 'foo', 'amount': '4'}, # date+desc+payee matching
-    ]
-    app.iwin = app.fake_import('foo', TXNS, account_reference='foo')
-    EXPECTED = [
-        ('1.00', '4.00'),
-        ('', '2.00'),
-        ('', '3.00'),
-
-    ]
-    eq_(len(app.iwin.import_table), len(EXPECTED))
-    for row, (amount, amount_import) in zip(app.iwin.import_table, EXPECTED):
-        eq_(row.amount, amount)
-        eq_(row.amount_import, amount_import)
 
 @with_app(TestApp)
 def test_close_selected_pane(app):
@@ -493,9 +423,22 @@ def test_can_switch_fields_with_31st_as_day(app):
 # ---
 def app_three_imports_two_of_them_with_low_date():
     app = TestApp()
-    app.iwin = app.fake_import('foo1', LOW_DATE_FIELDS)
-    app.fake_import('foo2', LOW_DATE_FIELDS, in_iwin=app.iwin)
-    app.fake_import('foo3', HIGH_DAY_FIELDS, in_iwin=app.iwin)
+    infos = [
+        {
+            'name': 'foo1',
+            'txns': LOW_DATE_FIELDS,
+        },
+        {
+            'name': 'foo2',
+            'txns': LOW_DATE_FIELDS,
+        },
+        {
+            'name': 'foo3',
+            'txns': HIGH_DAY_FIELDS,
+        },
+    ]
+    app.mw.loader = DictLoader(app.doc.default_currency, infos)
+    app.iwin = app.mw.load_parsed_file_for_import()
     return app
 
 @with_app(app_three_imports_two_of_them_with_low_date)
@@ -503,7 +446,7 @@ def test_switch_apply_to_all(app):
     # when the 'apply' argument is passed, the swicth happens in all applicable
     # accounts.
     app.iwin.swap_type_list.select(SwapType.DayMonth)
-    app.iwin.perform_swap(apply=ActionSelectionOptions.ApplyToAll)
+    app.iwin.perform_swap(apply_to_all=True)
     app.iwin.selected_pane_index = 1
     eq_(app.iwin.import_table[0].date_import, '11/05/2008') # switched
     app.iwin.selected_pane_index = 2
@@ -513,20 +456,25 @@ def test_switch_apply_to_all(app):
 # ---
 def app_two_accounts_with_common_txn():
     app = TestApp()
-    txns = [
+    infos = [
         {
-            'date': '5/11/2008',
-            'transfer': 'second',
-            'description':'foo',
-            'payee': 'bar',
-            'amount': '1',
+            'name': 'first',
+            'txns': [
+                {
+                    'date': '5/11/2008',
+                    'transfer': 'second',
+                    'description':'foo',
+                    'payee': 'bar',
+                    'amount': '1',
+                }
+            ]
         },
+        {
+            'name': 'second',
+            'txns': [],
+        }
     ]
-    loader = DictLoader(app.doc.default_currency, 'first', txns)
-    loader.start_account()
-    loader.account_info.name = 'second'
-    loader.flush_account()
-    app.mw.loader = loader
+    app.mw.loader = DictLoader(app.doc.default_currency, infos)
     app.iwin = app.mw.load_parsed_file_for_import()
     return app
 
@@ -534,13 +482,13 @@ def app_two_accounts_with_common_txn():
 def test_switch_date_with_common_txn(app):
     # the transaction in the 2 accounts is the same. *don't* switch it twice!
     app.iwin.swap_type_list.select(SwapType.DayMonth)
-    app.iwin.perform_swap(apply=ActionSelectionOptions.ApplyToAll)
+    app.iwin.perform_swap(apply_to_all=True)
     eq_(app.iwin.import_table[0].date_import, '11/05/2008')
 
 @with_app(app_two_accounts_with_common_txn)
 def test_switch_description_payee_with_common_txn(app):
     # same as with dates: don't switch twice
     app.iwin.swap_type_list.select(SwapType.DescriptionPayee)
-    app.iwin.perform_swap(apply=ActionSelectionOptions.ApplyToAll)
+    app.iwin.perform_swap(apply_to_all=True)
     eq_(app.iwin.import_table[0].description_import, 'bar')
     eq_(app.iwin.import_table[0].payee_import, 'foo')
