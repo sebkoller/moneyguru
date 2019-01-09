@@ -12,7 +12,6 @@ from PyQt5.QtWidgets import (
 )
 
 from core.trans import trget
-from core.gui.import_window import ActionSelectionOptions
 
 from ...support.item_view import TableView
 from ..selectable_list import ComboboxModel
@@ -108,8 +107,7 @@ class ImportWindow(QDialog):
 
     def swapClicked(self):
         applyToAll = self.applyToAllCheckBox.isChecked()
-        apply = ActionSelectionOptions.ApplyToAll if applyToAll else ActionSelectionOptions.ApplyToPane
-        self.model.perform_swap(apply=apply)
+        self.model.perform_swap(apply_to_all=applyToAll)
 
     def tabCloseRequested(self, index):
         self.model.close_pane(index)
