@@ -61,7 +61,7 @@ def app_import_checkbook_qif():
     app.clear_gui_calls()
     app.drsel.set_date_range(YearRange(date(2007, 1, 1)))
     app.iwin = app.mw.parse_file_for_import(testdata.filepath('qif/checkbook.qif'))
-    app.check_gui_calls(app.iwin.view, ['refresh_tabs', 'refresh_target_accounts', 'show'])
+    app.check_gui_calls(app.iwin.view, ['show'])
     return app
 
 @with_app(app_import_checkbook_qif)

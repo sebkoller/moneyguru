@@ -125,19 +125,21 @@ class AccountPane:
         self._match_entries()
 
 
+# This is a modal window that is designed to be re-instantiated on each import
+# run. It is shown modally by the UI as soon as its created on the UI side.
 class ImportWindow(GUIObject):
     # --- View interface
     # close()
     # close_selected_tab()
-    # refresh_tabs()
-    # refresh_target_accounts()
     # set_swap_button_enabled(enabled: bool)
-    # show()
     # update_selected_pane()
+    # show()
     #
 
     def __init__(self, mainwindow):
         super().__init__()
+        if not hasattr(mainwindow, 'loader'):
+            raise ValueError("Nothing to import!")
         self.mainwindow = mainwindow
         self.document = mainwindow.document
         self.app = self.document.app
@@ -156,6 +158,31 @@ class ImportWindow(GUIObject):
         self.swap_type_list.selected_index = SwapType.DayMonth
         self.panes = []
         self.import_table = ImportTable(self)
+
+        self.loader = self.mainwindow.loader
+        self.target_accounts = [
+            a for a in self.document.accounts if a.is_balance_sheet_account()]
+        self.target_accounts.sort(key=lambda a: a.name.lower())
+        accounts = []
+        for account in self.loader.accounts:
+            if account.is_balance_sheet_account():
+                entries = self.loader.accounts.entries_for_account(account)
+                if len(entries):
+                    new_name = self.document.accounts.new_name(account.name)
+                    if new_name != account.name:
+                        self.loader.accounts.rename_account(account, new_name)
+                    accounts.append(account)
+        parsing_date_format = DateFormat.from_sysformat(self.loader.parsing_date_format)
+        for account in accounts:
+            target_account = None
+            if self.loader.target_account is not None:
+                target_account = self.loader.target_account
+            elif account.reference:
+                target_account = getfirst(
+                    t for t in self.target_accounts if t.reference == account.reference
+                )
+            self.panes.append(
+                AccountPane(self, account, target_account, parsing_date_format))
 
     # --- Private
     def _can_swap_date_fields(self, first, second): # 'day', 'month', 'year'
@@ -252,6 +279,10 @@ class ImportWindow(GUIObject):
     def _view_updated(self):
         if self.document.can_restore_from_prefs():
             self.restore_view()
+        # XXX Should replace by _update_selected_pane()?
+        self._refresh_target_selection()
+        self._refresh_swap_list_items()
+        self.import_table.refresh()
 
     # --- Public
     def can_perform_swap(self):
@@ -305,48 +336,8 @@ class ImportWindow(GUIObject):
         elif index == SwapType.InvertAmount:
             self._invert_amounts(apply_to_all=apply_to_all)
 
-    def refresh_targets(self):
-        self.target_accounts = [a for a in self.document.accounts if a.is_balance_sheet_account()]
-        self.target_accounts.sort(key=lambda a: a.name.lower())
-
-    def refresh_panes(self):
-        if not hasattr(self.mainwindow, 'loader'):
-            return
-        self.loader = self.mainwindow.loader
-        self.refresh_targets()
-        accounts = []
-        for account in self.loader.accounts:
-            if account.is_balance_sheet_account():
-                entries = self.loader.accounts.entries_for_account(account)
-                if len(entries):
-                    new_name = self.document.accounts.new_name(account.name)
-                    if new_name != account.name:
-                        self.loader.accounts.rename_account(account, new_name)
-                    accounts.append(account)
-        parsing_date_format = DateFormat.from_sysformat(self.loader.parsing_date_format)
-        for account in accounts:
-            target_account = None
-            if self.loader.target_account is not None:
-                target_account = self.loader.target_account
-            elif account.reference:
-                target_account = getfirst(
-                    t for t in self.target_accounts if t.reference == account.reference
-                )
-            self.panes.append(
-                AccountPane(self, account, target_account, parsing_date_format))
-        # XXX Should replace by _update_selected_pane()?
-        self._refresh_target_selection()
-        self._refresh_swap_list_items()
-        self.import_table.refresh()
-
     def restore_view(self):
         self.import_table.columns.restore_columns()
-
-    def show(self):
-        self.refresh_panes()
-        self.view.refresh_target_accounts()
-        self.view.refresh_tabs()
-        self.view.show()
 
     # --- Properties
     @property

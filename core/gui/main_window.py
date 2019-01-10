@@ -411,8 +411,7 @@ class MainWindow(DocumentGUIObject):
         if any(a.is_balance_sheet_account() for a in self.loader.accounts) and self.loader.transactions:
             panel = ImportWindow(self)
             panel.view = weakref.proxy(self.view.get_panel_view(panel))
-            panel.restore_view()
-            panel.show()
+            panel.view.show()
             return panel
         else:
             raise FileFormatError('This file does not contain any account to import.')

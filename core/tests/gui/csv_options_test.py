@@ -111,7 +111,7 @@ def app_import_fortis_exclude_first_line_and_set_fields():
 def test_continue_import_with_fields_set(app):
     # sets the columns in app.mw.loader and continues importing
     iwin = app.csvopt.continue_import()
-    iwin.view.check_gui_calls(['refresh_tabs', 'refresh_target_accounts', 'show'])
+    iwin.view.check_gui_calls(['show'])
     eq_(len(iwin.panes), 1)
     eq_(iwin.panes[0].name, 'CSV Import')
     eq_(iwin.panes[0].count, 18)
