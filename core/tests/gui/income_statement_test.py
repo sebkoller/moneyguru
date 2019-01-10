@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -127,8 +127,7 @@ def test_income_statement_with_accounts_and_entries(app):
 @with_app(app_accounts_and_entries)
 def test_set_custom_date_range(app):
     # same problem as test_year_to_date_last_cash_flow
-    app.drsel.select_custom_date_range()
-    cdrpanel = app.get_current_panel()
+    cdrpanel = app.drsel.invoke_custom_range_panel()
     cdrpanel.start_date = '01/01/2008'
     cdrpanel.start_date = '12/12/2008'
     cdrpanel.save()

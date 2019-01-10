@@ -77,6 +77,12 @@ class DateRangeSelector:
         self.app.set_default(PreferenceNames.CustomRanges, custom_ranges)
 
     # --- Public
+    def invoke_custom_range_panel(self):
+        panel = CustomDateRangePanel(self)
+        panel.view = weakref.proxy(self.mainwindow.view.get_panel_view(panel))
+        panel.load()
+        return panel
+
     def refresh(self):
         self.view.refresh()
         old = self._old_date_range
@@ -172,13 +178,8 @@ class DateRangeSelector:
             ahead_months=self.ahead_months
         ))
 
-    def select_custom_date_range(self, start_date=None, end_date=None):
-        if start_date is None:
-            panel = CustomDateRangePanel(self)
-            panel.view = weakref.proxy(self.mainwindow.view.get_panel_view(panel))
-            panel.load()
-        else:
-            self.set_date_range(CustomDateRange(start_date, end_date, self.app.format_date))
+    def select_custom_date_range(self, start_date, end_date):
+        self.set_date_range(CustomDateRange(start_date, end_date, self.app.format_date))
 
     def select_prev_date_range(self):
         if self.document.date_range.can_navigate:

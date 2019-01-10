@@ -137,8 +137,7 @@ def test_ttable_add_and_cancel():
 @with_app(app_cleared_gui_calls)
 def test_save_custom_range(app):
     # Saving a custom range causes the date range selector's view to refresh them.
-    app.drsel.select_custom_date_range()
-    cdrpanel = app.get_current_panel()
+    cdrpanel = app.drsel.invoke_custom_range_panel()
     cdrpanel.slot_index = 1
     cdrpanel.slot_name = 'foo'
     cdrpanel.save()

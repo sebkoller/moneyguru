@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2010-03-16
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -21,7 +19,7 @@ def test_can_navigate():
 # --- Saved custom range
 def app_saved_custom_range():
     app = TestApp()
-    app.drsel.select_custom_date_range()
+    app.drsel.invoke_custom_range_panel()
     cdrpanel = app.get_current_panel()
     cdrpanel.start_date = '27/02/2010'
     cdrpanel.end_date = '17/03/2010'

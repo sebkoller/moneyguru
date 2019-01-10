@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-04-21
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -13,8 +11,7 @@ from ..base import TestApp, with_app
 @with_app(TestApp)
 def test_monthly_xtickmark_dont_start_at_zero(app):
     # same as yearly, but with a month based date range
-    app.drsel.select_custom_date_range()
-    cdrpanel = app.get_current_panel()
+    cdrpanel = app.drsel.invoke_custom_range_panel()
     cdrpanel.start_date = '09/11/2007' # 22 days before the end of the month
     cdrpanel.end_date = '18/02/2008'
     cdrpanel.save() # changes the date range
@@ -28,8 +25,7 @@ def test_yearly_xtickmark_dont_start_at_zero(app):
     # rightwards. For example, if you had a multi-year range that don't start at the beginning
     # of the year, the first xtickmark would still be 365 days on the X line, making the data
     # and the marks not fitting together.
-    app.drsel.select_custom_date_range()
-    cdrpanel = app.get_current_panel()
+    cdrpanel = app.drsel.invoke_custom_range_panel()
     cdrpanel.start_date = '09/12/2007' # 23 days before the end of the year
     cdrpanel.end_date = '18/02/2009'
     cdrpanel.save() # changes the date range

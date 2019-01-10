@@ -15,7 +15,7 @@ from ...model.date import MonthRange
 def app_monthrange_panel_loaded():
     app = TestApp()
     app.drsel.set_date_range(MonthRange(date(2007, 10, 1)))
-    app.drsel.select_custom_date_range()
+    app.drsel.invoke_custom_range_panel()
     return app
 
 @with_app(app_monthrange_panel_loaded)

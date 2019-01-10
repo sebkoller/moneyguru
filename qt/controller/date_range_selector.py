@@ -53,7 +53,7 @@ class DateRangeSelector(QObject):
         self.actionChangeToAllTransactions.triggered.connect(self.model.select_all_transactions_range)
         self.actionChangeToCustom = QAction(tr("Custom..."), self)
         self.actionChangeToCustom.setShortcut("Ctrl+Alt+7")
-        self.actionChangeToCustom.triggered.connect(self.model.select_custom_date_range)
+        self.actionChangeToCustom.triggered.connect(self.model.invoke_custom_range_panel)
         self.actionChangeToCustom1 = QAction("Custom1", self)
         self.actionChangeToCustom1.setShortcut("Ctrl+Alt+8")
         self.actionChangeToCustom1.setVisible(False)

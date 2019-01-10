@@ -76,8 +76,7 @@ def test_quarter_range(app):
 
 @with_app(app_range_on_actober_2007)
 def test_select_custom_date_range(app):
-    app.drsel.select_custom_date_range()
-    cdrpanel = app.get_current_panel()
+    cdrpanel = app.drsel.invoke_custom_range_panel()
     cdrpanel.start_date = '09/12/2008'
     cdrpanel.end_date = '18/02/2009'
     cdrpanel.save() # changes the date range
@@ -90,8 +89,7 @@ def test_select_custom_date_range(app):
 def test_select_custom_date_range_without_changing_the_dates(app):
     # When selecting a custom date range that has the same start/end as the previous one, it
     # still causes the change notification (so the DR display changes.
-    app.drsel.select_custom_date_range()
-    cdrpanel = app.get_current_panel()
+    cdrpanel = app.drsel.invoke_custom_range_panel()
     cdrpanel.save()
     eq_(app.doc.date_range.display, '01/10/2007 - 31/10/2007')
 
@@ -285,8 +283,7 @@ def test_running_year_range_with_ahead_months_bounds(app):
 # ---
 def app_custom_date_range():
     app = TestApp()
-    app.drsel.select_custom_date_range()
-    cdrpanel = app.get_current_panel()
+    cdrpanel = app.drsel.invoke_custom_range_panel()
     cdrpanel.start_date = '09/12/2008'
     cdrpanel.end_date = '18/02/2009'
     cdrpanel.save() # changes the date range
