@@ -6,8 +6,6 @@
 
 import os
 import os.path as op
-import datetime
-from collections import namedtuple
 import re
 
 from core.util import nonone
@@ -15,7 +13,6 @@ from core.util import nonone
 from .gui.date_widget import DateWidget
 
 from . import __version__
-from .const import DATE_FORMAT_FOR_PREFERENCES
 from .model import currency
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
@@ -35,28 +32,7 @@ class PreferenceNames:
     AutoSaveInterval = 'AutoSaveInterval'
     AutoDecimalPlace = 'AutoDecimalPlace'
     DayFirstDateEntry = 'DayFirstDateEntry'
-    CustomRanges = 'CustomRanges'
     ShowScheduleScopeDialog = 'ShowScheduleScopeDialog'
-
-# http://stackoverflow.com/questions/1606436/adding-docstrings-to-namedtuples-in-python
-class SavedCustomRange(namedtuple('SavedCustomRange', 'name start end')):
-    """*namedtuple*. Holds attributes for moneyGuru's saved custom date ranges.
-
-    .. seealso:: :class:`core.model.date.CustomDateRange`
-
-    .. attribute:: name
-
-        Name of the range
-
-    .. attribute:: start
-
-        *date*. Start of the range
-
-    .. attribute:: end
-
-        *date*. End of the range
-    """
-    __slots__ = ()
 
 class ApplicationView:
     """Expected interface for :class:`Application`'s view.
@@ -154,8 +130,6 @@ class Application:
         self._auto_decimal_place = self.get_default(PreferenceNames.AutoDecimalPlace, False)
         self._day_first_date_entry = self.get_default(PreferenceNames.DayFirstDateEntry, True)
         self._show_schedule_scope_dialog = self.get_default(PreferenceNames.ShowScheduleScopeDialog, True)
-        self.saved_custom_ranges = [None] * 3
-        self._load_custom_ranges()
         self._hook_currency_providers()
         self._update_date_entry_order()
 
@@ -163,34 +137,9 @@ class Application:
     def _update_date_entry_order(self):
         DateWidget.setDMYEntryOrder(self._day_first_date_entry)
 
-    def _load_custom_ranges(self):
-        custom_ranges = self.get_default(PreferenceNames.CustomRanges)
-        if not custom_ranges:
-            return
-        for index, custom_range in enumerate(custom_ranges):
-            if custom_range:
-                name = custom_range[0]
-                start = datetime.datetime.strptime(custom_range[1], DATE_FORMAT_FOR_PREFERENCES).date()
-                end = datetime.datetime.strptime(custom_range[2], DATE_FORMAT_FOR_PREFERENCES).date()
-                self.saved_custom_ranges[index] = SavedCustomRange(name, start, end)
-            else:
-                self.saved_custom_ranges[index] = None
-
     def _hook_currency_providers(self):
         for p in get_providers():
             Currencies.get_rates_db().register_rate_provider(p().wrapped_get_currency_rates)
-
-    def _save_custom_ranges(self):
-        custom_ranges = []
-        for custom_range in self.saved_custom_ranges:
-            if custom_range:
-                start_str = custom_range.start.strftime(DATE_FORMAT_FOR_PREFERENCES)
-                end_str = custom_range.end.strftime(DATE_FORMAT_FOR_PREFERENCES)
-                custom_ranges.append([custom_range.name, start_str, end_str])
-            else:
-                # We can't insert None in arrays for preferences
-                custom_ranges.append([])
-        self.set_default(PreferenceNames.CustomRanges, custom_ranges)
 
     # --- Public
     def format_amount(self, amount, **kw):
@@ -256,19 +205,6 @@ class Application:
             else:
                 query[qtype] = qargs
         return query
-
-    def save_custom_range(self, slot, name, start, end):
-        """Save a custom date range into our preferences.
-
-        This will notify the UI to refresh the date range selector.
-
-        :param int slot: The slot number (0-2) to save this range into.
-        :param str name: A name for the range.
-        :param datetime.date start: Start of the range.
-        :param datetime.date end: End of the range.
-        """
-        self.saved_custom_ranges[slot] = SavedCustomRange(name, start, end)
-        self._save_custom_ranges()
 
     def get_default(self, key, fallback_value=None):
         """Returns moneyGuru user pref for ``key``.

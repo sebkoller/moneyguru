@@ -6,6 +6,7 @@
 
 import datetime
 import weakref
+from collections import namedtuple
 
 from ..const import DATE_FORMAT_FOR_PREFERENCES
 from ..model.date import (
@@ -15,9 +16,13 @@ from ..model.date import (
 from .base import NoopGUI
 from .custom_date_range_panel import CustomDateRangePanel
 
-SELECTED_DATE_RANGE_PREFERENCE = 'SelectedDateRange'
-SELECTED_DATE_RANGE_START_PREFERENCE = 'SelectedDateRangeStart'
-SELECTED_DATE_RANGE_END_PREFERENCE = 'SelectedDateRangeEnd'
+class PreferenceNames:
+    SelectedDateRange = 'SelectedDateRange'
+    SelectedDateRangeStart = 'SelectedDateRangeStart'
+    SelectedDateRangeEnd = 'SelectedDateRangeEnd'
+    CustomRanges = 'CustomRanges'
+
+SavedCustomRange = namedtuple('SavedCustomRange', 'name start end')
 
 DATE_RANGE_MONTH = 'month'
 DATE_RANGE_QUARTER = 'quarter'
@@ -34,6 +39,8 @@ class DateRangeSelector:
         self.app = mainwindow.document.app
         self.view = NoopGUI()
         self._old_date_range = None
+        self.saved_custom_ranges = [None] * 3
+        self._load_custom_ranges()
 
     # --- Private
     def _date_range_starting_point(self):
@@ -43,6 +50,31 @@ class DateRangeSelector:
             return datetime.date.today()
         else:
             return self.document.date_range
+
+    def _load_custom_ranges(self):
+        custom_ranges = self.app.get_default(PreferenceNames.CustomRanges)
+        if not custom_ranges:
+            return
+        for index, custom_range in enumerate(custom_ranges):
+            if custom_range:
+                name = custom_range[0]
+                start = datetime.datetime.strptime(custom_range[1], DATE_FORMAT_FOR_PREFERENCES).date()
+                end = datetime.datetime.strptime(custom_range[2], DATE_FORMAT_FOR_PREFERENCES).date()
+                self.saved_custom_ranges[index] = SavedCustomRange(name, start, end)
+            else:
+                self.saved_custom_ranges[index] = None
+
+    def _save_custom_ranges(self):
+        custom_ranges = []
+        for custom_range in self.saved_custom_ranges:
+            if custom_range:
+                start_str = custom_range.start.strftime(DATE_FORMAT_FOR_PREFERENCES)
+                end_str = custom_range.end.strftime(DATE_FORMAT_FOR_PREFERENCES)
+                custom_ranges.append([custom_range.name, start_str, end_str])
+            else:
+                # We can't insert None in arrays for preferences
+                custom_ranges.append([])
+        self.app.set_default(PreferenceNames.CustomRanges, custom_ranges)
 
     # --- Public
     def refresh(self):
@@ -61,13 +93,13 @@ class DateRangeSelector:
         self.view.refresh_custom_ranges()
 
     def restore_view(self):
-        start_date = self.app.get_default(SELECTED_DATE_RANGE_START_PREFERENCE)
+        start_date = self.app.get_default(PreferenceNames.SelectedDateRangeStart)
         if start_date:
             start_date = datetime.datetime.strptime(start_date, DATE_FORMAT_FOR_PREFERENCES).date()
-        end_date = self.app.get_default(SELECTED_DATE_RANGE_END_PREFERENCE)
+        end_date = self.app.get_default(PreferenceNames.SelectedDateRangeEnd)
         if end_date:
             end_date = datetime.datetime.strptime(end_date, DATE_FORMAT_FOR_PREFERENCES).date()
-        selected_range = self.app.get_default(SELECTED_DATE_RANGE_PREFERENCE)
+        selected_range = self.app.get_default(PreferenceNames.SelectedDateRange)
         if selected_range == DATE_RANGE_MONTH:
             self.select_month_range(start_date)
         elif selected_range == DATE_RANGE_QUARTER:
@@ -85,7 +117,8 @@ class DateRangeSelector:
 
     def save_custom_range(self, slot, name, start, end):
         # called by the CustomDateRangePanel
-        self.app.save_custom_range(slot, name, start, end)
+        self.saved_custom_ranges[slot] = SavedCustomRange(name, start, end)
+        self._save_custom_ranges()
         self.refresh_custom_ranges()
 
     def save_preferences(self):
@@ -103,11 +136,11 @@ class DateRangeSelector:
             selected_range = DATE_RANGE_ALL_TRANSACTIONS
         elif isinstance(dr, CustomDateRange):
             selected_range = DATE_RANGE_CUSTOM
-        self.app.set_default(SELECTED_DATE_RANGE_PREFERENCE, selected_range)
+        self.app.set_default(PreferenceNames.SelectedDateRange, selected_range)
         str_start_date = dr.start.strftime(DATE_FORMAT_FOR_PREFERENCES)
-        self.app.set_default(SELECTED_DATE_RANGE_START_PREFERENCE, str_start_date)
+        self.app.set_default(PreferenceNames.SelectedDateRangeStart, str_start_date)
         str_end_date = dr.end.strftime(DATE_FORMAT_FOR_PREFERENCES)
-        self.app.set_default(SELECTED_DATE_RANGE_END_PREFERENCE, str_end_date)
+        self.app.set_default(PreferenceNames.SelectedDateRangeEnd, str_end_date)
 
     def select_month_range(self, starting_point=None):
         starting_point = starting_point or self._date_range_starting_point()
@@ -160,7 +193,7 @@ class DateRangeSelector:
             self.set_date_range(self.document.date_range.around(datetime.date.today()))
 
     def select_saved_range(self, slot):
-        saved_range = self.app.saved_custom_ranges[slot]
+        saved_range = self.saved_custom_ranges[slot]
         if saved_range:
             self.select_custom_date_range(saved_range.start, saved_range.end)
 
@@ -190,7 +223,7 @@ class DateRangeSelector:
 
     @property
     def custom_range_names(self):
-        return [(r.name if r else None) for r in self.app.saved_custom_ranges]
+        return [(r.name if r else None) for r in self.saved_custom_ranges]
 
     @property
     def display(self):
