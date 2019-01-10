@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-10-31
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -11,6 +9,8 @@ from PyQt5.QtWidgets import QWidget
 class BaseView(QWidget):
     def __init__(self, model, mainwindow):
         QWidget.__init__(self)
+        # Needed for CSS selectors targeting names to work
+        self.setObjectName(self.__class__.__name__)
         self.model = model
         self.mainwindow = mainwindow
         self._setup()
