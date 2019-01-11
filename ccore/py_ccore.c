@@ -873,22 +873,6 @@ PyAccount_currency(PyAccount *self)
     return PyUnicode_DecodeASCII(self->account->currency->code, len, NULL);
 }
 
-static int
-PyAccount_currency_set(PyAccount *self, PyObject *value)
-{
-    PyObject *tmp = PyUnicode_AsASCIIString(value);
-    if (tmp == NULL) {
-        return -1;
-    }
-    Currency *cur = getcur(PyBytes_AsString(tmp));
-    Py_DECREF(tmp);
-    if (cur == NULL) {
-        return -1;
-    }
-    self->account->currency = cur;
-    return 0;
-}
-
 static PyObject *
 PyAccount_type(PyAccount *self)
 {
@@ -919,34 +903,10 @@ _PyAccount_str2type(const char *s)
     }
 }
 
-static int
-PyAccount_type_set(PyAccount *self, PyObject *value)
-{
-    PyObject *tmp = PyUnicode_AsASCIIString(value);
-    if (tmp == NULL) {
-        return -1;
-    }
-    char *s = PyBytes_AsString(tmp);
-    int res = _PyAccount_str2type(s);
-    if (res >= 0) {
-        self->account->type = res;
-        return 0;
-    } else {
-        PyErr_SetString(PyExc_ValueError, "invalid type");
-        return -1;
-    }
-}
-
 static PyObject *
 PyAccount_reference(PyAccount *self)
 {
     return _strget(self->account->reference);
-}
-
-static int
-PyAccount_reference_set(PyAccount *self, PyObject *value)
-{
-    return _strset(&self->account->reference, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -955,22 +915,10 @@ PyAccount_groupname(PyAccount *self)
     return _strget(self->account->groupname);
 }
 
-static int
-PyAccount_groupname_set(PyAccount *self, PyObject *value)
-{
-    return _strset(&self->account->groupname, value) ? 0 : -1;
-}
-
 static PyObject *
 PyAccount_account_number(PyAccount *self)
 {
     return _strget(self->account->account_number);
-}
-
-static int
-PyAccount_account_number_set(PyAccount *self, PyObject *value)
-{
-    return _strset(&self->account->account_number, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -981,13 +929,6 @@ PyAccount_inactive(PyAccount *self)
     } else {
         Py_RETURN_FALSE;
     }
-}
-
-static int
-PyAccount_inactive_set(PyAccount *self, PyObject *value)
-{
-    self->account->inactive = PyObject_IsTrue(value);
-    return 0;
 }
 
 static PyObject *
@@ -1004,12 +945,6 @@ static PyObject *
 PyAccount_notes(PyAccount *self)
 {
     return _strget(self->account->notes);
-}
-
-static int
-PyAccount_notes_set(PyAccount *self, PyObject *value)
-{
-    return _strset(&self->account->notes, value) ? 0 : -1;
 }
 
 static PyObject *
@@ -1107,6 +1042,67 @@ PyAccount_combined_display(PyAccount *self)
     } else {
         return PyAccount_name(self);
     }
+}
+
+static PyObject*
+PyAccount_change(PyAccount *self, PyObject *args, PyObject *kwds)
+{
+    char *currency_code = NULL;
+    char *type_name = NULL;
+    PyObject *reference = NULL;
+    PyObject *groupname = NULL;
+    PyObject *account_number = NULL;
+    int inactive = -1;
+    PyObject *notes = NULL;
+
+    static char *kwlist[] = {
+        "currency", "type", "reference", "groupname", "account_number",
+        "inactive", "notes", NULL};
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args, kwds, "|$ssOOOpO", kwlist, &currency_code, &type_name, &reference,
+        &groupname, &account_number, &inactive, &notes);
+    if (!res) {
+        return NULL;
+    }
+    if (currency_code != NULL) {
+        Currency *cur = getcur(currency_code);
+        if (cur == NULL) {
+            return NULL;
+        }
+        self->account->currency = cur;
+    }
+    if (type_name != NULL) {
+        int type = _PyAccount_str2type(type_name);
+        if (type < 0) {
+            return NULL;
+        }
+        self->account->type = type;
+    }
+    if (reference != NULL) {
+        if (!_strset(&self->account->reference, reference)) {
+            return NULL;
+        }
+    }
+    if (groupname != NULL) {
+        if (!_strset(&self->account->groupname, groupname)) {
+            return NULL;
+        }
+    }
+    if (account_number != NULL) {
+        if (!_strset(&self->account->account_number, account_number)) {
+            return NULL;
+        }
+    }
+    if (inactive != -1) {
+        self->account->inactive = inactive;
+    }
+    if (notes != NULL) {
+        if (!_strset(&self->account->notes, notes)) {
+            return NULL;
+        }
+    }
+    Py_RETURN_NONE;
 }
 
 static PyObject *
@@ -3209,6 +3205,7 @@ PyType_Spec EntryList_Type_Spec = {
 };
 
 static PyMethodDef PyAccount_methods[] = {
+    {"change", (PyCFunction)PyAccount_change, METH_VARARGS|METH_KEYWORDS, ""},
     {"copy", (PyCFunction)PyAccount_copy, METH_NOARGS, ""},
     {"normalize_amount", (PyCFunction)PyAccount_normalize_amount, METH_O, ""},
     {"is_balance_sheet_account", (PyCFunction)PyAccount_is_balance_sheet_account, METH_NOARGS, ""},
@@ -3220,14 +3217,14 @@ static PyMethodDef PyAccount_methods[] = {
 
 static PyGetSetDef PyAccount_getseters[] = {
     {"combined_display", (getter)PyAccount_combined_display, NULL, NULL, NULL},
-    {"currency", (getter)PyAccount_currency, (setter)PyAccount_currency_set, NULL, NULL},
-    {"type", (getter)PyAccount_type, (setter)PyAccount_type_set, NULL, NULL},
+    {"currency", (getter)PyAccount_currency, NULL, NULL, NULL},
+    {"type", (getter)PyAccount_type, NULL, NULL, NULL},
     {"name", (getter)PyAccount_name, NULL, NULL, NULL},
-    {"reference", (getter)PyAccount_reference, (setter)PyAccount_reference_set, NULL, NULL},
-    {"groupname", (getter)PyAccount_groupname, (setter)PyAccount_groupname_set, NULL, NULL},
-    {"account_number", (getter)PyAccount_account_number, (setter)PyAccount_account_number_set, NULL, NULL},
-    {"inactive", (getter)PyAccount_inactive, (setter)PyAccount_inactive_set, NULL, NULL},
-    {"notes", (getter)PyAccount_notes, (setter)PyAccount_notes_set, NULL, NULL},
+    {"reference", (getter)PyAccount_reference, NULL, NULL, NULL},
+    {"groupname", (getter)PyAccount_groupname, NULL, NULL, NULL},
+    {"account_number", (getter)PyAccount_account_number, NULL, NULL, NULL},
+    {"inactive", (getter)PyAccount_inactive, NULL, NULL, NULL},
+    {"notes", (getter)PyAccount_notes, NULL, NULL, NULL},
     {"autocreated", (getter)PyAccount_autocreated, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
 };

@@ -149,8 +149,10 @@ class Undoer:
             newold = account.copy()
             if account.name != old.name:
                 self._accounts.rename_account(account, old.name)
+            kwargs = {}
             for attrname in ACCOUNT_SWAP_ATTRS:
-                setattr(account, attrname, getattr(old, attrname))
+                kwargs[attrname] = getattr(old, attrname)
+            account.change(**kwargs)
             action.changed_accounts[account] = newold
         for group, old in action.changed_groups.items():
             swapvalues(group, old, GROUP_SWAP_ATTRS)

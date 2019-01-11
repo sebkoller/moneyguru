@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -299,13 +299,12 @@ class Loader:
                 info.name, account_currency, account_type)
             if info.group:
                 group = self.groups.find(info.group, account_type)
-                account.groupname = group.name
+                account.change(groupname=group.name)
             if info.budget:
                 self.budget_infos.append(BudgetInfo(info.name, info.budget_target, info.budget))
-            account.reference = info.reference
-            account.account_number = info.account_number
-            account.inactive = info.inactive
-            account.notes = info.notes
+            account.change(
+                reference=info.reference, account_number=info.account_number,
+                inactive=info.inactive, notes=info.notes)
             currencies.add(account.currency)
 
         # Pre-parse transaction info. We bring all relevant info recorded at the txn level into the split level

@@ -215,26 +215,28 @@ class Document(GUIObject):
         action = Action(tr('Change account'))
         action.change_accounts(accounts)
         for account in accounts:
+            kwargs = {}
             if name is not NOEDIT and name:
                 other = self.accounts.find(name)
                 if (other is not None) and (other != account):
                     return False
                 self.accounts.rename_account(account, name.strip())
             if (type is not NOEDIT) and (type != account.type):
-                account.type = type
-                account.groupname = None
+                kwargs.update({'type': type, 'groupname': None})
             if currency is not NOEDIT:
                 entries = self.accounts.entries_for_account(account)
                 assert not any(e.reconciled for e in entries)
-                account.currency = currency
+                kwargs['currency'] = currency
             if group is not NOEDIT:
-                account.groupname = group.name if group else None
+                kwargs['groupname'] = group.name if group else None
             if account_number is not NOEDIT:
-                account.account_number = account_number
+                kwargs['account_number'] = account_number
             if inactive is not NOEDIT:
-                account.inactive = inactive
+                kwargs['inactive'] = inactive
             if notes is not NOEDIT:
-                account.notes = notes
+                kwargs['notes'] = notes
+            if kwargs:
+                account.change(**kwargs)
         self._undoer.record(action)
         self._cook()
         self.transactions.clear_cache()
@@ -300,7 +302,8 @@ class Document(GUIObject):
         """
         name = self.accounts.new_name(tr('New account'))
         account = self.accounts.create(name, self.default_currency, type)
-        account.groupname = group.name if group else None
+        if group:
+            account.change(groupname=group.name)
         action = Action(tr('Add account'))
         action.added_accounts.add(account.copy())
         self._undoer.record(action)
@@ -364,7 +367,7 @@ class Document(GUIObject):
         for group in groups:
             self.groups.remove(group)
         for account in accounts:
-            account.groupname = None
+            account.change(groupname=None)
         self.touch()
 
     def new_group(self, type):
@@ -865,7 +868,7 @@ class Document(GUIObject):
             else:
                 to_internalize = account.copy()
                 # we never internalize groupname
-                to_internalize.groupname = None
+                to_internalize.change(groupname=None)
                 result = self.accounts.create_from(to_internalize)
                 added_accounts.add(result.copy())
                 return result
@@ -894,7 +897,7 @@ class Document(GUIObject):
             for split in txn.splits:
                 split.reconciliation_date = None
         if ref_account.reference is not None:
-            target_account.reference = ref_account.reference
+            target_account.change(reference=ref_account.reference)
         for entry, ref in matches:
             for split in entry.transaction.splits:
                 assert not split.account or split.account in self.accounts
