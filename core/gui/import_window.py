@@ -4,6 +4,9 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
+import datetime
+from collections import defaultdict
+
 from core.util import dedupe, first as getfirst
 from core.trans import tr
 
@@ -103,11 +106,33 @@ class AccountPane:
     def bind(self, existing, imported):
         [match1] = [m for m in self.matches if m[0] is existing]
         [match2] = [m for m in self.matches if m[1] is imported]
+        assert match1[1] is None
+        assert match2[0] is None
         match1[1] = match2[1]
         self.matches.remove(match2)
 
     def can_swap_date_fields(self, first, second): # 'day', 'month', 'year'
         return (first, second) in self._swap_possibilities or (second, first) in self._swap_possibilities
+
+    def match_entries_by_date_and_amount(self, threshold):
+        delta = datetime.timedelta(days=threshold)
+        unmatched = (
+            to_import for ref, to_import in self.matches if ref is None)
+        unmatched_refs = (
+            ref for ref, to_import in self.matches if to_import is None)
+        amount2refs = defaultdict(list)
+        for entry in unmatched_refs:
+            amount2refs[entry.amount].append(entry)
+        for entry in unmatched:
+            if entry.amount not in amount2refs:
+                continue
+            potentials = amount2refs[entry.amount]
+            for ref in potentials:
+                if abs(ref.date - entry.date) <= delta:
+                    self.bind(ref, entry)
+                    potentials.remove(ref)
+        self._sort_matches()
+
 
     def unbind(self, existing, imported):
         [match] = [m for m in self.matches if m[0] is existing and m[1] is imported]
@@ -322,6 +347,10 @@ class ImportWindow(GUIObject):
         self.mainwindow.revalidate()
         self.close_pane(self.selected_pane_index)
         self.view.close_selected_tab()
+
+    def match_entries_by_date_and_amount(self, threshold):
+        self.selected_pane.match_entries_by_date_and_amount(threshold)
+        self.import_table.refresh()
 
     def perform_swap(self, apply_to_all=False):
         index = self.swap_type_list.selected_index

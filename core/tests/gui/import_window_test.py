@@ -55,6 +55,36 @@ def test_remember_target_account_selection(app):
     app.iwin.selected_pane_index = 1
     eq_(app.iwin.selected_target_account_index, 2)
 
+@with_app(TestApp)
+def test_match_entries_by_date_and_amount(app):
+    app.add_account()
+    app.show_account()
+    app.add_entry(date='08/01/2019', description='one', increase='1')
+    app.add_entry(date='09/01/2019', description='two', increase='2')
+    app.add_entry(date='10/01/2019', description='three', increase='1')
+    app.add_entry(date='11/01/2019', description='four', increase='3')
+    TXNS = [
+        {'date': '07/01/2019', 'description': 'ione', 'amount': '1'},
+        {'date': '11/01/2019', 'description': 'itwo', 'amount': '2'},
+        {'date': '11/01/2019', 'description': 'ithree', 'amount': '3'},
+    ]
+    iwin = app.fake_import('foo', TXNS)
+    iwin.selected_target_account_index = 1
+    eq_(len(iwin.import_table), 7) # nothing is bound
+    iwin.match_entries_by_date_and_amount(0) # only the 3$ entry is exact
+    eq_(len(iwin.import_table), 6) # 3$ entry was bound
+    eq_(iwin.import_table[5].description_import, 'itwo')
+    eq_(iwin.import_table[4].description, 'four')
+    eq_(iwin.import_table[4].description_import, 'ithree')
+    iwin.match_entries_by_date_and_amount(1) # only the 1$ entry matches
+    eq_(len(iwin.import_table), 5)
+    eq_(iwin.import_table[0].description, 'one')
+    eq_(iwin.import_table[0].description_import, 'ione')
+    iwin.match_entries_by_date_and_amount(2) # and now the 2$ entry
+    eq_(len(iwin.import_table), 4)
+    eq_(iwin.import_table[1].description, 'two')
+    eq_(iwin.import_table[1].description_import, 'itwo')
+
 # ---
 def app_import_checkbook_qif():
     app = TestApp()

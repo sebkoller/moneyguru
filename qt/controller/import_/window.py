@@ -4,16 +4,16 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from PyQt5 import QtCore
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QDialog, QTabBar, QComboBox, QGroupBox, QPushButton, QVBoxLayout, QHBoxLayout, QSpacerItem,
-    QLabel, QSizePolicy, QGridLayout, QCheckBox, QAbstractItemView
+    QDialog, QTabBar, QComboBox, QGroupBox, QPushButton, QVBoxLayout, QSpinBox,
+    QHBoxLayout, QSpacerItem, QLabel, QSizePolicy, QCheckBox, QAbstractItemView
 )
 
 from core.trans import trget
 
 from ...support.item_view import TableView
+from ...util import horizontalWrap, horizontalSpacer
 from ..selectable_list import ComboboxModel
 from .table import ImportTable
 
@@ -40,6 +40,7 @@ class ImportWindow(QDialog):
         self.targetAccountComboBox.currentIndexChanged.connect(self.targetAccountChanged)
         self.closeButton.clicked.connect(self.close)
         self.importButton.clicked.connect(self.importClicked)
+        self.matchButton.clicked.connect(self.matchClicked)
         self.swapButton.clicked.connect(self.swapClicked)
 
     def _setupUi(self):
@@ -48,25 +49,36 @@ class ImportWindow(QDialog):
         self.setModal(True)
         self.verticalLayout = QVBoxLayout(self)
         self.tabView = QTabBar(self)
-        self.tabView.setMinimumSize(QtCore.QSize(0, 20))
+        self.tabView.setMinimumHeight(20)
         self.verticalLayout.addWidget(self.tabView)
         self.targetAccountLayout = QHBoxLayout()
         self.targetAccountLabel = QLabel(tr("Target Account:"))
         self.targetAccountLayout.addWidget(self.targetAccountLabel)
         self.targetAccountComboBox = QComboBox(self)
-        self.targetAccountComboBox.setMinimumSize(QtCore.QSize(150, 0))
+        self.targetAccountComboBox.setMinimumWidth(150)
         self.targetAccountLayout.addWidget(self.targetAccountComboBox)
-        spacerItem = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-        self.targetAccountLayout.addItem(spacerItem)
-        self.groupBox = QGroupBox(tr("Are some fields wrong? Fix them!"))
-        self.gridLayout = QGridLayout(self.groupBox)
-        self.swapOptionsComboBoxView = QComboBox(self.groupBox)
-        self.gridLayout.addWidget(self.swapOptionsComboBoxView, 0, 0, 1, 2)
+        self.targetAccountLayout.addItem(horizontalSpacer())
+
+        self.matchBox = QGroupBox(tr("Match entries by date/amount"))
+        self.matchBox.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+        matchLayout = QVBoxLayout(self.matchBox)
+        self.matchThreshold = QSpinBox()
+        label = QLabel(tr("maximum day(s)"))
+        matchLayout.addLayout(horizontalWrap([self.matchThreshold, label]))
+        self.matchButton = QPushButton(tr("Match"))
+        self.matchButton.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Preferred)
+        matchLayout.addLayout(horizontalWrap([None, self.matchButton]))
+
+        self.targetAccountLayout.addWidget(self.matchBox)
+        self.swapBox = QGroupBox(tr("Are some fields wrong? Fix them!"))
+        swapLayout = QVBoxLayout(self.swapBox)
+        self.swapOptionsComboBoxView = QComboBox(self.swapBox)
+        swapLayout.addWidget(self.swapOptionsComboBoxView)
         self.applyToAllCheckBox = QCheckBox(tr("Apply to all accounts"))
-        self.gridLayout.addWidget(self.applyToAllCheckBox, 1, 0, 1, 1)
         self.swapButton = QPushButton(tr("Fix"))
-        self.gridLayout.addWidget(self.swapButton, 1, 1, 1, 1)
-        self.targetAccountLayout.addWidget(self.groupBox)
+        swapLayout.addLayout(horizontalWrap([self.applyToAllCheckBox, self.swapButton]))
+        self.targetAccountLayout.addWidget(self.swapBox)
+
         self.verticalLayout.addLayout(self.targetAccountLayout)
         self.tableView = TableView(self)
         self.tableView.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -108,6 +120,10 @@ class ImportWindow(QDialog):
 
     def importClicked(self):
         self.model.import_selected_pane()
+
+    def matchClicked(self):
+        threshold = self.matchThreshold.value()
+        self.model.match_entries_by_date_and_amount(threshold)
 
     def swapClicked(self):
         applyToAll = self.applyToAllCheckBox.isChecked()
