@@ -112,7 +112,7 @@ static PyObject *EntryList_Type;
 
 typedef struct {
     PyObject_HEAD
-    PyObject *txns;
+    TransactionList tlist;
 } PyTransactionList;
 
 static PyObject *TransactionList_Type;
@@ -1953,7 +1953,8 @@ PyTransaction_repr(PyTransaction *self)
         return NULL;
     }
     PyObject *res = PyUnicode_FromFormat(
-        "Transaction(%d %S %s)", self->txn->type, tdate, self->txn->description);
+        "Transaction(%d %S %s %d %p)",
+        self->txn->type, tdate, self->txn->description, self->owned, self->txn);
     Py_DECREF(tdate);
     return res;
 }
@@ -2918,7 +2919,7 @@ PyTransactionList_init(PyTransactionList *self, PyObject *args, PyObject *kwds)
         return -1;
     }
 
-    self->txns = PyList_New(0);
+    transactions_init(&self->tlist);
     return 0;
 }
 
@@ -2926,94 +2927,119 @@ static PyObject*
 PyTransactionList_add(PyTransactionList *self, PyObject *args)
 {
     PyTransaction *txn;
-    int keep_position = false;
-    int position = -1;
 
-    if (!PyArg_ParseTuple(args, "O|pi", &txn, &keep_position, &position)) {
+    if (!PyArg_ParseTuple(args, "O", &txn)) {
         return NULL;
     }
     if (!PyObject_IsInstance((PyObject *)txn, Transaction_Type)) {
         PyErr_SetString(PyExc_TypeError, "not a txn");
         return NULL;
     }
-    PyList_Append(self->txns, (PyObject *)txn);
+    Transaction *toadd;
+    if (txn->owned) {
+        // Steal ref
+        toadd = txn->txn;
+        txn->owned = false;
+    } else {
+        /* WARNING: this below only works because we (temporarily), never free
+         * Transaction instances. If a txn is not owned, it means that it's
+         * owned by another list, probably a list we're importing for a loader.
+         * For now, we don't have a better solution than keeping pointers
+         * intact, but this *has* to be changed before release.
+         *
+         * This is the code as it should probably be:
+         * toadd = calloc(1, sizeof(Transaction));
+         * transaction_copy(toadd, txn->txn);
+         * txn->txn = toadd;
+         */
+        toadd = txn->txn;
+    }
+    if (transactions_find(&self->tlist, toadd) >= 0) {
+        PyErr_SetString(PyExc_ValueError, "already there");
+        return NULL;
+    }
+
+    transactions_add(&self->tlist, toadd);
     Py_RETURN_NONE;
 }
 
 static PyObject*
 PyTransactionList_clear(PyTransactionList *self, PyObject *args)
 {
-    Py_ssize_t len = PyList_Size(self->txns);
-    if (PyList_SetSlice(self->txns, 0, len, NULL) == -1) {
-        return NULL;
-    }
+    transactions_deinit(&self->tlist);
+    transactions_init(&self->tlist);
     Py_RETURN_NONE;
 }
 
 static PyObject*
 PyTransactionList_first(PyTransactionList *self, PyObject *args)
 {
-    PyObject *res = PyList_GetItem(self->txns, 0); // borrowed
-    Py_INCREF(res);
-    return res;
+    if (!self->tlist.count) {
+        PyErr_SetString(PyExc_IndexError, "");
+        return NULL;
+    }
+    return (PyObject *)_PyTransaction_from_txn(self->tlist.txns[0]);
 }
 
 static PyObject*
 PyTransactionList_last(PyTransactionList *self, PyObject *args)
 {
-    Py_ssize_t len = PyList_Size(self->txns);
-    PyObject *res = PyList_GetItem(self->txns, len - 1); // borrowed
-    Py_INCREF(res);
-    return res;
+    if (!self->tlist.count) {
+        PyErr_SetString(PyExc_IndexError, "");
+        return NULL;
+    }
+    return (PyObject *)_PyTransaction_from_txn(
+        self->tlist.txns[self->tlist.count-1]);
 }
 
 static PyObject*
-PyTransactionList_remove(PyTransactionList *self, PyObject *txn)
+PyTransactionList_remove(PyTransactionList *self, PyTransaction *txn)
 {
-    return PyObject_CallMethod(self->txns, "remove", "O", txn);
+    if (!transactions_remove(&self->tlist, txn->txn)) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
 }
 
 static PyObject*
 PyTransactionList_sort(PyTransactionList *self, PyObject *args)
 {
-    Py_ssize_t len = PyList_Size(self->txns);
-    PyObject *sorter = PyList_New(len);
-    for (int i=0; i<len; i++) {
-        PyTransaction *txn = (PyTransaction *)PyList_GetItem(self->txns, i); // borrowed
-        PyObject *date = PyTransaction_date(txn);
-        PyObject *position = PyTransaction_position(txn);
-        PyObject *t = PyTuple_Pack(3, date, position, (PyObject *)txn);
-        Py_DECREF(date);
-        Py_DECREF(position);
-        PyList_SetItem(sorter, i, t); // stolen
-    }
-    PyList_Sort(sorter);
-    for (int i=0; i<len; i++) {
-        PyObject *t = PyList_GetItem(sorter, i); // borrowed
-        PyObject *txn = PyTuple_GetItem(t, 2); // borrowed
-        Py_INCREF(txn);
-        PyList_SetItem(self->txns, i, txn); // stolen
-    }
-    Py_DECREF(sorter);
+    transactions_sort(&self->tlist);
     Py_RETURN_NONE;
+}
+
+static int
+PyTransactionList_contains(PyTransactionList *self, PyTransaction *txn)
+{
+    if (txn->owned) {
+        return 0;
+    }
+    return transactions_find(&self->tlist, txn->txn) >= 0 ? 1 : 0;
 }
 
 static PyObject*
 PyTransactionList_iter(PyTransactionList *self)
 {
-    return PyObject_GetIter(self->txns);
+    PyObject *list = PyList_New(self->tlist.count);
+    for (unsigned int i=0; i<self->tlist.count; i++) {
+        PyList_SetItem(
+            list, i, (PyObject *)_PyTransaction_from_txn(self->tlist.txns[i]));
+    }
+    PyObject *res = PyObject_GetIter(list);
+    Py_DECREF(list);
+    return res;
 }
 
 static Py_ssize_t
 PyTransactionList_len(PyTransactionList *self)
 {
-    return PyList_Size(self->txns);
+    return self->tlist.count;
 }
 
 static void
 PyTransactionList_dealloc(PyTransactionList *self)
 {
-    Py_DECREF(self->txns);
+    transactions_deinit(&self->tlist);
     Py_TYPE(self)->tp_free(self);
 }
 
@@ -3370,6 +3396,7 @@ static PyType_Slot TransactionList_Slots[] = {
     {Py_tp_init, PyTransactionList_init},
     {Py_tp_methods, PyTransactionList_methods},
     {Py_sq_length, PyTransactionList_len},
+    {Py_sq_contains, PyTransactionList_contains},
     {Py_tp_iter, PyTransactionList_iter},
     {Py_tp_dealloc, PyTransactionList_dealloc},
     {0, 0},

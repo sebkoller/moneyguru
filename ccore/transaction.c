@@ -568,34 +568,37 @@ transactions_init(TransactionList *txns)
 void
 transactions_deinit(TransactionList *txns)
 {
-    for (int i=0; i<txns->count; i++) {
-        Transaction *txn = txns->txns[i];
-        transaction_deinit(txn);
-        free(txn);
-    }
+    /*for (int i=0; i<txns->count; i++) {  */
+    /*    Transaction *txn = txns->txns[i];*/
+    /*    transaction_deinit(txn);         */
+    /*    free(txn);                       */
+    /*}                                    */
     free(txns->txns);
 }
 
-Transaction*
-transactions_create(TransactionList *txns)
+void
+transactions_add(TransactionList *txns, Transaction *txn)
 {
     txns->count++;
     txns->txns = realloc(txns->txns, sizeof(Transaction*) * txns->count);
-    Transaction *res = calloc(1, sizeof(Transaction));
-    txns->txns[txns->count-1] = res;
-    return res;
+    txns->txns[txns->count-1] = txn;
+}
+
+int
+transactions_find(TransactionList *txns, Transaction *txn)
+{
+    for (int i=0; i<txns->count; i++) {
+        if (txns->txns[i] == txn) {
+            return i;
+        }
+    }
+    return -1;
 }
 
 bool
 transactions_remove(TransactionList *txns, Transaction *txn)
 {
-    int index = -1;
-    for (int i=0; i<txns->count; i++) {
-        if (txns->txns[i] == txn) {
-            index = i;
-            break;
-        }
-    }
+    int index = transactions_find(txns, txn);
     if (index == -1) {
         // bad pointer
         return false;

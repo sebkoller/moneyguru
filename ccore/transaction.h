@@ -235,9 +235,11 @@ transactions_init(TransactionList *txns);
 void
 transactions_deinit(TransactionList *txns);
 
-// Result is not initialized (but zeroed out)
-Transaction*
-transactions_create(TransactionList *txns);
+void
+transactions_add(TransactionList *txns, Transaction *txn);
+
+int
+transactions_find(TransactionList *txns, Transaction *txn);
 
 bool
 transactions_remove(TransactionList *txns, Transaction *txn);
