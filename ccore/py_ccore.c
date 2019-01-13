@@ -5,7 +5,7 @@
 #include "amount.h"
 #include "entry.h"
 #include "split.h"
-#include "transaction.h"
+#include "transactions.h"
 #include "accounts.h"
 #include "util.h"
 
@@ -3008,6 +3008,29 @@ PyTransactionList_sort(PyTransactionList *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static PyObject*
+PyTransactionList_transactions_at_date(PyTransactionList *self, PyObject *date_py)
+{
+    time_t date = pydate2time(date_py);
+    if (date == 1) {
+        return NULL;
+    }
+    Transaction **txns = transactions_at_date(&self->tlist, date);
+    PyObject *res = PySet_New(NULL);
+    if (txns == NULL) {
+        return res;
+    }
+    Transaction **iter = txns;
+    while (*iter != NULL) {
+        PyTransaction *txn = _PyTransaction_from_txn(*iter);
+        PySet_Add(res, (PyObject *)txn);
+        Py_DECREF(txn);
+        iter++;
+    }
+    free(txns);
+    return res;
+}
+
 static int
 PyTransactionList_contains(PyTransactionList *self, PyTransaction *txn)
 {
@@ -3389,6 +3412,7 @@ static PyMethodDef PyTransactionList_methods[] = {
     {"last", (PyCFunction)PyTransactionList_last, METH_NOARGS, ""},
     {"remove", (PyCFunction)PyTransactionList_remove, METH_O, ""},
     {"sort", (PyCFunction)PyTransactionList_sort, METH_NOARGS, ""},
+    {"transactions_at_date", (PyCFunction)PyTransactionList_transactions_at_date, METH_O, ""},
     {0, 0, 0, 0},
 };
 

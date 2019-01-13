@@ -43,6 +43,41 @@ transactions_add(TransactionList *txns, Transaction *txn)
     txns->txns[txns->count-1] = txn;
 }
 
+Transaction**
+transactions_at_date(TransactionList *txns, time_t date)
+{
+    /* We don't (yet) maintain sort order at all times, so we have to iterate
+     * through the whole list. However, most of the time, all resulting txns
+     * will be bunched up together. Because we don't know how many elements we
+     * need to allocate yet, we start with a first pass, to get first/last
+     * indexes and count. This then allows us to allocate and, with first/last,
+     * make the second pass usually much faster.
+     */
+    int first, last, count=0;
+    for (int i=0; i<txns->count; i++) {
+        if (txns->txns[i]->date == date) {
+            last = i;
+            if (count == 0) {
+                first = i;
+            }
+            count++;
+        }
+    }
+    if (count == 0) {
+        return NULL;
+    }
+    Transaction** res = malloc(sizeof(Transaction*) * (count+1));
+    int fillindex = 0;
+    for (int i=first; i<=last; i++) {
+        if (txns->txns[i]->date == date) {
+            res[fillindex] = txns->txns[i];
+            fillindex++;
+        }
+    }
+    res[count] = NULL;
+    return res;
+}
+
 int
 transactions_find(TransactionList *txns, Transaction *txn)
 {

@@ -128,10 +128,6 @@ class TransactionList(TransactionListBase):
         """Equivalent to :meth:`move_before` with ``to_transaction`` to ``None``."""
         self.move_before(transaction, None)
 
-    def transactions_at_date(self, target_date):
-        """Returns a set of all transactions occurring on ``target_date``."""
-        return set(t for t in self if t.date == target_date)
-
     # --- Properties
     @property
     def account_names(self):
