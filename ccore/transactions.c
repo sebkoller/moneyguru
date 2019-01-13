@@ -67,6 +67,38 @@ transactions_deinit(TransactionList *txns)
     free(txns->txns);
 }
 
+char**
+transactions_account_names(const TransactionList *txns)
+{
+    Transaction **bymtime = malloc(sizeof(Transaction*) * txns->count);
+    memcpy(bymtime, txns->txns, sizeof(Transaction*) * txns->count);
+    qsort(bymtime, txns->count, sizeof(Transaction*), _txn_cmp_mtime);
+
+    // we don't know our upper count limit beforehand. Let's try with
+    // txns->count and realloc if needed.
+    int count = txns->count;
+    char **res = malloc(sizeof(char*) * count);
+    int current = 0;
+    for (int i=txns->count-1; i>=0; i--) {
+        Account **accounts = transaction_affected_accounts(bymtime[i]);
+        while (*accounts != NULL) {
+            if (!(*accounts)->inactive) {
+                if (current == count) {
+                    // Didn't allocate enough space. double it.
+                    count *= 2;
+                    res = realloc(res, sizeof(char*) * count);
+                }
+                res[current] = (*accounts)->name;
+                current++;
+            }
+            accounts++;
+        }
+    }
+    res[current] = NULL;
+    _deduplicate_strings(res);
+    return res;
+}
+
 void
 transactions_add(TransactionList *txns, Transaction *txn, bool keep_position)
 {

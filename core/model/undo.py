@@ -137,7 +137,7 @@ class Undoer:
         for group in groups:
             self._groups.append(group)
         for txn in transactions:
-            self._transactions.add(txn, keep_position=True)
+            self._transactions.add(txn, True)
             self._add_auto_created_accounts(txn)
         for schedule in schedules:
             self._scheduled.append(schedule)

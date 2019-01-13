@@ -1,10 +1,8 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
-
-from operator import itemgetter
 
 from ._ccore import TransactionList as TransactionListBase
 
@@ -15,63 +13,7 @@ class TransactionList(TransactionListBase):
     a cache of values to use for completion. There's only one of those in a document, in
     :attr:`.Document.transactions`.
     """
-    def __init__(self):
-        TransactionListBase.__init__(self)
-        self._account_names = None
-
-    # --- Overrides
-    def remove(self, transaction):
-        """Removes ``transaction`` from the list."""
-        TransactionListBase.remove(self, transaction)
-        self.clear_cache()
-
-    # --- Private
-    def _compute_completion_list(self, data_and_mtime):
-        """Returns a list of unique data sorted in mtime order.
-
-        ``data_and_mtime`` is an iterable containing ``(data, mtime)`` pairs.
-        """
-        data2mtime = {}
-        for data, mtime in data_and_mtime:
-            maxmtime = max(mtime, data2mtime.get(data, 0))
-            data2mtime[data] = maxmtime
-        data_and_mtime = sorted(data2mtime.items(), key=itemgetter(1), reverse=True)
-        return [data for data, mtime in data_and_mtime]
-
-    def _compute_account_names(self):
-        def data_and_mtime_gen():
-            for txn in self:
-                mtime = txn.mtime
-                for account in txn.affected_accounts():
-                    if not account.inactive:
-                        yield (account.name, mtime)
-
-        self._account_names = self._compute_completion_list(data_and_mtime_gen())
-
     # --- Public
-    def add(self, transaction, keep_position=False):
-        """Adds ``transaction`` to self
-
-        If you want ``transaction.position`` to stay intact, call with ``keep_position`` at True. If
-        you  specify a position, this is the one that will be used.
-        """
-        TransactionListBase.add(self, transaction, keep_position)
-        self.clear_cache()
-
-    def clear(self):
-        """Clears the list of all transactions."""
-        TransactionListBase.clear(self)
-        self.clear_cache()
-
-    def clear_cache(self):
-        """Clears cached data.
-
-        For now cache date is auto-completion data (payee, transaction, account). Call this when
-        a transaction has been changed.
-        """
-        TransactionListBase.clear_cache(self)
-        self._account_names = None
-
     def reassign_account(self, account, reassign_to=None):
         """Calls :meth:`.Transaction.reassign_account` on all transactions.
 
@@ -110,11 +52,3 @@ class TransactionList(TransactionListBase):
     def move_last(self, transaction):
         """Equivalent to :meth:`move_before` with ``to_transaction`` to ``None``."""
         self.move_before(transaction, None)
-
-    # --- Properties
-    @property
-    def account_names(self):
-        """A list of active account names used in the transactions, in reverse mtime order."""
-        if self._account_names is None:
-            self._compute_account_names()
-        return self._account_names

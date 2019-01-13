@@ -12,6 +12,9 @@ transactions_init(TransactionList *txns);
 void
 transactions_deinit(TransactionList *txns);
 
+char**
+transactions_account_names(const TransactionList *txns);
+
 /* keep_position: if true, `txn`'s `position` stays unchanged. if false, we
  *                set `position` so that `txn` ends up at the end of the txns
  *                that are on the same date.

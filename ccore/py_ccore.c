@@ -116,6 +116,7 @@ typedef struct {
     // cache
     PyObject *descriptions;
     PyObject *payees;
+    PyObject *account_names;
 } PyTransactionList;
 
 static PyObject *TransactionList_Type;
@@ -2925,7 +2926,48 @@ PyTransactionList_init(PyTransactionList *self, PyObject *args, PyObject *kwds)
     transactions_init(&self->tlist);
     self->descriptions = NULL;
     self->payees = NULL;
+    self->account_names = NULL;
     return 0;
+}
+
+static PyObject*
+PyTransactionList_clear_cache(PyTransactionList *self)
+{
+    if (self->descriptions != NULL) {
+        Py_DECREF(self->descriptions);
+        self->descriptions = NULL;
+    }
+    if (self->payees != NULL) {
+        Py_DECREF(self->payees);
+        self->payees = NULL;
+    }
+    if (self->account_names != NULL) {
+        Py_DECREF(self->account_names);
+        self->account_names = NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyTransactionList_account_names(PyTransactionList *self)
+{
+    if (self->account_names != NULL) {
+        Py_INCREF(self->account_names);
+        return self->account_names;
+    }
+    char **account_names = transactions_account_names(&self->tlist);
+    char **iter = account_names;
+    PyObject *res = PyList_New(0);
+    while (*iter != NULL) {
+        PyObject *s = _strget(*iter);
+        PyList_Append(res, s);
+        Py_DECREF(s);
+        iter++;
+    }
+    free(account_names);
+    self->account_names = res;
+    Py_INCREF(self->account_names);
+    return res;
 }
 
 static PyObject*
@@ -2966,24 +3008,16 @@ PyTransactionList_add(PyTransactionList *self, PyObject *args)
     }
 
     transactions_add(&self->tlist, toadd, keep_position);
+    PyTransactionList_clear_cache(self);
     Py_RETURN_NONE;
 }
 
 static PyObject*
 PyTransactionList_clear(PyTransactionList *self, PyObject *args)
 {
+    PyTransactionList_clear_cache(self);
     transactions_deinit(&self->tlist);
     transactions_init(&self->tlist);
-    Py_RETURN_NONE;
-}
-
-static PyObject*
-PyTransactionList_clear_cache(PyTransactionList *self, PyObject *args)
-{
-    if (self->descriptions != NULL) {
-        Py_DECREF(self->descriptions);
-        self->descriptions = NULL;
-    }
     Py_RETURN_NONE;
 }
 
@@ -3058,6 +3092,7 @@ PyTransactionList_remove(PyTransactionList *self, PyTransaction *txn)
     if (!transactions_remove(&self->tlist, txn->txn)) {
         return NULL;
     }
+    PyTransactionList_clear_cache(self);
     Py_RETURN_NONE;
 }
 
@@ -3124,6 +3159,8 @@ PyTransactionList_dealloc(PyTransactionList *self)
 {
     transactions_deinit(&self->tlist);
     Py_XDECREF(self->descriptions);
+    Py_XDECREF(self->payees);
+    Py_XDECREF(self->account_names);
     Py_TYPE(self)->tp_free(self);
 }
 
@@ -3479,6 +3516,7 @@ static PyMethodDef PyTransactionList_methods[] = {
 };
 
 static PyGetSetDef PyTransactionList_getseters[] = {
+    {"account_names", (getter)PyTransactionList_account_names, NULL, NULL, NULL},
     {"descriptions", (getter)PyTransactionList_descriptions, NULL, NULL, NULL},
     {"payees", (getter)PyTransactionList_payees, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
