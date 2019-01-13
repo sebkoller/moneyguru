@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,13 +8,12 @@ from datetime import date
 
 from ..testutil import eq_
 
-from ...model._ccore import AccountList
+from ...model._ccore import AccountList, TransactionList
 from ...model.account import Group, AccountType, ACCOUNT_SORT_KEY
 from ...model.currency import Currencies
 from ...model.date import MonthRange
 from ...model.oven import Oven
 from ...model.transaction import Transaction
-from ...model.transaction_list import TransactionList
 from ..base import Amount
 
 class TestAccountComparison:

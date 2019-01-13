@@ -36,6 +36,23 @@ transactions_descriptions(const TransactionList *txns);
 int
 transactions_find(const TransactionList *txns, Transaction *txn);
 
+/* Move `txn` just before `target`, position-wise.
+ *
+ * Sets the `position` attribute of `txn` so that it ends up directly before
+ * `target`. This usually implies changing the position of all following txns
+ * on the same day.
+ *
+ * If `target` is NULL, `txn` is placed at the end of the bunch of txns on the
+ * same date.
+ *
+ * If `txn` and `target` don't have the same date, `target` is considered NULL.
+ */
+void
+transactions_move_before(
+    const TransactionList *txns,
+    Transaction *txn,
+    Transaction *target);
+
 char**
 transactions_payees(const TransactionList *txns);
 

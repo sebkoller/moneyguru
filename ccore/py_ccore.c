@@ -3087,6 +3087,27 @@ PyTransactionList_payees(PyTransactionList *self)
 }
 
 static PyObject *
+PyTransactionList_move_before(PyTransactionList *self, PyObject *args)
+{
+    PyTransaction *txn_p, *target_p;
+
+    if (!PyArg_ParseTuple(args, "OO", &txn_p, &target_p)) {
+        return NULL;
+    }
+    Transaction *txn = txn_p->txn;
+    Transaction *target = (PyObject *)target_p == Py_None ? NULL : target_p->txn;
+    transactions_move_before(&self->tlist, txn, target);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+PyTransactionList_move_last(PyTransactionList *self, PyTransaction *txn)
+{
+    transactions_move_before(&self->tlist, txn->txn, NULL);
+    Py_RETURN_NONE;
+}
+
+static PyObject *
 PyTransactionList_reassign_account(PyTransactionList *self, PyObject *args)
 {
     PyAccount *account_p, *reassign_to_p = NULL;
@@ -3527,6 +3548,8 @@ static PyMethodDef PyTransactionList_methods[] = {
     {"clear_cache", (PyCFunction)PyTransactionList_clear_cache, METH_NOARGS, ""},
     {"first", (PyCFunction)PyTransactionList_first, METH_NOARGS, ""},
     {"last", (PyCFunction)PyTransactionList_last, METH_NOARGS, ""},
+    {"move_before", (PyCFunction)PyTransactionList_move_before, METH_VARARGS, ""},
+    {"move_last", (PyCFunction)PyTransactionList_move_last, METH_O, ""},
     {"reassign_account", (PyCFunction)PyTransactionList_reassign_account, METH_VARARGS, ""},
     {"remove", (PyCFunction)PyTransactionList_remove, METH_O, ""},
     {"sort", (PyCFunction)PyTransactionList_sort, METH_NOARGS, ""},

@@ -19,14 +19,13 @@ from .const import NOEDIT
 from .exception import FileFormatError, OperationAborted
 from .gui.base import GUIObject
 from .loader import native
-from .model._ccore import AccountList, Entry
+from .model._ccore import AccountList, Entry, TransactionList
 from .model.account import Group, GroupList, AccountType
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
 from .model.budget import BudgetList
 from .model.date import YearRange
 from .model.oven import Oven
-from .model.transaction_list import TransactionList
 from .model.undo import Undoer, Action
 from .model.recurrence import find_schedule_of_ref
 from .saver.native import save as save_native

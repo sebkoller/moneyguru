@@ -182,6 +182,41 @@ transactions_find(const TransactionList *txns, Transaction *txn)
     return -1;
 }
 
+void
+transactions_move_before(
+    const TransactionList *txns,
+    Transaction *txn,
+    Transaction *target)
+{
+    if (transactions_find(txns, txn) == -1) {
+        return;
+    }
+    if ((target != NULL) && (txn->date != target->date)) {
+        target = NULL;
+    }
+    Transaction **bunch = transactions_at_date(txns, txn->date);
+    Transaction **iter = bunch;
+    if (target == NULL) {
+        // set txn->position to the highest value of its bunch
+        while (*iter != NULL) {
+            if ((*iter != txn) && ((*iter)->position >= txn->position)) {
+                txn->position = (*iter)->position + 1;
+            }
+            iter++;
+        }
+    } else {
+        // set txn position to its target and offset everything after it
+        txn->position = target->position;
+        while (*iter != NULL) {
+            if ((*iter != txn) && ((*iter)->position >= txn->position)) {
+                (*iter)->position++;
+            }
+            iter++;
+        }
+    }
+    free(bunch);
+}
+
 char**
 transactions_payees(const TransactionList *txns)
 {
