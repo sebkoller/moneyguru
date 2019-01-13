@@ -72,3 +72,8 @@ now();
  */
 bool
 pointer_in_list(void **list, void *target);
+
+/* Returns the number of elements in a NULL-terminated list.
+ */
+int
+listlen(void **list);

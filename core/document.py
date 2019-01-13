@@ -211,14 +211,18 @@ class Document(GUIObject):
         :param notes: ``str``
         """
         assert all(a is not None for a in accounts)
-        action = Action(tr('Change account'))
-        action.change_accounts(accounts)
+        # Check for name clash
         for account in accounts:
-            kwargs = {}
             if name is not NOEDIT and name:
                 other = self.accounts.find(name)
                 if (other is not None) and (other != account):
                     return False
+        action = Action(tr('Change account'))
+        action.change_accounts(accounts)
+        self._undoer.record(action)
+        for account in accounts:
+            kwargs = {}
+            if name is not NOEDIT and name:
                 self.accounts.rename_account(account, name.strip())
             if (type is not NOEDIT) and (type != account.type):
                 kwargs.update({'type': type, 'groupname': None})
@@ -236,7 +240,6 @@ class Document(GUIObject):
                 kwargs['notes'] = notes
             if kwargs:
                 account.change(**kwargs)
-        self._undoer.record(action)
         self._cook()
         self.transactions.clear_cache()
         return True
@@ -253,7 +256,7 @@ class Document(GUIObject):
         # Recording the "Remove account" action into the Undoer is quite something...
         action = Action(tr('Remove account'))
         accounts = set(accounts)
-        action.deleted_accounts |= set(a.copy() for a in accounts)
+        action.deleted_accounts |= accounts
         all_entries = flatten(self.accounts.entries_for_account(a) for a in accounts)
         if reassign_to is None:
             transactions = {e.transaction for e in all_entries if not e.transaction.is_spawn}
@@ -304,7 +307,7 @@ class Document(GUIObject):
         if group:
             account.change(groupname=group.name)
         action = Action(tr('Add account'))
-        action.added_accounts.add(account.copy())
+        action.added_accounts.add(account)
         self._undoer.record(action)
         self.touch()
         return account
@@ -869,7 +872,7 @@ class Document(GUIObject):
                 # we never internalize groupname
                 to_internalize.change(groupname=None)
                 result = self.accounts.create_from(to_internalize)
-                added_accounts.add(result.copy())
+                added_accounts.add(result)
                 return result
 
         if target_account is None:

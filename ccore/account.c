@@ -19,6 +19,8 @@ account_init(
     account->currency = currency;
     account->type = type;
     account->inactive = false;
+    account->groupname = NULL;
+    account->reference = "";
     account->account_number = "";
     account->notes = "";
     account->autocreated = false;

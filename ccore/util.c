@@ -138,3 +138,17 @@ pointer_in_list(void **list, void *target)
     }
     return false;
 }
+
+int
+listlen(void **list)
+{
+    if (list == NULL) {
+        return 0;
+    }
+    int res = 0;
+    while (*list != NULL) {
+        res++;
+        list++;
+    }
+    return res;
+}

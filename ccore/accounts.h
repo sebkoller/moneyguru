@@ -9,6 +9,8 @@ typedef struct {
     int count;
     Account **accounts;
     GHashTable *a2entries;
+    // Where we put our deleted accounts so that we can undelete them
+    GPtrArray *trashcan;
 } AccountList;
 
 void
@@ -32,6 +34,9 @@ accounts_remove(AccountList *accounts, Account *todelete);
 
 bool
 accounts_rename(AccountList *accounts, Account *target, const char *newname);
+
+bool
+accounts_undelete(AccountList *accounts, Account *torestore);
 
 /* Returns the first account that matches `name`.
  *

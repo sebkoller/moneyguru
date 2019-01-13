@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -6,9 +6,9 @@
 
 import copy
 
+from core.model._ccore import UndoStep
 from core.util import extract
 
-ACCOUNT_SWAP_ATTRS = ['currency', 'type', 'groupname', 'account_number', 'notes']
 GROUP_SWAP_ATTRS = ['name', 'type']
 SPLIT_SWAP_ATTRS = ['account', 'amount', 'reconciliation_date']
 SCHEDULE_SWAP_ATTRS = ['repeat_type', 'repeat_every', 'stop_date', 'date2exception',
@@ -43,7 +43,7 @@ class Action:
     def __init__(self, description):
         self.description = description
         self.added_accounts = set()
-        self.changed_accounts = {}
+        self.changed_accounts = set()
         self.deleted_accounts = set()
         self.added_groups = set()
         self.changed_groups = {}
@@ -60,9 +60,7 @@ class Action:
 
     def change_accounts(self, accounts):
         """Record imminent changes to ``accounts``."""
-        for a in accounts:
-            if a not in self.changed_accounts:
-                self.changed_accounts[a] = a.copy()
+        self.changed_accounts |= set(accounts)
 
     def change_groups(self, groups):
         """Record imminent changes to ``groups``."""
@@ -128,12 +126,6 @@ class Undoer:
                 split.account = self._accounts.create_from(split.account)
 
     def _do_adds(self, accounts, groups, transactions, schedules, budgets):
-        for account in accounts:
-            new = self._accounts.create_from(account)
-            for txn in transactions:
-                for split in txn.splits:
-                    if split.account == account:
-                        split.account = new
         for group in groups:
             self._groups.append(group)
         for txn in transactions:
@@ -145,15 +137,6 @@ class Undoer:
             self._budgets.append(budget)
 
     def _do_changes(self, action):
-        for account, old in list(action.changed_accounts.items()):
-            newold = account.copy()
-            if account.name != old.name:
-                self._accounts.rename_account(account, old.name)
-            kwargs = {}
-            for attrname in ACCOUNT_SWAP_ATTRS:
-                kwargs[attrname] = getattr(old, attrname)
-            account.change(**kwargs)
-            action.changed_accounts[account] = newold
         for group, old in action.changed_groups.items():
             swapvalues(group, old, GROUP_SWAP_ATTRS)
         for txn, old in action.changed_transactions.items():
@@ -171,12 +154,6 @@ class Undoer:
             swapvalues(budget, old, BUDGET_SWAP_ATTRS)
 
     def _do_deletes(self, accounts, groups, transactions, schedules, budgets):
-        for account in accounts:
-            found = self._accounts.find(account.name)
-            if found:
-                self._accounts.remove(found)
-            else:
-                raise Exception("not supposed to happen")
         for group in groups:
             self._groups.remove(group)
         for txn in transactions:
@@ -247,6 +224,10 @@ class Undoer:
         :param action: Action to be recorded.
         :type action: :class:`Action`
         """
+        action.undostep = UndoStep(
+            action.added_accounts,
+            action.deleted_accounts,
+            action.changed_accounts)
         if self._index < -1:
             self._actions = self._actions[:self._index + 1]
         self._actions.append(action)
@@ -263,6 +244,7 @@ class Undoer:
         """
         assert self.can_undo()
         action = self._actions[self._index]
+        action.undostep.undo(self._accounts)
         self._do_adds(
             action.deleted_accounts, action.deleted_groups, action.deleted_transactions,
             action.deleted_schedules, action.deleted_budgets
@@ -284,6 +266,7 @@ class Undoer:
         """
         assert self.can_redo()
         action = self._actions[self._index + 1]
+        action.undostep.redo(self._accounts)
         self._do_adds(
             action.added_accounts, action.added_groups, action.added_transactions,
             action.added_schedules, action.added_budgets

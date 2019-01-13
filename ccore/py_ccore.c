@@ -7,6 +7,7 @@
 #include "split.h"
 #include "transactions.h"
 #include "accounts.h"
+#include "undo.h"
 #include "util.h"
 
 // NOTE ABOUT DECREF AND ERRORS
@@ -120,6 +121,13 @@ typedef struct {
 } PyTransactionList;
 
 static PyObject *TransactionList_Type;
+
+typedef struct {
+    PyObject_HEAD
+    UndoStep step;
+} PyUndoStep;
+
+static PyObject *UndoStep_Type;
 
 /* Utils */
 static PyObject*
@@ -3203,6 +3211,81 @@ PyTransactionList_dealloc(PyTransactionList *self)
     Py_TYPE(self)->tp_free(self);
 }
 
+/* PyUndoStep */
+
+static Account**
+_pyseq2accounts(PyObject *seq)
+{
+    Account **res;
+    Py_ssize_t len = PySequence_Length(seq);
+    res = malloc(sizeof(Account*) * (len + 1));
+    PyObject *fast = PySequence_Fast(seq, "");
+    for (int i=0; i<len; i++) {
+        res[i] = ((PyAccount *)PySequence_Fast_GET_ITEM(fast, i))->account;
+    }
+    res[len] = NULL;
+    Py_DECREF(fast);
+    return res;
+}
+
+static int
+PyUndoStep_init(PyUndoStep *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *added_accounts, *deleted_accounts, *changed_accounts;
+    static char *kwlist[] = {
+        "added_accounts", "deleted_accounts", "changed_accounts", NULL};
+
+    int res = PyArg_ParseTupleAndKeywords(
+        args, kwds, "OOO", kwlist, &added_accounts, &deleted_accounts,
+        &changed_accounts);
+    if (!res) {
+        return -1;
+    }
+    Account **a = _pyseq2accounts(added_accounts);
+    Account **d = _pyseq2accounts(deleted_accounts);
+    Account **c = _pyseq2accounts(changed_accounts);
+    undostep_init(&self->step, a, d, c);
+    free(a);
+    free(d);
+    free(c);
+    return 0;
+}
+
+static PyObject *
+PyUndoStep_undo(PyUndoStep *self, PyObject *args)
+{
+    PyAccountList *alist;
+
+    if (!PyArg_ParseTuple(args, "O", &alist)) {
+        return NULL;
+    }
+    if (!undostep_undo(&self->step, &alist->alist)) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject *
+PyUndoStep_redo(PyUndoStep *self, PyObject *args)
+{
+    PyAccountList *alist;
+
+    if (!PyArg_ParseTuple(args, "O", &alist)) {
+        return NULL;
+    }
+    if (!undostep_redo(&self->step, &alist->alist)) {
+        return NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static void
+PyUndoStep_dealloc(PyUndoStep *self)
+{
+    undostep_deinit(&self->step);
+    Py_TYPE(self)->tp_free(self);
+}
+
 /* Python Boilerplate */
 
 static PyGetSetDef PyAmount_getseters[] = {
@@ -3583,6 +3666,27 @@ PyType_Spec TransactionList_Type_Spec = {
     TransactionList_Slots,
 };
 
+static PyMethodDef PyUndoStep_methods[] = {
+    {"undo", (PyCFunction)PyUndoStep_undo, METH_VARARGS, ""},
+    {"redo", (PyCFunction)PyUndoStep_redo, METH_VARARGS, ""},
+    {0, 0, 0, 0},
+};
+
+static PyType_Slot UndoStep_Slots[] = {
+    {Py_tp_init, PyUndoStep_init},
+    {Py_tp_methods, PyUndoStep_methods},
+    {Py_tp_dealloc, PyUndoStep_dealloc},
+    {0, 0},
+};
+
+PyType_Spec UndoStep_Type_Spec = {
+    "_ccore.UndoStep",
+    sizeof(PyUndoStep),
+    0,
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
+    UndoStep_Slots,
+};
+
 static struct PyModuleDef CCoreDef = {
     PyModuleDef_HEAD_INIT,
     "_ccore",
@@ -3639,5 +3743,8 @@ PyInit__ccore(void)
 
     TransactionList_Type = PyType_FromSpec(&TransactionList_Type_Spec);
     PyModule_AddObject(m, "TransactionList", TransactionList_Type);
+
+    UndoStep_Type = PyType_FromSpec(&UndoStep_Type_Spec);
+    PyModule_AddObject(m, "UndoStep", UndoStep_Type);
     return m;
 }

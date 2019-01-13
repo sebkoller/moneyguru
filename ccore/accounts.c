@@ -4,6 +4,16 @@
 #include "accounts.h"
 #include "util.h"
 
+/* Private */
+static void
+_add(AccountList *accounts, Account *account)
+{
+    accounts->count++;
+    accounts->accounts = realloc(
+        accounts->accounts, sizeof(Account*) * accounts->count);
+    accounts->accounts[accounts->count-1] = account;
+}
+
 /* AccountList public */
 void
 accounts_init(AccountList *accounts, Currency *default_currency)
@@ -12,6 +22,7 @@ accounts_init(AccountList *accounts, Currency *default_currency)
     accounts->accounts = NULL;
     accounts->count = 0;
     accounts->a2entries = g_hash_table_new(g_str_hash, g_str_equal);
+    accounts->trashcan = g_ptr_array_new();
 }
 
 void
@@ -30,6 +41,7 @@ accounts_deinit(AccountList *accounts)
         free(accounts->accounts[i]);
     }
     free(accounts->accounts);
+    g_ptr_array_free(accounts->trashcan, true);
 }
 
 bool
@@ -50,10 +62,7 @@ Account*
 accounts_create(AccountList *accounts)
 {
     Account *res = calloc(1, sizeof(Account));
-    accounts->count++;
-    accounts->accounts = realloc(
-        accounts->accounts, sizeof(Account*) * accounts->count);
-    accounts->accounts[accounts->count-1] = res;
+    _add(accounts, res);
     return res;
 }
 
@@ -91,6 +100,7 @@ accounts_remove(AccountList *accounts, Account *target)
     accounts->count--;
     accounts->accounts = realloc(
         accounts->accounts, sizeof(Account*) * accounts->count);
+    g_ptr_array_add(accounts->trashcan, target);
     /* Normally, we should be freeing our account here. However, because of the
      * Undoer, we can't: it holds a reference to the deleted account and needs
      * it around in case we need it again. The best option at this time is
@@ -117,6 +127,16 @@ accounts_rename(AccountList *accounts, Account *target, const char *newname)
     if (entries != NULL) {
         g_hash_table_insert(accounts->a2entries, target->name, entries);
     }
+    return true;
+}
+
+bool
+accounts_undelete(AccountList *accounts, Account *target)
+{
+    if (!g_ptr_array_remove(accounts->trashcan, target)) {
+        return false;
+    }
+    _add(accounts, target);
     return true;
 }
 
