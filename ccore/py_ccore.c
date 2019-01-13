@@ -2927,8 +2927,9 @@ static PyObject*
 PyTransactionList_add(PyTransactionList *self, PyObject *args)
 {
     PyTransaction *txn;
+    int keep_position = false;
 
-    if (!PyArg_ParseTuple(args, "O", &txn)) {
+    if (!PyArg_ParseTuple(args, "O|p", &txn, &keep_position)) {
         return NULL;
     }
     if (!PyObject_IsInstance((PyObject *)txn, Transaction_Type)) {
@@ -2959,7 +2960,7 @@ PyTransactionList_add(PyTransactionList *self, PyObject *args)
         return NULL;
     }
 
-    transactions_add(&self->tlist, toadd);
+    transactions_add(&self->tlist, toadd, keep_position);
     Py_RETURN_NONE;
 }
 

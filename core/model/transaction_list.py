@@ -65,11 +65,7 @@ class TransactionList(TransactionListBase):
         If you want ``transaction.position`` to stay intact, call with ``keep_position`` at True. If
         you  specify a position, this is the one that will be used.
         """
-        if not keep_position:
-            transactions = self.transactions_at_date(transaction.date)
-            if transactions:
-                transaction.position = max(t.position for t in transactions) + 1
-        TransactionListBase.add(self, transaction)
+        TransactionListBase.add(self, transaction, keep_position)
         self.clear_cache()
 
     def clear(self):

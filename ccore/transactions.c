@@ -36,8 +36,21 @@ transactions_deinit(TransactionList *txns)
 }
 
 void
-transactions_add(TransactionList *txns, Transaction *txn)
+transactions_add(TransactionList *txns, Transaction *txn, bool keep_position)
 {
+    if (!keep_position) {
+        Transaction **others = transactions_at_date(txns, txn->date);
+        if (others != NULL) {
+            Transaction **iter = others;
+            while (*iter != NULL) {
+                if ((*iter)->position >= txn->position) {
+                    txn->position = (*iter)->position + 1;
+                }
+                iter++;
+            }
+            free(others);
+        }
+    }
     txns->count++;
     txns->txns = realloc(txns->txns, sizeof(Transaction*) * txns->count);
     txns->txns[txns->count-1] = txn;
