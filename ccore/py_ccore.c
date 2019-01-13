@@ -115,6 +115,7 @@ typedef struct {
     TransactionList tlist;
     // cache
     PyObject *descriptions;
+    PyObject *payees;
 } PyTransactionList;
 
 static PyObject *TransactionList_Type;
@@ -2923,6 +2924,7 @@ PyTransactionList_init(PyTransactionList *self, PyObject *args, PyObject *kwds)
 
     transactions_init(&self->tlist);
     self->descriptions = NULL;
+    self->payees = NULL;
     return 0;
 }
 
@@ -3026,6 +3028,28 @@ PyTransactionList_last(PyTransactionList *self, PyObject *args)
     }
     return (PyObject *)_PyTransaction_from_txn(
         self->tlist.txns[self->tlist.count-1]);
+}
+
+static PyObject*
+PyTransactionList_payees(PyTransactionList *self)
+{
+    if (self->payees != NULL) {
+        Py_INCREF(self->payees);
+        return self->payees;
+    }
+    char **payees = transactions_payees(&self->tlist);
+    char **iter = payees;
+    PyObject *res = PyList_New(0);
+    while (*iter != NULL) {
+        PyObject *s = _strget(*iter);
+        PyList_Append(res, s);
+        Py_DECREF(s);
+        iter++;
+    }
+    free(payees);
+    self->payees = res;
+    Py_INCREF(self->payees);
+    return res;
 }
 
 static PyObject*
@@ -3456,6 +3480,7 @@ static PyMethodDef PyTransactionList_methods[] = {
 
 static PyGetSetDef PyTransactionList_getseters[] = {
     {"descriptions", (getter)PyTransactionList_descriptions, NULL, NULL, NULL},
+    {"payees", (getter)PyTransactionList_payees, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
 };
 

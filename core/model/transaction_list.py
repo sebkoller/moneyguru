@@ -17,7 +17,6 @@ class TransactionList(TransactionListBase):
     """
     def __init__(self):
         TransactionListBase.__init__(self)
-        self._payees = None
         self._account_names = None
 
     # --- Overrides
@@ -49,10 +48,6 @@ class TransactionList(TransactionListBase):
 
         self._account_names = self._compute_completion_list(data_and_mtime_gen())
 
-    def _compute_payees(self):
-        data_and_mtime = ((t.payee, t.mtime) for t in self)
-        self._payees = self._compute_completion_list(data_and_mtime)
-
     # --- Public
     def add(self, transaction, keep_position=False):
         """Adds ``transaction`` to self
@@ -75,7 +70,6 @@ class TransactionList(TransactionListBase):
         a transaction has been changed.
         """
         TransactionListBase.clear_cache(self)
-        self._payees = None
         self._account_names = None
 
     def reassign_account(self, account, reassign_to=None):
@@ -124,11 +118,3 @@ class TransactionList(TransactionListBase):
         if self._account_names is None:
             self._compute_account_names()
         return self._account_names
-
-    @property
-    def payees(self):
-        """A list of payees used in the transactions, in reverse mtime order."""
-        if self._payees is None:
-            self._compute_payees()
-        return self._payees
-

@@ -150,6 +150,22 @@ transactions_find(TransactionList *txns, Transaction *txn)
     return -1;
 }
 
+char**
+transactions_payees(const TransactionList *txns)
+{
+    Transaction **bymtime = malloc(sizeof(Transaction*) * txns->count);
+    memcpy(bymtime, txns->txns, sizeof(Transaction*) * txns->count);
+    qsort(bymtime, txns->count, sizeof(Transaction*), _txn_cmp_mtime);
+
+    char **res = malloc(sizeof(char*) * (txns->count + 1));
+    for (int i=txns->count-1; i>=0; i--) {
+        res[txns->count-i-1] = bymtime[i]->payee;
+    }
+    res[txns->count] = NULL;
+    _deduplicate_strings(res);
+    return res;
+}
+
 bool
 transactions_remove(TransactionList *txns, Transaction *txn)
 {

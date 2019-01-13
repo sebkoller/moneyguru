@@ -33,6 +33,9 @@ transactions_descriptions(const TransactionList *txns);
 int
 transactions_find(TransactionList *txns, Transaction *txn);
 
+char**
+transactions_payees(const TransactionList *txns);
+
 bool
 transactions_remove(TransactionList *txns, Transaction *txn);
 
