@@ -14,18 +14,6 @@ class TransactionList(TransactionListBase):
     :attr:`.Document.transactions`.
     """
     # --- Public
-    def reassign_account(self, account, reassign_to=None):
-        """Calls :meth:`.Transaction.reassign_account` on all transactions.
-
-        If, after such an operation, a transaction ends up referencing no account at all, it is
-        removed.
-        """
-        for transaction in list(self):
-            transaction.reassign_account(account, reassign_to)
-            if not transaction.affected_accounts():
-                self.remove(transaction)
-        self.clear_cache()
-
     def move_before(self, from_transaction, to_transaction):
         """Moves ``from_transaction`` just before ``to_transaction``.
 

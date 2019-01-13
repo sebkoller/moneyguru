@@ -28,16 +28,27 @@ transactions_add(TransactionList *txns, Transaction *txn, bool keep_position);
  * matching txn.
  */
 Transaction**
-transactions_at_date(TransactionList *txns, time_t date);
+transactions_at_date(const TransactionList *txns, time_t date);
 
 char**
 transactions_descriptions(const TransactionList *txns);
 
 int
-transactions_find(TransactionList *txns, Transaction *txn);
+transactions_find(const TransactionList *txns, Transaction *txn);
 
 char**
 transactions_payees(const TransactionList *txns);
+
+/* Calls `transaction_reassign_account()` on all transactions.
+ *
+ * If, after such an operation, a transaction ends up referencing no account at
+ * all, it is removed.
+ */
+void
+transactions_reassign_account(
+    TransactionList *txns,
+    const Account *account,
+    Account *to);
 
 bool
 transactions_remove(TransactionList *txns, Transaction *txn);

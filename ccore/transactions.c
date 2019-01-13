@@ -121,7 +121,7 @@ transactions_add(TransactionList *txns, Transaction *txn, bool keep_position)
 }
 
 Transaction**
-transactions_at_date(TransactionList *txns, time_t date)
+transactions_at_date(const TransactionList *txns, time_t date)
 {
     /* We don't (yet) maintain sort order at all times, so we have to iterate
      * through the whole list. However, most of the time, all resulting txns
@@ -172,7 +172,7 @@ transactions_descriptions(const TransactionList *txns)
 }
 
 int
-transactions_find(TransactionList *txns, Transaction *txn)
+transactions_find(const TransactionList *txns, Transaction *txn)
 {
     for (int i=0; i<txns->count; i++) {
         if (txns->txns[i] == txn) {
@@ -196,6 +196,23 @@ transactions_payees(const TransactionList *txns)
     res[txns->count] = NULL;
     _deduplicate_strings(res);
     return res;
+}
+
+void
+transactions_reassign_account(
+    TransactionList *txns,
+    const Account *account,
+    Account *to)
+{
+    for (int i=txns->count-1; i>=0; i--) {
+        Transaction *txn = txns->txns[i];
+        if (transaction_reassign_account(txn, account, to)) {
+            Account **accounts = transaction_affected_accounts(txn);
+            if (accounts[0] == NULL) {
+                transactions_remove(txns, txn);
+            }
+        }
+    }
 }
 
 bool

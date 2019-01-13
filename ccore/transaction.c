@@ -494,18 +494,21 @@ transaction_print(const Transaction *txn)
     }
 }
 
-void
+bool
 transaction_reassign_account(
     Transaction *txn,
     const Account *account,
-    Account *reassign_to)
+    Account *to)
 {
+    bool res = false;
     for (unsigned int i=0; i<txn->splitcount; i++) {
         Split *s = &txn->splits[i];
         if (s->account == account) {
-            split_account_set(s, reassign_to);
+            split_account_set(s, to);
+            res = true;
         }
     }
+    return res;
 }
 
 bool

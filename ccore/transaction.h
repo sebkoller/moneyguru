@@ -208,13 +208,15 @@ transaction_print(const Transaction *txn);
 
 /* Reassign all splits from `account` to `reassign_to`.
  *
- * All splits belonging to `account` will be changed to `reassign_to`.
+ * All splits belonging to `account` will be changed to `to`.
+ *
+ * Returns whether any change was made.
  */
-void
+bool
 transaction_reassign_account(
     Transaction *txn,
     const Account *account,
-    Account *reassign_to);
+    Account *to);
 
 bool
 transaction_remove_split(Transaction *txn, Split *split);
