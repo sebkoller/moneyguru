@@ -802,7 +802,7 @@ class Document(GUIObject):
         self.oven._accounts = self.accounts
         self._undoer._accounts = self.accounts
         for transaction in loader.transactions:
-            self.transactions.add(transaction, position=transaction.position)
+            self.transactions.add(transaction, True)
         for recurrence in loader.schedules:
             self.schedules.append(recurrence)
         for budget in loader.budgets:

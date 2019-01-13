@@ -342,7 +342,8 @@ class Loader:
             start_date = min(start_date, date)
             for position, info in enumerate(transaction_infos, start=1):
                 transaction = load_transaction_info(info)
-                self.transactions.add(transaction, position=position)
+                transaction.position = position
+                self.transactions.add(transaction, True)
 
         # Scheduled
         for info in self.recurrence_infos:

@@ -59,15 +59,13 @@ class TransactionList(TransactionListBase):
         self._payees = self._compute_completion_list(data_and_mtime)
 
     # --- Public
-    def add(self, transaction, keep_position=False, position=None):
+    def add(self, transaction, keep_position=False):
         """Adds ``transaction`` to self
 
         If you want ``transaction.position`` to stay intact, call with ``keep_position`` at True. If
         you  specify a position, this is the one that will be used.
         """
-        if position is not None:
-            transaction.position = position
-        elif not keep_position:
+        if not keep_position:
             transactions = self.transactions_at_date(transaction.date)
             if transactions:
                 transaction.position = max(t.position for t in transactions) + 1
