@@ -868,10 +868,11 @@ class Document(GUIObject):
             if found:
                 return found
             else:
-                to_internalize = account.copy()
                 # we never internalize groupname
-                to_internalize.change(groupname=None)
-                result = self.accounts.create_from(to_internalize)
+                # it doesn't hurt to change the account's groupname because
+                # groups have no effect in the import window
+                account.change(groupname=None)
+                result = self.accounts.create_from(account)
                 added_accounts.add(result)
                 return result
 
