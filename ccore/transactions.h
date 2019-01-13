@@ -27,6 +27,9 @@ transactions_add(TransactionList *txns, Transaction *txn, bool keep_position);
 Transaction**
 transactions_at_date(TransactionList *txns, time_t date);
 
+char**
+transactions_descriptions(const TransactionList *txns);
+
 int
 transactions_find(TransactionList *txns, Transaction *txn);
 

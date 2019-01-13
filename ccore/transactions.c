@@ -2,7 +2,7 @@
 
 /* Private */
 static int
-_txn_qsort_cmp(const void *a, const void *b)
+_txn_cmp_key(const void *a, const void *b)
 {
     Transaction *t1 = *((Transaction **)a);
     Transaction *t2 = *((Transaction **)b);
@@ -14,6 +14,38 @@ _txn_qsort_cmp(const void *a, const void *b)
         return t1->position < t2->position ? -1 : 1;
     }
     return 0;
+}
+
+static int
+_txn_cmp_mtime(const void *a, const void *b)
+{
+    Transaction *t1 = *((Transaction **)a);
+    Transaction *t2 = *((Transaction **)b);
+
+    if (t1->mtime != t2->mtime) {
+        return t1->mtime < t2->mtime ? -1 : 1;
+    }
+    return 0;
+}
+
+// deduplicates *in place*. slist is NULL-terminated after and before.
+static void
+_deduplicate_strings(char **slist)
+{
+    GHashTable *seen = g_hash_table_new(g_str_hash, g_str_equal);
+    char **iter = slist;
+    char **replace_iter = slist;
+    while (*iter != NULL) {
+        char *s = *iter;
+        if ((s[0] != '\0') && !g_hash_table_contains(seen, &s)) {
+            *replace_iter = s;
+            g_hash_table_add(seen, &s);
+            replace_iter++;
+        }
+        iter++;
+    }
+    *replace_iter = NULL;
+    g_hash_table_destroy(seen);
 }
 
 /* Public */
@@ -91,6 +123,22 @@ transactions_at_date(TransactionList *txns, time_t date)
     return res;
 }
 
+char**
+transactions_descriptions(const TransactionList *txns)
+{
+    Transaction **bymtime = malloc(sizeof(Transaction*) * txns->count);
+    memcpy(bymtime, txns->txns, sizeof(Transaction*) * txns->count);
+    qsort(bymtime, txns->count, sizeof(Transaction*), _txn_cmp_mtime);
+
+    char **res = malloc(sizeof(char*) * (txns->count + 1));
+    for (int i=txns->count-1; i>=0; i--) {
+        res[txns->count-i-1] = bymtime[i]->description;
+    }
+    res[txns->count] = NULL;
+    _deduplicate_strings(res);
+    return res;
+}
+
 int
 transactions_find(TransactionList *txns, Transaction *txn)
 {
@@ -123,5 +171,5 @@ transactions_remove(TransactionList *txns, Transaction *txn)
 void
 transactions_sort(TransactionList *txns)
 {
-    qsort(txns->txns, txns->count, sizeof(Transaction*), _txn_qsort_cmp);
+    qsort(txns->txns, txns->count, sizeof(Transaction*), _txn_cmp_key);
 }

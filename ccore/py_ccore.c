@@ -113,6 +113,8 @@ static PyObject *EntryList_Type;
 typedef struct {
     PyObject_HEAD
     TransactionList tlist;
+    // cache
+    PyObject *descriptions;
 } PyTransactionList;
 
 static PyObject *TransactionList_Type;
@@ -2920,6 +2922,7 @@ PyTransactionList_init(PyTransactionList *self, PyObject *args, PyObject *kwds)
     }
 
     transactions_init(&self->tlist);
+    self->descriptions = NULL;
     return 0;
 }
 
@@ -2970,6 +2973,38 @@ PyTransactionList_clear(PyTransactionList *self, PyObject *args)
     transactions_deinit(&self->tlist);
     transactions_init(&self->tlist);
     Py_RETURN_NONE;
+}
+
+static PyObject*
+PyTransactionList_clear_cache(PyTransactionList *self, PyObject *args)
+{
+    if (self->descriptions != NULL) {
+        Py_DECREF(self->descriptions);
+        self->descriptions = NULL;
+    }
+    Py_RETURN_NONE;
+}
+
+static PyObject*
+PyTransactionList_descriptions(PyTransactionList *self)
+{
+    if (self->descriptions != NULL) {
+        Py_INCREF(self->descriptions);
+        return self->descriptions;
+    }
+    char **descs = transactions_descriptions(&self->tlist);
+    char **iter = descs;
+    PyObject *res = PyList_New(0);
+    while (*iter != NULL) {
+        PyObject *s = _strget(*iter);
+        PyList_Append(res, s);
+        Py_DECREF(s);
+        iter++;
+    }
+    free(descs);
+    self->descriptions = res;
+    Py_INCREF(self->descriptions);
+    return res;
 }
 
 static PyObject*
@@ -3064,6 +3099,7 @@ static void
 PyTransactionList_dealloc(PyTransactionList *self)
 {
     transactions_deinit(&self->tlist);
+    Py_XDECREF(self->descriptions);
     Py_TYPE(self)->tp_free(self);
 }
 
@@ -3409,6 +3445,7 @@ PyType_Spec Transaction_Type_Spec = {
 static PyMethodDef PyTransactionList_methods[] = {
     {"add", (PyCFunction)PyTransactionList_add, METH_VARARGS, ""},
     {"clear", (PyCFunction)PyTransactionList_clear, METH_NOARGS, ""},
+    {"clear_cache", (PyCFunction)PyTransactionList_clear_cache, METH_NOARGS, ""},
     {"first", (PyCFunction)PyTransactionList_first, METH_NOARGS, ""},
     {"last", (PyCFunction)PyTransactionList_last, METH_NOARGS, ""},
     {"remove", (PyCFunction)PyTransactionList_remove, METH_O, ""},
@@ -3417,9 +3454,15 @@ static PyMethodDef PyTransactionList_methods[] = {
     {0, 0, 0, 0},
 };
 
+static PyGetSetDef PyTransactionList_getseters[] = {
+    {"descriptions", (getter)PyTransactionList_descriptions, NULL, NULL, NULL},
+    {0, 0, 0, 0, 0},
+};
+
 static PyType_Slot TransactionList_Slots[] = {
     {Py_tp_init, PyTransactionList_init},
     {Py_tp_methods, PyTransactionList_methods},
+    {Py_tp_getset, PyTransactionList_getseters},
     {Py_sq_length, PyTransactionList_len},
     {Py_sq_contains, PyTransactionList_contains},
     {Py_tp_iter, PyTransactionList_iter},
