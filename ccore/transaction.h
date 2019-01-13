@@ -63,11 +63,6 @@ typedef struct _Transaction {
     time_t recurrence_date;
 } Transaction;
 
-typedef struct {
-    unsigned int count;
-    Transaction **txns;
-} TransactionList;
-
 void
 transaction_init(Transaction *txn, TransactionType type, time_t date);
 
@@ -229,20 +224,3 @@ transaction_remove_split(Transaction *txn, Split *split);
 void
 transaction_resize_splits(Transaction *txn, unsigned int newsize);
 
-void
-transactions_init(TransactionList *txns);
-
-void
-transactions_deinit(TransactionList *txns);
-
-void
-transactions_add(TransactionList *txns, Transaction *txn);
-
-int
-transactions_find(TransactionList *txns, Transaction *txn);
-
-bool
-transactions_remove(TransactionList *txns, Transaction *txn);
-
-void
-transactions_sort(TransactionList *txns);

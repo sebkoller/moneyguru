@@ -1,6 +1,7 @@
 PYTHON ?= python
 
-SRCS = currency.c amount.c account.c accounts.c split.c transaction.c entry.c util.c
+SRCS = currency.c amount.c account.c accounts.c split.c transaction.c \
+	transactions.c entry.c util.c
 OBJS = $(SRCS:%.c=%.o)
 TEST_SRCS = $(addprefix tests/, amount.c account.c transaction.c util.c main.c)
 TEST_OBJS = $(TEST_SRCS:%.c=%.o)
