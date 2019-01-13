@@ -18,12 +18,21 @@ from ..model.date import MonthRange
 from ..model.account import AccountType
 from .base import compare_apps, testdata, TestApp, with_app
 
+class bag: pass
+
+def copyaccount(a):
+    res = bag()
+    ATTRS = ['name', 'type', 'currency', 'account_number', 'inactive', 'notes']
+    for attr in ATTRS:
+        setattr(res, attr, getattr(a, attr))
+    return res
+
 def copydoc(doc):
     # doing a deepcopy on the document itself makes a deepcopy of *all* guis because they're
     # listeners. What we do is a shallow copy of it, *then* a deepcopy of stuff we compare
     # afterwards.
     newdoc = copy.copy(doc)
-    newdoc.accounts = [a.copy() for a in doc.accounts]
+    newdoc.accounts = [copyaccount(a) for a in doc.accounts]
     newdoc.entrycounts = {}
     for a in doc.accounts:
         entries = doc.accounts.entries_for_account(a)

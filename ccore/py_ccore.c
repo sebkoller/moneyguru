@@ -38,8 +38,6 @@ static PyObject *Amount_Type;
 typedef struct {
     PyObject_HEAD
     Account *account;
-    // If true, we own the Account instance and have to free it.
-    bool owned;
 } PyAccount;
 
 static PyObject *Account_Type;
@@ -867,7 +865,6 @@ _PyAccount_from_account(Account *account)
 {
     PyAccount *res = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
     res->account = account;
-    res->owned = false;
     return res;
 }
 
@@ -1115,29 +1112,6 @@ PyAccount_change(PyAccount *self, PyObject *args, PyObject *kwds)
         }
     }
     Py_RETURN_NONE;
-}
-
-static PyObject *
-PyAccount_copy(PyAccount *self)
-{
-    PyAccount *r = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
-    r->owned = true;
-    r->account = malloc(sizeof(Account));
-    memset(r->account, 0, sizeof(Account));
-    account_copy(r->account, self->account);
-    return (PyObject *)r;
-}
-
-static void
-PyAccount_dealloc(PyAccount *self)
-{
-    // Unless we own our Account through copy(), we don't dealloc our Account.
-    // AccountList takes care of that.
-    if (self->owned) {
-        account_deinit(self->account);
-        free(self->account);
-    }
-    Py_TYPE(self)->tp_free(self);
 }
 
 /* Split attrs */
@@ -2560,7 +2534,6 @@ static PyAccount*
 _PyAccountList_create(PyAccountList *self, char *name, Currency *cur, AccountType type)
 {
     PyAccount *account = (PyAccount *)PyType_GenericAlloc((PyTypeObject *)Account_Type, 0);
-    account->owned = false;
     Account *a = accounts_create(&self->alist);
     account->account = a;
     account_init(a, name, cur, type);
@@ -3475,7 +3448,6 @@ PyType_Spec EntryList_Type_Spec = {
 
 static PyMethodDef PyAccount_methods[] = {
     {"change", (PyCFunction)PyAccount_change, METH_VARARGS|METH_KEYWORDS, ""},
-    {"copy", (PyCFunction)PyAccount_copy, METH_NOARGS, ""},
     {"normalize_amount", (PyCFunction)PyAccount_normalize_amount, METH_O, ""},
     {"is_balance_sheet_account", (PyCFunction)PyAccount_is_balance_sheet_account, METH_NOARGS, ""},
     {"is_credit_account", (PyCFunction)PyAccount_is_credit_account, METH_NOARGS, ""},
@@ -3504,7 +3476,6 @@ static PyType_Slot Account_Slots[] = {
     {Py_tp_hash, PyAccount_hash},
     {Py_tp_repr, PyAccount_repr},
     {Py_tp_richcompare, PyAccount_richcompare},
-    {Py_tp_dealloc, PyAccount_dealloc},
     {0, 0},
 };
 
