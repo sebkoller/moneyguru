@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "transactions.h"
 
 /* Private */
@@ -28,25 +29,26 @@ _txn_cmp_mtime(const void *a, const void *b)
     return 0;
 }
 
+// TODO: re-instate this. seems to be causing problems
 // deduplicates *in place*. slist is NULL-terminated after and before.
-static void
-_deduplicate_strings(char **slist)
-{
-    GHashTable *seen = g_hash_table_new(g_str_hash, g_str_equal);
-    char **iter = slist;
-    char **replace_iter = slist;
-    while (*iter != NULL) {
-        char *s = *iter;
-        if ((s[0] != '\0') && !g_hash_table_contains(seen, &s)) {
-            *replace_iter = s;
-            g_hash_table_add(seen, &s);
-            replace_iter++;
-        }
-        iter++;
-    }
-    *replace_iter = NULL;
-    g_hash_table_destroy(seen);
-}
+/*static void                                                      */
+/*_deduplicate_strings(char **slist)                               */
+/*{                                                                */
+/*    GHashTable *seen = g_hash_table_new(g_str_hash, g_str_equal);*/
+/*    char **iter = slist;                                         */
+/*    char **replace_iter = slist;                                 */
+/*    while (*iter != NULL) {                                      */
+/*        char *s = *iter;                                         */
+/*        if ((s[0] != '\0') && !g_hash_table_contains(seen, &s)) {*/
+/*            *replace_iter = s;                                   */
+/*            g_hash_table_add(seen, &s);                          */
+/*            replace_iter++;                                      */
+/*        }                                                        */
+/*        iter++;                                                  */
+/*    }                                                            */
+/*    *replace_iter = NULL;                                        */
+/*    g_hash_table_destroy(seen);                                  */
+/*}                                                                */
 
 /* Public */
 void
@@ -95,7 +97,6 @@ transactions_account_names(const TransactionList *txns)
         }
     }
     res[current] = NULL;
-    _deduplicate_strings(res);
     return res;
 }
 
@@ -163,11 +164,14 @@ transactions_descriptions(const TransactionList *txns)
     qsort(bymtime, txns->count, sizeof(Transaction*), _txn_cmp_mtime);
 
     char **res = malloc(sizeof(char*) * (txns->count + 1));
+    char **iter = res;
     for (int i=txns->count-1; i>=0; i--) {
-        res[txns->count-i-1] = bymtime[i]->description;
+        *iter = bymtime[i]->description;
+        if (*iter != NULL) {
+            iter++;
+        }
     }
-    res[txns->count] = NULL;
-    _deduplicate_strings(res);
+    *iter = NULL;
     return res;
 }
 
@@ -225,11 +229,14 @@ transactions_payees(const TransactionList *txns)
     qsort(bymtime, txns->count, sizeof(Transaction*), _txn_cmp_mtime);
 
     char **res = malloc(sizeof(char*) * (txns->count + 1));
+    char **iter = res;
     for (int i=txns->count-1; i>=0; i--) {
-        res[txns->count-i-1] = bymtime[i]->payee;
+        *iter = bymtime[i]->payee;
+        if (*iter != NULL) {
+            iter++;
+        }
     }
-    res[txns->count] = NULL;
-    _deduplicate_strings(res);
+    *iter = NULL;
     return res;
 }
 
