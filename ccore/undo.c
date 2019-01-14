@@ -96,10 +96,16 @@ _remove_txns(Transaction **txns, TransactionList *tlist, AccountList *alist)
         return true;
     }
     while (*txns != NULL) {
-        if (!transactions_remove(tlist, *txns)) {
+        Transaction *txn = *txns;
+        if (txn->ref != NULL) {
+            // Imported txn. we added ref, not txn, so that's what we remove.
+            // See comment in "ref" field definition.
+            txn = txn->ref;
+        }
+        if (!transactions_remove(tlist, txn)) {
             return false;
         }
-        _remove_auto_created_account(*txns, alist);
+        _remove_auto_created_account(txn, alist);
         txns++;
     }
     return true;
@@ -112,8 +118,13 @@ _readd_txns(Transaction **txns, TransactionList *tlist, AccountList *alist)
         return true;
     }
     while (*txns != NULL) {
-        transactions_add(tlist, *txns, true);
-        _add_auto_created_accounts(*txns, alist);
+        Transaction *txn = *txns;
+        if (txn->ref != NULL) {
+            // see comment in _remove_txns()
+            txn = txn->ref;
+        }
+        transactions_add(tlist, txn, true);
+        _add_auto_created_accounts(txn, alist);
         txns++;
     }
     return true;

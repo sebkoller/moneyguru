@@ -2935,28 +2935,38 @@ PyTransactionList_add(PyTransactionList *self, PyObject *args)
     }
     Transaction *toadd;
     if (txn->owned) {
-        // Steal ref
+        // Steal ownership. Probably a new txn.
         toadd = txn->txn;
         txn->owned = false;
     } else {
-        /* WARNING: this below only works because we (temporarily), never free
-         * Transaction instances. If a txn is not owned, it means that it's
-         * owned by another list, probably a list we're importing for a loader.
-         * For now, we don't have a better solution than keeping pointers
-         * intact, but this *has* to be changed before release.
+        if (transactions_find(&self->tlist, txn->txn) >= 0) {
+            PyErr_SetString(PyExc_ValueError, "already there");
+            return NULL;
+        }
+        /* An unowned txn that isn't already in the list means one thing: we're
+         * importing from another TransactionList. This is usually not much of
+         * a problem: we can copy the txn and add the copy.
          *
-         * This is the code as it should probably be:
-         * toadd = calloc(1, sizeof(Transaction));
-         * transaction_copy(toadd, txn->txn);
-         * txn->txn = toadd;
+         * But no :( it's a problem. The import system is entry-based. What we
+         * import are entries, not transactions. In some import sessions, we
+         * have multiple accounts with entries that are part of the same txn.
+         * If we copy the txn now, we will not be able to detect that the txn is
+         * already imported when we add it again from one of its transfer
+         * account.
+         *
+         * To work around this problem, we use the "ref" variable, which is
+         * usually used for spawns, but since we're not a spawn, let's use it
+         * for something else.
          */
-        toadd = txn->txn;
+        if (txn->txn->ref != NULL) {
+            // Adding a txn that has a ref? hum, not supposed to
+            PyErr_SetString(PyExc_ValueError, "txn shouldn't have a ref");
+            return NULL;
+        }
+        toadd = calloc(sizeof(Transaction), 1);
+        transaction_copy(toadd, txn->txn);
+        txn->txn->ref = toadd;
     }
-    if (transactions_find(&self->tlist, toadd) >= 0) {
-        PyErr_SetString(PyExc_ValueError, "already there");
-        return NULL;
-    }
-
     transactions_add(&self->tlist, toadd, keep_position);
     PyTransactionList_clear_cache(self);
     Py_RETURN_NONE;
@@ -3121,7 +3131,15 @@ PyTransactionList_contains(PyTransactionList *self, PyTransaction *txn)
     if (txn->owned) {
         return 0;
     }
-    return transactions_find(&self->tlist, txn->txn) >= 0 ? 1 : 0;
+    if (transactions_find(&self->tlist, txn->txn) >= 0) {
+        return 1;
+    }
+    if (txn->txn->ref != NULL) {
+        if (transactions_find(&self->tlist, txn->txn->ref) >= 0) {
+            return 1;
+        }
+    }
+    return 0;
 }
 
 static PyObject*

@@ -58,7 +58,16 @@ typedef struct _Transaction {
     // reinitialized on each call and freed on transaction_deinit().
     Account **affected_accounts;
 
-    // Recurrence-related fields
+    /* Usually used by schedule spawns, this is a link to the "reference" txn,
+     * that is, the txn it replicates.
+     *
+     * It is also used, temporarily, in txn importing context. See comment in
+     * PyTransactionList_add().
+     * when importing
+     * a txn, we import it from an external loader, that is, from a
+     * TransactionList to another. To ensure memory ownership integrity, we
+     * can't directly import that transaction
+     */
     struct _Transaction *ref;
     time_t recurrence_date;
 } Transaction;
