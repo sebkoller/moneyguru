@@ -14,6 +14,14 @@ _add(AccountList *accounts, Account *account)
     accounts->accounts[accounts->count-1] = account;
 }
 
+void
+_trashcan_free(gpointer data, gpointer user_data)
+{
+    Account *account = (Account *)data;
+    account_deinit(account);
+    free(account);
+}
+
 /* AccountList public */
 void
 accounts_init(AccountList *accounts, Currency *default_currency)
@@ -22,6 +30,8 @@ accounts_init(AccountList *accounts, Currency *default_currency)
     accounts->accounts = NULL;
     accounts->count = 0;
     accounts->a2entries = g_hash_table_new(g_str_hash, g_str_equal);
+    // don't set a free func: unlike what the doc says, it's called on more
+    // occasions than free(): it's called on remove() too. we don't want that.
     accounts->trashcan = g_ptr_array_new();
 }
 
@@ -41,6 +51,7 @@ accounts_deinit(AccountList *accounts)
         free(accounts->accounts[i]);
     }
     free(accounts->accounts);
+    g_ptr_array_foreach(accounts->trashcan, _trashcan_free, NULL);
     g_ptr_array_free(accounts->trashcan, true);
 }
 
@@ -101,14 +112,6 @@ accounts_remove(AccountList *accounts, Account *target)
     accounts->accounts = realloc(
         accounts->accounts, sizeof(Account*) * accounts->count);
     g_ptr_array_add(accounts->trashcan, target);
-    /* Normally, we should be freeing our account here. However, because of the
-     * Undoer, we can't: it holds a reference to the deleted account and needs
-     * it around in case we need it again. The best option at this time is
-     * simply to never free our accounts. When the Undoer will be converted to
-     * C, we can revisit our memory management model to free Accounts when it's
-     * safe.
-     */
-    /*free(target);*/
     return true;
 }
 
