@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -35,7 +35,6 @@ class BudgetPanel(Panel):
         self.model = model
         self.repeatTypeComboBox = ComboboxModel(model=self.model.repeat_type_list, view=self.repeatTypeComboBoxView)
         self.accountComboBox = ComboboxModel(model=self.model.account_list, view=self.accountComboBoxView)
-        self.targetComboBox = ComboboxModel(model=self.model.target_list, view=self.targetComboBoxView)
 
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
@@ -74,19 +73,15 @@ class BudgetPanel(Panel):
         self.formLayout.setWidget(4, QFormLayout.FieldRole, self.accountComboBoxView)
         self.label_3 = QLabel(tr("Account:"))
         self.formLayout.setWidget(4, QFormLayout.LabelRole, self.label_3)
-        self.targetComboBoxView = QComboBox(self)
-        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.targetComboBoxView)
-        self.label_4 = QLabel(tr("Target:"))
-        self.formLayout.setWidget(5, QFormLayout.LabelRole, self.label_4)
         self.amountEdit = QLineEdit(self)
         self.amountEdit.setMaximumSize(QSize(120, 16777215))
-        self.formLayout.setWidget(6, QFormLayout.FieldRole, self.amountEdit)
+        self.formLayout.setWidget(5, QFormLayout.FieldRole, self.amountEdit)
         self.label_5 = QLabel(tr("Amount:"))
-        self.formLayout.setWidget(6, QFormLayout.LabelRole, self.label_5)
+        self.formLayout.setWidget(5, QFormLayout.LabelRole, self.label_5)
         self.notesEdit = QPlainTextEdit(tr("Notes:"))
-        self.formLayout.setWidget(7, QFormLayout.FieldRole, self.notesEdit)
+        self.formLayout.setWidget(6, QFormLayout.FieldRole, self.notesEdit)
         self.label = QLabel(self)
-        self.formLayout.setWidget(7, QFormLayout.LabelRole, self.label)
+        self.formLayout.setWidget(6, QFormLayout.LabelRole, self.label)
         self.verticalLayout.addLayout(self.formLayout)
         self.buttonBox = QDialogButtonBox(self)
         self.buttonBox.setOrientation(Qt.Horizontal)
@@ -97,7 +92,6 @@ class BudgetPanel(Panel):
         self.label_8.setBuddy(self.repeatEverySpinBox)
         self.label_9.setBuddy(self.stopDateEdit)
         self.label_3.setBuddy(self.accountComboBoxView)
-        self.label_4.setBuddy(self.targetComboBoxView)
         self.label_5.setBuddy(self.amountEdit)
 
     # --- model --> view

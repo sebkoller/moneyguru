@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -16,7 +16,6 @@ class BudgetTable(Table):
         Column('repeat_type', 80),
         Column('interval', 50),
         Column('account', 144),
-        Column('target', 144),
         Column('amount', 100, alignment=Qt.AlignRight, painter=AMOUNT_PAINTER, resizeToFit=True),
     ]
 
