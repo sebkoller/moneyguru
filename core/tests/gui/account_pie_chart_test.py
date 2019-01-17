@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -94,7 +94,7 @@ class TestSomeAssetsAndLiabilities:
         apanel.currency_list.select(Currencies.index('CAD'))
         apanel.save()
         app.add_account('income', account_type=AccountType.Income)
-        app.add_budget('income', None, '5')
+        app.add_budget('income', '5')
         app.show_nwview() # don't crash
 
     @with_app(do_setup)
@@ -119,38 +119,6 @@ class TestSomeAssetsAndLiabilities:
         ]
         eq_(app.nwview.pie.pie2, expected)
 
-
-class TestSomeAssetsAndLiabilitiesWithBudget:
-    def do_setup(self, monkeypatch):
-        app = app_some_assets_and_liabilities(monkeypatch)
-        app.drsel.select_today_date_range()
-        app.add_account('income', account_type=AccountType.Income)
-        app.add_budget('income', 'a3', '5')
-        app.show_nwview()
-        return app
-
-    @with_app(do_setup)
-    def test_future_date_range(self, app):
-        # the budget amounts used for the pie chart include all previous budgets
-        app.drsel.select_next_date_range()
-        expected = [
-            ('a3 60.0%', 12, 0),
-            ('a2 20.0%', 4, 1),
-            ('a4 15.0%', 3, 2),
-            ('a1 5.0%', 1.01, 3),
-        ]
-        eq_(app.nwview.pie.pie1, expected)
-
-    @with_app(do_setup)
-    def test_pie_values(self, app):
-        # budgeted amounts are also reflected in the pie chart
-        expected = [
-            ('a3 46.6%', 7, 0),
-            ('a2 26.6%', 4, 1),
-            ('a4 20.0%', 3, 2),
-            ('a1 6.7%', 1.01, 3),
-        ]
-        eq_(app.nwview.pie.pie1, expected)
 
 # ---
 def app_more_assets_than_slice_count():
@@ -205,7 +173,7 @@ class TestSomeIncomeAndExpenses:
     def test_budget(self, app, monkeypatch):
         # budgeted amounts are also reflected in the pie chart
         monkeypatch.patch_today(2009, 1, 29) # On the last day of the month, this test fails
-        app.add_budget('e1', None, '5')
+        app.add_budget('e1', '5')
         app.show_pview()
         expected = [
             ('e1 41.7%', 5, 0),

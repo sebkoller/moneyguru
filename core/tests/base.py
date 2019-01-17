@@ -263,8 +263,9 @@ class TestApp(TestAppBase):
         for name in names:
             self.add_account(name)
 
-    def add_budget(self, account_name, target_name, str_amount, start_date=None, repeat_type_index=2,
-            repeat_every=1, stop_date=None):
+    def add_budget(
+            self, account_name, str_amount, start_date=None,
+            repeat_type_index=2, repeat_every=1, stop_date=None):
         # if no target, set target_name to None
         self.show_bview()
         bpanel = self.mainwindow.new_item()
@@ -277,8 +278,6 @@ class TestApp(TestAppBase):
             bpanel.stop_date = stop_date
         account_index = bpanel.account_list.index(account_name)
         bpanel.account_list.select(account_index)
-        target_index = bpanel.target_list.index(target_name) if target_name else 0
-        bpanel.target_list.select(target_index)
         bpanel.amount = str_amount
         bpanel.save()
 

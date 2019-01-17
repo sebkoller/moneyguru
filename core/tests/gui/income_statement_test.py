@@ -76,7 +76,7 @@ def test_add_entry(app):
 def test_attrs_with_budget(app, monkeypatch):
     # Must include the budget. 250 of the 400 are spent, there's 150 left to add
     monkeypatch.patch_today(2008, 1, 17)
-    app.add_budget('Account 1', None, '400')
+    app.add_budget('Account 1', '400')
     app.show_pview()
     eq_(app.istatement.income[0].cash_flow, '250.00')
     eq_(app.istatement.income[0].budgeted, '150.00')
@@ -97,7 +97,7 @@ def test_attrs_with_budget(app, monkeypatch):
 @with_app(app_accounts_and_entries)
 def test_cash_flow_with_underestimated_budget(app, monkeypatch):
     monkeypatch.patch_today(2008, 1, 17)
-    app.add_budget('Account 1', None, '200')
+    app.add_budget('Account 1', '200')
     app.show_pview()
     eq_(app.istatement.income[0].cash_flow, '250.00')
 
@@ -164,7 +164,7 @@ def test_with_budget(app, monkeypatch):
     # What this test is making sure of is that the account's budget is of the same currency than
     # the account itself
     monkeypatch.patch_today(2008, 1, 20)
-    app.add_budget('USD account', None, '300usd')
+    app.add_budget('USD account', '300usd')
     app.show_pview()
     eq_(app.istatement.income[0][1].cash_flow, 'USD 100.00')
     eq_(app.istatement.income[0][1].budgeted, 'USD 200.00')
@@ -256,7 +256,7 @@ def app_busted_budget(monkeypatch):
     app.add_account('account', account_type=AccountType.Income)
     app.show_account()
     app.add_entry('01/01/2010', increase='112')
-    app.add_budget('account', None, '100')
+    app.add_budget('account', '100')
     app.show_pview()
     return app
 

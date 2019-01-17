@@ -604,7 +604,7 @@ def app_with_budget(monkeypatch):
     app.drsel.select_today_date_range()
     app.add_account('foo', account_type=AccountType.Expense)
     app.add_account('bar', account_type=AccountType.Liability)
-    app.add_budget('foo', 'bar', '100')
+    app.add_budget('foo', '100')
     return app
 
 @with_app(app_with_budget)
@@ -615,16 +615,6 @@ def test_budget_spawns(app):
     assert app.etable[0].is_budget
     # Budget spawns can't be edited
     assert not app.etable.can_edit_cell('date', 0)
-
-@with_app(app_with_budget)
-def test_budget_spawns_are_picked_up_by_previous_balance(app):
-    # Ticket #333. Budget spawn weren't affecting the previous balance of the following date ranges.
-    app.drsel.select_month_range()
-    aview = app.show_account('bar')
-    app.drsel.select_next_date_range()
-    # Since we're at the monthly range right after the first budget spawn, our "Previous Balance"
-    # figure is supposed to be 100$.
-    eq_(aview.etable[0].balance, '100.00')
 
 # --- Unreconciled entry in the middle of two reconciled entries
 def app_unreconciled_between_two_reconciled():

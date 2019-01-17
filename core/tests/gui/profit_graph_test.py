@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -57,7 +57,7 @@ class TestIncomesAndExpensesInDifferentAccounts:
     def test_budget(self, app, monkeypatch):
         # budgets are counted in the pgraph
         monkeypatch.patch_today(2008, 7, 18)
-        app.add_budget('income1', 'asset', '400') # +180
+        app.add_budget('income1', '400') # +180
         app.show_pview()
         amounts = [data[2:] for data in app.pgraph.data]
         first_week = 50 + 80 + 32 + 22 - 7.04
@@ -75,7 +75,7 @@ class TestIncomesAndExpensesInDifferentAccounts:
     def test_budget_and_exclusion(self, app, monkeypatch):
         # when an account is excluded, it's budget is not counted
         monkeypatch.patch_today(2008, 7, 18)
-        app.add_budget('income1', 'asset', '400') # +180
+        app.add_budget('income1', '400') # +180
         app.show_pview()
         app.istatement.toggle_excluded()
         # same as test_exclude_account

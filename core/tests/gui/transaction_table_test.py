@@ -19,6 +19,37 @@ from ...model.date import MonthRange, YearRange
 from ...model.account import AccountType
 from ...model.currency import Currencies
 
+
+#---
+@with_app(TestApp)
+def test_budget_spawns(app, monkeypatch):
+    # When a budget is set budget transaction spawns show up in ttable, at
+    # the end of each month.
+    monkeypatch.patch_today(2008, 1, 27)
+    app.drsel.select_today_date_range()
+    app.add_account('Some Expense', account_type=AccountType.Expense)
+    app.add_budget('Some Expense', '100')
+    app.show_tview()
+    app.clear_gui_calls()
+    eq_(app.ttable.row_count, 12)
+    eq_(app.ttable[0].amount, '100.00')
+    eq_(app.ttable[0].date, '31/01/2008')
+    eq_(app.ttable[0].to, 'Some Expense')
+    assert app.ttable[0].is_budget
+    eq_(app.ttable[11].date, '31/12/2008')
+    # Budget spawns can't be edited
+    assert not app.ttable.can_edit_cell('date', 0)
+    assert app.mw.edit_item() is None # budget spawns can't be edited
+
+@with_app(TestApp)
+def test_save_load_unassigned_txn(app):
+    # Make sure that unassigned transactions are loaded
+    app.show_tview()
+    app.ttable.add()
+    app.ttable[0].amount = '42'
+    app.ttable.save_edits()
+    app.do_test_save_load()
+
 # ---
 def app_tview_shown():
     app = TestApp()
@@ -147,20 +178,6 @@ class TestEditionMode:
         # assertion exception later.
         app.ttable.duplicate_selected()
         assert app.ttable.edited is None
-
-# ---
-def app_unassigned_transaction_with_amount():
-    app = TestApp()
-    app.show_tview()
-    app.ttable.add()
-    app.ttable[0].amount = '42'
-    app.ttable.save_edits()
-    return app
-
-@with_app(app_unassigned_transaction_with_amount)
-def test_save_load_unassigned_txn(app):
-    # Make sure that unassigned transactions are loaded
-    app.do_test_save_load()
 
 # --- One transaction
 def app_one_transaction():
@@ -1166,31 +1183,6 @@ class TestFourEntriesOnTheSameDate:
         eq_(app.transaction_descriptions(), ['txn 2', 'txn 1', 'txn 3', 'txn 4'])
         app.ttable.move_up()
         eq_(app.transaction_descriptions(), ['txn 2', 'txn 1', 'txn 3', 'txn 4'])
-
-
-class TestWithBudget:
-    def do_setup(self, monkeypatch):
-        app = TestApp()
-        monkeypatch.patch_today(2008, 1, 27)
-        app.drsel.select_today_date_range()
-        app.add_account('Some Expense', account_type=AccountType.Expense)
-        app.add_budget('Some Expense', None, '100')
-        app.show_tview()
-        app.clear_gui_calls()
-        return app
-
-    @with_app(do_setup)
-    def test_budget_spawns(self, app):
-        # When a budget is set budget transaction spawns show up in ttable, at the end of each month.
-        eq_(app.ttable.row_count, 12)
-        eq_(app.ttable[0].amount, '100.00')
-        eq_(app.ttable[0].date, '31/01/2008')
-        eq_(app.ttable[0].to, 'Some Expense')
-        assert app.ttable[0].is_budget
-        eq_(app.ttable[11].date, '31/12/2008')
-        # Budget spawns can't be edited
-        assert not app.ttable.can_edit_cell('date', 0)
-        assert app.mw.edit_item() is None # budget spawns can't be edited
 
 
 @pytest.mark.parametrize(

@@ -1,9 +1,7 @@
-# Created By: Virgil Dupras
-# Created On: 2010-01-05
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2019 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from ..testutil import eq_
@@ -106,8 +104,8 @@ def test_sort_by_reconciliation_date(app):
 def app_two_budgets_one_stop_date():
     app = TestApp()
     app.add_account('expense', account_type=AccountType.Expense)
-    app.add_budget('expense', None, '42', stop_date=None)
-    app.add_budget('expense', None, '42', stop_date='21/12/2012')
+    app.add_budget('expense', '42', stop_date=None)
+    app.add_budget('expense', '42', stop_date='21/12/2012')
     return app
 
 @with_app(app_two_budgets_one_stop_date)
@@ -159,18 +157,17 @@ def app_mixed_up_schedule_and_budget(monkeypatch):
     app.etable.save_edits()
     app.add_txn('01/01/2010', description='plain', from_='asset')
     app.add_schedule(repeat_type_index=2, description='schedule', account='asset', amount='42') # monthly
-    app.add_budget('expense', 'asset', '500', start_date='01/01/2010')
+    app.add_budget('expense', '500', start_date='01/01/2010')
     return app
 
 @with_app(app_mixed_up_schedule_and_budget)
 def test_sort_etable_by_status(app):
-    # Reconciled are first, then plain, then schedules, then budgets
+    # Reconciled are first, then plain, then schedules
     app.show_aview() # 'asset' is already selected from setup
     app.etable.sort_by('status')
     eq_(app.etable[0].description, 'reconciled')
     eq_(app.etable[1].description, 'plain')
     eq_(app.etable[2].description, 'schedule')
-    assert app.etable[3].is_budget
 
 @with_app(app_mixed_up_schedule_and_budget)
 def test_sort_ttable_by_status(app):

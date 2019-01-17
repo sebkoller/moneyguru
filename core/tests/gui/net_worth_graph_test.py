@@ -49,12 +49,13 @@ class TestAssetsAndLiabilitiesInDifferentAccounts:
 
     @with_app(do_setup)
     def test_budget(self, app, monkeypatch):
-        # when we add a budget, the balance graph will show a regular progression throughout date range
+        # when we add a budget, the balance graph will show a regular
+        # progression throughout date range
         monkeypatch.patch_today(2008, 7, 27)
         app.add_account('income', account_type=AccountType.Income)
         app.add_account('expense', account_type=AccountType.Expense)
-        app.add_budget('income', 'asset1', '300')
-        app.add_budget('expense', 'asset1', '100')
+        app.add_budget('income', '300')
+        app.add_budget('expense', '100')
         app.show_nwview()
         # this means 200$ profit in 4 days
         app.show_nwview()
@@ -73,19 +74,6 @@ class TestAssetsAndLiabilitiesInDifferentAccounts:
             ('01/08/2008', '287.51'),
         ]
         eq_(app.nw_graph_data(), expected)
-
-    @with_app(do_setup)
-    def test_budget_target_excluded(self, app, monkeypatch):
-        # when the budget target is excluded, don't show it's budgeted data
-        monkeypatch.patch_today(2008, 7, 27)
-        app.add_account('asset3')
-        app.add_account('income', account_type=AccountType.Income)
-        without_budget = app.nw_graph_data()
-        app.add_budget('income', 'asset3', '300')
-        app.show_nwview()
-        app.bsheet.selected = app.bsheet.assets[2] # asset3
-        app.bsheet.toggle_excluded()
-        eq_(app.nw_graph_data(), without_budget)
 
     @with_app(do_setup)
     def test_exclude_account(self, app):

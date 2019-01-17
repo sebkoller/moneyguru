@@ -14,7 +14,7 @@ def app_with_budget(monkeypatch):
     monkeypatch.patch_today(2008, 1, 27)
     app.drsel.select_today_date_range()
     app.add_account('Some Expense', account_type=AccountType.Expense)
-    app.add_budget('Some Expense', None, '100')
+    app.add_budget('Some Expense', '100')
     app.show_bview()
     return app
 
@@ -27,7 +27,6 @@ def test_attrs(app):
     eq_(row.repeat_type, 'Monthly')
     eq_(row.interval, '1')
     eq_(row.account, 'Some Expense')
-    eq_(row.target, '')
     eq_(row.amount, '100.00')
 
 @with_app(app_with_budget)

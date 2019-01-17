@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2009-08-23
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -32,7 +30,7 @@ def app_one_expense_with_budget(monkeypatch):
     app = TestApp()
     app.drsel.select_today_date_range()
     app.add_account('Some Expense', account_type=AccountType.Expense)
-    app.add_budget('Some Expense', None, '100')
+    app.add_budget('Some Expense', '100')
     app.show_pview()
     # The accounts' name and order in which they are created is important, as it tests that
     # the budget panel sorts them correctly.

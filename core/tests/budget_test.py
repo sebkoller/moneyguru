@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -15,7 +15,7 @@ def app_account_with_budget(monkeypatch):
     monkeypatch.patch_today(2008, 1, 27)
     app = TestApp()
     app.add_account('Some Income', account_type=AccountType.Income)
-    app.add_budget('Some Income', None, '100')
+    app.add_budget('Some Income', '100')
     return app
 
 @with_app(app_account_with_budget)
@@ -57,12 +57,37 @@ def test_set_budget_again(app):
     app.show_tview()
     eq_(app.ttable[0].from_, 'Some Income')
 
+@with_app(app_account_with_budget)
+def test_delete_account(app):
+    # When deleting an income or expense account, delete all budgets associated
+    # with it as well.
+    app.show_pview()
+    app.istatement.selected = app.istatement.income[0]
+    app.istatement.delete()
+    arpanel = app.get_current_panel()
+    arpanel.save() # don't reassign
+    app.show_bview()
+    eq_(len(app.btable), 0) # the budget has been removed
+
+@with_app(app_account_with_budget)
+def test_delete_account_and_reassign(app):
+    # When reassigning an account on deletion, change budgets instead of
+    # deleting it.
+    app.add_account('other expense', account_type=AccountType.Expense)
+    app.istatement.selected = app.istatement.income[0]
+    app.istatement.delete()
+    arpanel = app.get_current_panel()
+    arpanel.account_list.select(2) # other expense
+    arpanel.save()
+    app.show_bview()
+    eq_(app.btable[0].account, 'other expense')
+
 # --- Income with budget in past
 def app_income_with_budget_in_past(monkeypatch):
     monkeypatch.patch_today(2009, 11, 16)
     app = TestApp()
     app.add_account('income', account_type=AccountType.Income)
-    app.add_budget('income', None, '100', start_date='01/09/2009')
+    app.add_budget('income', '100', start_date='01/09/2009')
     return app
 
 @with_app(app_income_with_budget_in_past)
@@ -78,7 +103,7 @@ def app_budget_with_expense_and_txn(monkeypatch):
     monkeypatch.patch_today(2008, 1, 27)
     app = TestApp()
     app.add_account('Some Expense', account_type=AccountType.Expense)
-    app.add_budget('Some Expense', None, '100')
+    app.add_budget('Some Expense', '100')
     app.add_txn(date='27/01/2008', to='Some Expense', amount='42')
     return app
 
@@ -97,77 +122,6 @@ def test_busted_budget_spaws_dont_show_up(app):
     eq_(app.ttable[1].date, '29/02/2008')
 
 
-# --- Expense with budget and target
-def app_expense_with_budget_and_target(monkeypatch):
-    monkeypatch.patch_today(2008, 1, 27)
-    app = TestApp()
-    app.add_account('some asset')
-    app.add_account('Some Expense', account_type=AccountType.Expense)
-    app.add_budget('Some Expense', 'some asset', '100')
-    return app
-
-@with_app(app_expense_with_budget_and_target)
-def test_asset_is_in_the_from_column(app):
-    # In the budget transaction, 'some asset' is in the 'from' column.
-    app.show_tview()
-    eq_(app.ttable[0].from_, 'some asset')
-
-@with_app(app_expense_with_budget_and_target)
-def test_budget_is_counted_in_etable_balance(app):
-    # When an asset is a budget target, its balance is correctly incremented in the etable.
-    app.show_nwview()
-    app.bsheet.selected = app.bsheet.assets[0]
-    app.show_account()
-    # The balance of the budget entry has a correctly decremented balance (the budget is an expense).
-    eq_(app.etable[0].balance, '-100.00')
-
-@with_app(app_expense_with_budget_and_target)
-def test_delete_account(app):
-    # When deleting an income or expense account, delete all budgets associated with it as well.
-    app.show_pview()
-    app.istatement.selected = app.istatement.expenses[0]
-    app.istatement.delete()
-    arpanel = app.get_current_panel()
-    arpanel.save() # don't reassign
-    app.show_bview()
-    eq_(len(app.btable), 0) # the budget has been removed
-
-@with_app(app_expense_with_budget_and_target)
-def test_delete_account_and_reassign(app):
-    # When reassigning an account on deletion, change budgets instead of deleting it.
-    app.add_account('other expense', account_type=AccountType.Expense)
-    app.istatement.selected = app.istatement.expenses[1] # Some Expense
-    app.istatement.delete()
-    arpanel = app.get_current_panel()
-    arpanel.account_list.select(2) # other expense
-    arpanel.save()
-    app.show_bview()
-    eq_(app.btable[0].account, 'other expense')
-
-@with_app(app_expense_with_budget_and_target)
-def test_delete_target(app):
-    # When deleting the target account, budgets having this account as their target have it
-    # changed to None
-    app.show_nwview()
-    app.bsheet.selected = app.bsheet.assets[0]
-    app.bsheet.delete()
-    arpanel = app.get_current_panel()
-    arpanel.save()
-    app.show_bview()
-    eq_(app.btable[0].target, '') # been changed to None
-
-@with_app(app_expense_with_budget_and_target)
-def test_delete_target_and_reassign(app):
-    # When reassigning an account on deletion, change budgets' target.
-    app.add_account('other asset')
-    app.bsheet.selected = app.bsheet.assets[1] # some asset
-    app.bsheet.delete()
-    arpanel = app.get_current_panel()
-    arpanel.account_list.select(1) # other asset
-    arpanel.save()
-    app.show_bview()
-    eq_(app.btable[0].target, 'other asset')
-
 # --- Two budgets from same account
 def app_two_budgets_from_same_account(monkeypatch):
     # XXX this mock is because the test previously failed because we were currently on the last
@@ -177,8 +131,8 @@ def app_two_budgets_from_same_account(monkeypatch):
     app.drsel.select_month_range()
     app.add_account('income', account_type=AccountType.Income)
     app.add_txn(from_='income', amount='25') # This txn must not be counted twice in budget calculations!
-    app.add_budget('income', None, '100')
-    app.add_budget('income', None, '100')
+    app.add_budget('income', '100')
+    app.add_budget('income', '100')
     return app
 
 @with_app(app_two_budgets_from_same_account)
@@ -194,7 +148,7 @@ def app_yearly_budget_with_txn_before_current_month(monkeypatch):
     app.drsel.select_year_range()
     app.add_account('income', account_type=AccountType.Income)
     app.add_txn(date='01/07/2009', from_='income', amount='25')
-    app.add_budget('income', None, '100', start_date='01/01/2009', repeat_type_index=3) # yearly
+    app.add_budget('income', '100', start_date='01/01/2009', repeat_type_index=3) # yearly
     return app
 
 @with_app(app_yearly_budget_with_txn_before_current_month)
@@ -217,7 +171,7 @@ def app_scheduled_txn_and_budget(monkeypatch):
     app.drsel.select_month_range()
     app.add_account('account', account_type=AccountType.Expense)
     app.add_schedule(start_date='10/09/2009', account='account', amount='1', repeat_type_index=2) # monthly
-    app.add_budget('account', None, '10') # monthly
+    app.add_budget('account', '10') # monthly
     return app
 
 @with_app(app_scheduled_txn_and_budget)

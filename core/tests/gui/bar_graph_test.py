@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -85,7 +85,7 @@ class TestAccountAndEntriesAndBudget:
         app.drsel.select_month_range()
         app.add_account('Account 1', account_type=AccountType.Income)
         monkeypatch.patch_today(2008, 1, 17)
-        app.add_budget('Account 1', None, '400')
+        app.add_budget('Account 1', '400')
         app.show_pview()
         app.istatement.selected = app.istatement.income[0]
         app.show_account()

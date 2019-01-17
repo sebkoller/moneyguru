@@ -775,7 +775,7 @@ def app_with_budget(monkeypatch):
     monkeypatch.patch_today(2008, 1, 27)
     app.drsel.select_today_date_range()
     app.add_account('Some Expense', account_type=AccountType.Expense)
-    app.add_budget('Some Expense', None, '100')
+    app.add_budget('Some Expense', '100')
     app.show_bview()
     app.btable.select([0])
     return app

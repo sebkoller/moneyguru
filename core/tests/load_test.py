@@ -271,7 +271,7 @@ def app_account_with_budget():
     app = TestApp()
     app.add_account('asset')
     app.add_account('income', account_type=AccountType.Income)
-    app.add_budget('income', 'asset', '400')
+    app.add_budget('income', '400')
     bpanel = app.mainwindow.edit_item()
     bpanel.notes = 'foobar'
     bpanel.save()
@@ -356,7 +356,8 @@ def app_one_account_in_one_group():
 def app_budget_with_all_fields_set():
     app = TestApp()
     app.add_account('income', account_type=AccountType.Income)
-    app.add_budget('income', None, '100', start_date='01/01/2009', repeat_type_index=3,
+    app.add_budget(
+        'income', '100', start_date='01/01/2009', repeat_type_index=3,
         repeat_every=2, stop_date='01/01/2022')
     return app
 

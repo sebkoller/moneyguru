@@ -495,52 +495,23 @@ def test_budget(app, monkeypatch):
     # Account 1 is the target of the expense budget, and Account 2 is the target of the income
     # Assign budgeted amounts to the appropriate accounts.
     monkeypatch.patch_today(2008, 1, 15)
-    app.add_budget('income', 'Account 2', '400') # + 150
-    app.add_budget('expense', 'Account 1', '100') # + 80
+    app.add_budget('income', '400') # + 150
+    app.add_budget('expense', '100') # + 80
     app.show_nwview()
     eq_(app.bsheet.assets[0].end, '250.00')
-    eq_(app.bsheet.assets[0].budgeted, '-80.00')
     eq_(app.bsheet.assets[1].end, '80.00')
-    eq_(app.bsheet.assets[1].budgeted, '150.00')
     eq_(app.bsheet.assets.end, '330.00')
-    eq_(app.bsheet.assets.budgeted, '70.00')
+    # NOTE: this value tested below is going to move to the budget view
     eq_(app.bsheet.net_worth.budgeted, '70.00')
     # When we go to the next date range, the "budgeted" value must be cumulated
     app.drsel.select_next_date_range()
-    eq_(app.bsheet.assets[0].budgeted, '-180.00') # 80 + 100
-    eq_(app.bsheet.assets[1].budgeted, '550.00') # 150 + 300
-    eq_(app.bsheet.assets.budgeted, '370.00')
-
-@with_app(app_accounts_and_entries)
-def test_budget_multiple_currencies(app, monkeypatch):
-    # budgeted amounts must be correctly converted to the target account's currency
-    monkeypatch.patch_today(2008, 1, 15)
-    Currencies.get_rates_db().set_CAD_value(date(2008, 1, 1), 'USD', 0.8)
-    app.show_pview()
-    app.istatement.selected = app.istatement.income[0]
-    apanel = app.mw.edit_item()
-    apanel.currency_list.select(Currencies.index('CAD'))
-    apanel.save()
-    app.add_budget('income', 'Account 1', '400 cad')
-    app.show_nwview()
-    eq_(app.bsheet.assets[0].end, '250.00')
-    eq_(app.bsheet.assets[0].budgeted, '250.00') # 400 / 2 / 0.8 = 250
-
-@with_app(app_accounts_and_entries)
-def test_budget_target_liability(app, monkeypatch):
-    # The budgeted amount must be normalized before being added to a liability amount
-    monkeypatch.patch_today(2008, 1, 15)
-    app.add_account('foo', account_type=AccountType.Liability)
-    app.add_budget('income', 'foo', '400')
-    app.show_nwview()
-    eq_(app.bsheet.liabilities[0].end, '0.00')
-    eq_(app.bsheet.liabilities[0].budgeted, '-150.00')
+    eq_(app.bsheet.net_worth.budgeted, '370.00')
 
 @with_app(app_accounts_and_entries)
 def test_budget_without_target(app, monkeypatch):
     # The Net Worth's "budgeted" column counts all budgets, including target-less ones
     monkeypatch.patch_today(2008, 1, 15)
-    app.add_budget('income', None, '400')
+    app.add_budget('income', '400')
     app.show_nwview()
     eq_(app.bsheet.net_worth.budgeted, '150.00')
 
