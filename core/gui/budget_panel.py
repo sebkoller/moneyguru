@@ -30,25 +30,11 @@ class AccountList(GUISelectableList):
     def refresh(self):
         self[:] = [a.name for a in self.panel._accounts]
 
-class TargetList(GUISelectableList):
-    def __init__(self, panel):
-        self.panel = panel
-        GUISelectableList.__init__(self)
-
-    def _update_selection(self):
-        GUISelectableList._update_selection(self)
-        target = self.panel._targets[self.selected_index]
-        self.panel.budget.target = target
-
-    def refresh(self):
-        self[:] = [(a.name if a is not None else tr('None')) for a in self.panel._targets]
-
 class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
     def __init__(self, mainwindow):
         GUIPanel.__init__(self, mainwindow)
         self.create_repeat_type_list()
         self.account_list = AccountList(weakref.proxy(self))
-        self.target_list = TargetList(weakref.proxy(self))
 
     # --- Override
     def _load(self):
@@ -76,13 +62,8 @@ class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
             msg = tr("Income/Expense accounts must be created before budgets can be set.")
             raise OperationAborted(msg)
         sort_accounts(self._accounts)
-        self._targets = [a for a in self.document.accounts if a.is_balance_sheet_account()]
-        sort_accounts(self._targets)
-        self._targets.insert(0, None)
         self.account_list.refresh()
         self.account_list.select(self._accounts.index(budget.account) if budget.account is not None else 0)
-        self.target_list.refresh()
-        self.target_list.select(self._targets.index(budget.target))
         self.view.refresh_repeat_every()
 
     # --- Properties
