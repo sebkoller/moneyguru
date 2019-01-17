@@ -575,8 +575,8 @@ def test_selection_as_csv(app):
     app.bsheet.selected = app.bsheet.assets[0] # Account 1
     csvdata = app.bsheet.selection_as_csv()
     rows = list(csv.reader(StringIO(csvdata), delimiter='\t'))
-    # The contents of the columns, in order [name, end, start, budgeted]
-    expected = [['Account 1', '250.00', '0.00', '0.00']]
+    # The contents of the columns, in order [name, end, start]
+    expected = [['Account 1', '250.00', '0.00']]
     eq_(rows, expected)
 
 # --- Multiple currencies

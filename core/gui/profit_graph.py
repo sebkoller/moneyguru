@@ -27,7 +27,7 @@ class ProfitGraph(BarGraph):
         cash_flow = -sum(
             getentries(a).cash_flow(date_range, self.document.default_currency)
             for a in accounts)
-        budgeted_amount = self.document.budgeted_amount_for_target(None, date_range)
+        budgeted_amount = self.document.budgeted_amount(date_range)
         return cash_flow + budgeted_amount
 
     def _is_reverted(self):

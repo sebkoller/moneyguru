@@ -148,8 +148,9 @@ def test_column_menu_attributes(app):
     # The column menu depends on the selected pane and shows the display attribute of optional
     # columns.
     app.show_nwview()
-    expected = [("Account #", False), ("Start", True), ("Change", False), ("Change %", False),
-        ("Budgeted", True)]
+    expected = [
+        ("Account #", False), ("Start", True), ("Change", False),
+        ("Change %", False)]
     eq_(app.mw.column_menu_items(), expected)
     app.mw.toggle_column_menu_item(0)
     expected[0] = ("Account #", True)

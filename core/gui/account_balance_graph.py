@@ -4,7 +4,6 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from ..model.date import DateRange
 from .balance_graph import BalanceGraph
 
 class AccountBalanceGraph(BalanceGraph):
@@ -18,12 +17,6 @@ class AccountBalanceGraph(BalanceGraph):
         entries = self.document.accounts.entries_for_account(self._account)
         entry = entries.last_entry(date)
         return entry.normal_balance() if entry else 0
-
-    def _budget_for_date(self, date):
-        date_range = DateRange(date.min, date)
-        return self.document.budgeted_amount_for_target(
-            self._account, date_range, filter_excluded=False
-        )
 
     # --- Properties
     @property

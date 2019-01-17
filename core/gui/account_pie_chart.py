@@ -10,8 +10,6 @@
 from collections import defaultdict
 from core.trans import tr
 from ..model.account import AccountType
-from ..model.amount import convert_amount
-from ..model.date import DateRange
 from .pie_chart import PieChart
 
 class _AccountPieChart(PieChart):
@@ -57,10 +55,7 @@ class BalancePieChart(_AccountPieChart):
         def get_value(account):
             entries = self.document.accounts.entries_for_account(account)
             balance = entries.normal_balance(date, currency)
-            budget_date_range = DateRange(date.min, self.document.date_range.end)
-            budgeted = self.document.budgeted_amount_for_target(account, budget_date_range)
-            budgeted = convert_amount(budgeted, currency, date)
-            return balance + budgeted
+            return balance
 
         return [(a, get_value(a)) for a in accounts]
 
