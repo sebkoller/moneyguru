@@ -691,7 +691,6 @@ class Document(GUIObject):
         original.repeat_every = new.repeat_every
         original.stop_date = new.stop_date
         original.account = new.account
-        original.target = new.target
         original.amount = new.amount
         original.notes = new.notes
         original.reset_spawn_cache()

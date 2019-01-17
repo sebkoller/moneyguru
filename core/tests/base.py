@@ -738,10 +738,6 @@ def compare_apps(first, second, qif_mode=False):
             compare_txns(txn1, txn2)
     for budget1, budget2 in zip(first.budgets, second.budgets):
         eq_(budget1.account.name, budget2.account.name)
-        if budget1.target is None:
-            assert budget2.target is None
-        else:
-            eq_(budget1.target.name, budget2.target.name)
         eq_(budget1.amount, budget2.amount)
         eq_(budget1.notes, budget2.notes)
         eq_(budget1.repeat_type, budget2.repeat_type)

@@ -13,7 +13,7 @@ GROUP_SWAP_ATTRS = ['name', 'type']
 SPLIT_SWAP_ATTRS = ['account', 'amount', 'reconciliation_date']
 SCHEDULE_SWAP_ATTRS = ['repeat_type', 'repeat_every', 'stop_date', 'date2exception',
                        'date2globalchange', 'date2instances']
-BUDGET_SWAP_ATTRS = SCHEDULE_SWAP_ATTRS + ['account', 'target', 'amount']
+BUDGET_SWAP_ATTRS = SCHEDULE_SWAP_ATTRS + ['account', 'amount']
 
 def swapvalues(first, second, attrs):
     for attr in attrs:

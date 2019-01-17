@@ -300,7 +300,7 @@ class Loader:
                 group = self.groups.find(info.group, account_type)
                 account.change(groupname=group.name)
             if info.budget:
-                self.budget_infos.append(BudgetInfo(info.name, info.budget_target, info.budget))
+                self.budget_infos.append(BudgetInfo(info.name, info.budget))
             account.change(
                 reference=info.reference, account_number=info.account_number,
                 inactive=info.inactive, notes=info.notes)
@@ -368,10 +368,9 @@ class Loader:
             account = self.accounts.find(info.account)
             if account is None:
                 continue
-            target = self.accounts.find(info.target) if info.target else None
             amount = self.parse_amount(info.amount, account.currency)
             start_date = nonone(info.start_date, fallback_start_date)
-            budget = Budget(account, target, amount, start_date, repeat_type=info.repeat_type)
+            budget = Budget(account, amount, start_date, repeat_type=info.repeat_type)
             budget.notes = nonone(info.notes, '')
             budget.stop_date = info.stop_date
             if info.repeat_every:

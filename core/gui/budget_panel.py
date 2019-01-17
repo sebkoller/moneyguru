@@ -42,7 +42,7 @@ class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
         self._load_budget(budget)
 
     def _new(self):
-        self._load_budget(Budget(None, None, 0, date.today()))
+        self._load_budget(Budget(None, 0, date.today()))
 
     def _save(self):
         self.document.change_budget(self.original, self.budget)

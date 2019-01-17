@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -104,8 +104,6 @@ def save(filename, document_id, properties, accounts, groups, transactions, sche
         attrib['every'] = str(budget.repeat_every)
         attrib['amount'] = format_amount(budget.amount)
         attrib['notes'] = budget.notes
-        if budget.target is not None:
-            attrib['target'] = budget.target.name
         attrib['start_date'] = date2str(budget.start_date)
         if budget.stop_date is not None:
             attrib['stop_date'] = date2str(budget.stop_date)

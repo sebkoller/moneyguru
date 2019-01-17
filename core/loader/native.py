@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -99,7 +99,6 @@ class Loader(base.Loader):
             self.account_info.type = attrib.get('type')
             self.account_info.group = attrib.get('group')
             self.account_info.budget = attrib.get('budget')
-            self.account_info.budget_target = attrib.get('budget_target')
             self.account_info.reference = attrib.get('reference')
             self.account_info.account_number = attrib.get('account_number', '')
             self.account_info.inactive = attrib.get('inactive') == 'y'
@@ -138,7 +137,6 @@ class Loader(base.Loader):
             self.budget_info.account = attrib.get('account')
             self.budget_info.repeat_type = attrib.get('type')
             self.budget_info.repeat_every = tryint(attrib.get('every'), default=None)
-            self.budget_info.target = attrib.get('target')
             self.budget_info.amount = attrib.get('amount')
             self.budget_info.notes = attrib.get('notes')
             self.budget_info.start_date = str2date(attrib.get('start_date'))

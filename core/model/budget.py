@@ -37,12 +37,9 @@ class Budget(Recurrence):
 
     .. seealso:: :doc:`/forecast`
     """
-    def __init__(self, account, target, amount, ref_date, repeat_type=RepeatType.Monthly):
+    def __init__(self, account, amount, ref_date, repeat_type=RepeatType.Monthly):
         #: :class:`.Account` for which we budget. Has to be an income or expense.
         self.account = account
-        #: Target :class:`.Account` for the budget. In other words, the asset or liability account
-        #: in which we want to count the cumulative effect of our future budgets. Can be ``None``.
-        self.target = target
         #: The :class:`.Amount` we budget for our time span.
         self.amount = amount
         #: ``str``. Freeform notes from the user.
@@ -52,7 +49,7 @@ class Budget(Recurrence):
         Recurrence.__init__(self, ref, repeat_type, 1)
 
     def __repr__(self):
-        return '<Budget %r %r %r>' % (self.account, self.target, self.amount)
+        return '<Budget %r %r>' % (self.account, self.amount)
 
     # --- Override
     def _create_spawn(self, ref, recurrence_date):
@@ -93,9 +90,9 @@ class Budget(Recurrence):
             if abs(txns_amount) < abs(budget_amount):
                 spawn_amount = budget_amount - txns_amount
                 if spawn.amount_for_account(account, budget_amount.currency_code) != spawn_amount:
-                    spawn.change(amount=spawn_amount, from_=account, to=self.target)
+                    spawn.change(amount=spawn_amount, from_=account, to=None)
             else:
-                spawn.change(amount=0, from_=account, to=self.target)
+                spawn.change(amount=0, from_=account, to=None)
             consumedtxns |= set(wheat)
         self._previous_spawns = spawns
         return spawns
@@ -158,15 +155,6 @@ class BudgetList(list):
         currency = currency or account.currency
         amount = sum(b.amount_for_date_range(date_range, currency) for b in budgets)
         return amount
-
-    def budgets_for_target(self, target):
-        """Return all budgets with ``target`` as :attr:`Budget.target`.
-
-        :param target: The target account we're looking for.
-        :type target: :class:`.Account`
-        :rtype: List of :class:`Budget`
-        """
-        return [b for b in self if b.target == target]
 
     def normal_amount_for_account(self, account, date_range, currency=None):
         """Normalized version of :meth:`amount_for_account`.

@@ -172,7 +172,7 @@ def test_sctable_restores_columns(app):
 
 @with_app(TestApp)
 def test_btable_restores_columns(app):
-    assert_column_save_restore(app, 'btable', 'target', 'show_bview')
+    assert_column_save_restore(app, 'btable', 'account', 'show_bview')
 
 @with_app(TestApp)
 def test_bsheet_restores_columns(app):
