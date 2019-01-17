@@ -8,6 +8,7 @@ import re
 from calendar import monthrange
 from datetime import date, datetime, timedelta
 
+from core.model._ccore import inc_date
 from core.trans import tr
 from core.util import iterdaterange
 
@@ -255,17 +256,17 @@ class YearRange(NavigableDateRange):
         if seed.month < year_start_month:
             year -= 1
         start = date(year, year_start_month, 1)
-        end = inc_year(start, 1) - ONE_DAY
+        end = inc_date(start, RepeatType.Yearly, 1) - ONE_DAY
         DateRange.__init__(self, start, end)
 
     def around(self, date):
         return type(self)(date, year_start_month=self.start.month)
 
     def next(self):
-        return YearRange(inc_year(self.start, 1), year_start_month=self.start.month)
+        return YearRange(inc_date(self.start, RepeatType.Yearly, 1), year_start_month=self.start.month)
 
     def prev(self):
-        return YearRange(inc_year(self.start, -1), year_start_month=self.start.month)
+        return YearRange(inc_date(self.start, RepeatType.Yearly, -1), year_start_month=self.start.month)
 
     def with_new_args(self, year_start_month=None, **kwargs):
         if year_start_month is not None and year_start_month != self.start.month:
@@ -303,8 +304,8 @@ class YearToDateRange(DateRange):
         DateRange.__init__(self, start, end)
 
     def prev(self):
-        start = inc_year(self.start, -1)
-        end = inc_year(self.end, -1)
+        start = inc_date(self.start, RepeatType.Yearly, -1)
+        end = inc_date(self.end, RepeatType.Yearly, -1)
         return DateRange(start, end)
 
     def with_new_args(self, year_start_month=None, **kwargs):
@@ -348,7 +349,7 @@ class RunningYearRange(DateRange):
         end_plus_one = end + ONE_DAY
         start = end_plus_one.replace(year=end_plus_one.year-1)
         if start.day != 1:
-            start = inc_month(start, 1).replace(day=1)
+            start = inc_date(start, RepeatType.Monthly, 1).replace(day=1)
         DateRange.__init__(self, start, end)
         self.ahead_months = ahead_months
 
@@ -429,81 +430,23 @@ class CustomDateRange(DateRange):
 
 # --- Date Incrementing
 
-def inc_day(date, count):
-    """Increments ``date`` by ``count`` days.
+class RepeatType:
+    """Available repetition types for :class:`Recurrence`.
 
-    ``count`` can be negative.
+    * ``Daily``
+    * ``Weekly``
+    * ``Monthly``
+    * ``Yearly``
+    * ``Weekday`` (every 2nd friday of the month)
+    * ``WeekdayLast`` (every last friday of the month)
     """
-    return date + timedelta(count)
-
-def inc_week(date, count):
-    """Increments ``date`` by ``count * 7`` days.
-
-    ``count`` can be negative.
-    """
-    return inc_day(date, count * 7)
-
-def inc_month(date, count):
-    """Increments ``date`` by ``count`` months.
-
-    That is, we'll end up with a date on the same day of a different month. If that's impossible
-    (31st incrementing in a 30-days month), the day will be the last of the month.
-
-    ``count`` can be negative.
-    """
-    y, m, d = date.year, date.month, date.day
-    m += count
-    y += (m - 1) // 12
-    m = ((m - 1) % 12) + 1
-    days_in_month = monthrange(y, m)[1]
-    d = min(d, days_in_month)
-    return date.replace(year=y, month=m, day=d)
-
-def inc_year(date, count):
-    """Increments ``date`` by ``count * 12`` months.
-
-    ``count`` can be negative.
-    """
-    return inc_month(date, count * 12)
-
-def inc_weekday_in_month(date, count):
-    """Increments ``date`` by ``count`` months, preserving weekday.
-
-    For example, if ``date`` is the 2nd friday of its month, then the result will be the 2nd friday
-    of ``count`` months later.
-
-    ``count`` can be negative.
-
-    If the result doesn't exist, returns ``None``.
-    """
-    weekday = date.weekday()
-    weekno = (date.day - 1) // 7
-    new_month = inc_month(date, count)
-    first_weekday = new_month.replace(day=1).weekday()
-    diff = weekday - first_weekday
-    if diff < 0:
-        diff += 7
-    try:
-        return new_month.replace(day=weekno * 7 + diff + 1)
-    except ValueError:
-        return None
-
-def inc_last_weekday_in_month(date, count):
-    """Increments ``date`` by ``count`` months, preserving weekday, returning the last.
-
-    For example, if ``date`` is a friday, then the result will be the last friday of ``count``
-    months later.
-
-    ``count`` can be negative.
-    """
-    weekday = date.weekday()
-    new_month = inc_month(date, count)
-    days_in_month = monthrange(new_month.year, new_month.month)[1]
-    last_weekday = new_month.replace(day=days_in_month).weekday()
-    diff = last_weekday - weekday
-    if diff < 0:
-        diff += 7
-    return new_month.replace(day=days_in_month - diff)
+    Daily = 'daily'
+    Weekly = 'weekly'
+    Monthly = 'monthly'
+    Yearly = 'yearly'
+    Weekday = 'weekday'
+    WeekdayLast = 'weekday_last'
+    ALL = {Daily, Weekly, Monthly, Yearly, Weekday, WeekdayLast}
 
 # --- Date Formatting
 # For the functions below, the format used is a subset of the Unicode format type

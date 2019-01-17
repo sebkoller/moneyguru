@@ -12,39 +12,11 @@ from itertools import chain
 from core.util import nonone, first
 from core.trans import tr
 
-from .date import (
-    inc_day, inc_week, inc_month, inc_year, inc_weekday_in_month, inc_last_weekday_in_month
-)
-from ._ccore import Transaction
+from ._ccore import Transaction, inc_date
+from .date import RepeatType
 
 def find_schedule_of_ref(ref, schedules):
     return first(s for s in schedules if s.contains_ref(ref))
-
-class RepeatType:
-    """Available repetition types for :class:`Recurrence`.
-
-    * ``Daily``
-    * ``Weekly``
-    * ``Monthly``
-    * ``Yearly``
-    * ``Weekday`` (every 2nd friday of the month)
-    * ``WeekdayLast`` (every last friday of the month)
-    """
-    Daily = 'daily'
-    Weekly = 'weekly'
-    Monthly = 'monthly'
-    Yearly = 'yearly'
-    Weekday = 'weekday'
-    WeekdayLast = 'weekday_last'
-
-RTYPE2INCFUNC = {
-    RepeatType.Daily: inc_day,
-    RepeatType.Weekly: inc_week,
-    RepeatType.Monthly: inc_month,
-    RepeatType.Yearly: inc_year,
-    RepeatType.Weekday: inc_weekday_in_month,
-    RepeatType.WeekdayLast: inc_last_weekday_in_month,
-}
 
 ONE_DAY = datetime.timedelta(1)
 
@@ -77,7 +49,7 @@ class DateCounter:
         self.base_date = base_date
         self.end = end
         self.inccount = 0
-        self.incfunc = RTYPE2INCFUNC[repeat_type]
+        self.repeat_type = repeat_type
         self.incsize = repeat_every
         self.current_date = None
 
@@ -95,7 +67,7 @@ class DateCounter:
         new_date = None
         while new_date is None:
             self.inccount += self.incsize
-            new_date = self.incfunc(self.base_date, self.inccount)
+            new_date = inc_date(self.base_date, self.repeat_type, self.inccount)
         if new_date <= self.current_date or new_date > self.end:
             raise StopIteration()
         self.current_date = new_date
@@ -159,7 +131,7 @@ class Recurrence:
     :param int repeat_every: The amplitude of that repetition.
     """
     def __init__(self, ref, repeat_type, repeat_every):
-        if repeat_type not in RTYPE2INCFUNC:
+        if repeat_type not in RepeatType.ALL:
             # invalid repeat type, default to monthly
             repeat_type = RepeatType.Monthly
         #: :class:`.Transaction`. The model transaction that's going to be regularly spawned.

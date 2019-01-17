@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,7 +9,8 @@ from math import ceil, floor, log10
 
 from .geometry import Point, Rect
 
-from ..model.date import inc_month, inc_year
+from ..model._ccore import inc_date
+from ..model.date import RepeatType
 from .chart import Chart
 
 # A graph is a chart or drawing that shows the relationship between changing things.
@@ -79,14 +80,14 @@ class Graph(Chart):
         days = date_range.days
         if days > 366:
             tick_format = '%Y'
-            inc_func = inc_year
+            inc_type = RepeatType.Yearly
             tick = date(tick.year, 1, 1)
         else:
-            inc_func = inc_month
+            inc_type = RepeatType.Monthly
             tick = date(tick.year, tick.month, 1)
             tick_format = '%b' if days > 150 else '%B'
         while tick < date_range.end:
-            newtick = inc_func(tick, 1)
+            newtick = inc_date(tick, inc_type, 1)
             # 'tick' might be lower than xmin. ensure that it's not (for label pos)
             tick = tick if tick > date_range.start else date_range.start
             tick_pos = self._offset_xpos(tick.toordinal()) + (newtick - tick).days / 2

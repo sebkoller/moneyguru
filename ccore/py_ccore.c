@@ -8,6 +8,7 @@
 #include "transactions.h"
 #include "accounts.h"
 #include "undo.h"
+#include "recurrence.h"
 #include "util.h"
 
 // NOTE ABOUT DECREF AND ERRORS
@@ -2892,6 +2893,45 @@ py_patch_today(PyObject *self, PyObject *today_p)
     Py_RETURN_NONE;
 }
 
+static PyObject*
+py_inc_date(PyObject *self, PyObject *args)
+{
+    PyObject *date_py;
+    char *type;
+    int count;
+
+    if (!PyArg_ParseTuple(args, "Osi", &date_py, &type, &count)) {
+        return NULL;
+    }
+    time_t date = pydate2time(date_py);
+    if (date == 1) {
+        return NULL;
+    }
+    RepeatType rt;
+    if (strcmp(type, "daily") == 0) {
+        rt = REPEAT_DAILY;
+    } else if (strcmp(type, "weekly") == 0) {
+        rt = REPEAT_WEEKLY;
+    } else if (strcmp(type, "monthly") == 0) {
+        rt = REPEAT_MONTHLY;
+    } else if (strcmp(type, "yearly") == 0) {
+        rt = REPEAT_YEARLY;
+    } else if (strcmp(type, "weekday") == 0) {
+        rt = REPEAT_WEEKDAY;
+    } else if (strcmp(type, "weekday_last") == 0) {
+        rt = REPEAT_WEEKDAY_LAST;
+    } else {
+        PyErr_SetString(PyExc_ValueError, "invalid type");
+        return NULL;
+    }
+    time_t res = inc_date(date, rt, count);
+    if (res == -1) {
+        Py_RETURN_NONE;
+    } else {
+        return time2pydate(res);
+    }
+}
+
 /* PyTransactionList */
 
 static int
@@ -3409,6 +3449,7 @@ static PyMethodDef module_methods[] = {
     {"currency_daterange", py_currency_daterange, METH_VARARGS},
     {"oven_cook_txns", py_oven_cook_txns, METH_VARARGS},
     {"patch_today", py_patch_today, METH_O},
+    {"inc_date", py_inc_date, METH_VARARGS},
     {NULL}  /* Sentinel */
 };
 

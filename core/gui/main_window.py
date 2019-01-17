@@ -12,8 +12,9 @@ from core.trans import tr
 
 from ..const import PaneType, FilterType
 from ..exception import OperationAborted, FileFormatError
-from ..model.date import inc_month, DateFormat
-from ..model.recurrence import Recurrence, RepeatType
+from ..model._ccore import inc_date
+from ..model.date import RepeatType, DateFormat
+from ..model.recurrence import Recurrence
 from ..model.transaction import txn_matches
 from ..loader import csv, qif, ofx, native
 from .base import DocumentGUIObject
@@ -426,7 +427,7 @@ class MainWindow(DocumentGUIObject):
             # overwrite our selection.
             self.select_pane_of_type(PaneType.Schedule)
             ref = self.selected_transactions[0].replicate()
-            ref.date = inc_month(ref.date, 1)
+            ref.date = inc_date(ref.date, RepeatType.Monthly, 1)
             schedule = Recurrence(ref, RepeatType.Monthly, 1)
             self.selected_schedules = [schedule]
             return self.edit_item()

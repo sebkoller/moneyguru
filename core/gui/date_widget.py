@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-06-18
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,7 +6,8 @@
 
 from datetime import date
 
-from ..model.date import format_year_month_day, inc_day, inc_month, inc_year, DateFormat
+from ..model.date import format_year_month_day, DateFormat, RepeatType
+from ..model._ccore import inc_date
 
 DAY = 'day'
 MONTH = 'month'
@@ -96,11 +95,11 @@ class DateWidget:
         self._flush_buffer(force=True)
         olddate = self.date
         if self._selected == DAY:
-            self.date = inc_day(olddate, inc_count)
+            self.date = inc_date(olddate, RepeatType.Daily, inc_count)
         elif self._selected == MONTH:
-            self.date = inc_month(olddate, inc_count)
+            self.date = inc_date(olddate, RepeatType.Monthly, inc_count)
         else:
-            self.date = inc_year(olddate, inc_count)
+            self.date = inc_date(olddate, RepeatType.Yearly, inc_count)
 
     # --- Public
     def backspace(self):

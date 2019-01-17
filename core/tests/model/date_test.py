@@ -1,9 +1,7 @@
-# Created By: Eric Mc Sween
-# Created On: 2007-12-12
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2019 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from datetime import date
@@ -131,14 +129,14 @@ class TestRanges:
         eq_(self.q4.display, 'Q4 2008')
         eq_(self.year2008.display, 'Jan 2008 - Dec 2008')
         eq_(self.year2009.display, 'Jan 2009 - Dec 2009')
-    
+
     def test_iter(self):
         # iter(date_ranges) iterates through every date present in the range
         result = list(self.january)
         eq_(len(result), 31)
         eq_(result[0], date(2008, 1, 1))
         eq_(result[-1], date(2008, 1, 31))
-    
+
 
 class TestRangesNoSetup:
     def test_hash(self):
@@ -148,7 +146,7 @@ class TestRangesNoSetup:
         date_range3 = MonthRange(date(2008, 8, 1))
         assert date_range2 in set([date_range1])
         assert not date_range3 in set([date_range1])
-    
+
     def test_intersection(self):
         # dr1 & dr2 return a date range that is common to both or a NULL_DATE_RANGE
         dr1 = MonthRange(date(2008, 9, 1))
@@ -159,12 +157,12 @@ class TestRangesNoSetup:
         eq_(dr1 & dr3, DateRange(date(2008, 9, 11), date(2008, 9, 30)))
         eq_(dr1 & dr4, DateRange(date(2008, 9, 11), date(2008, 9, 13)))
         assert not dr2 & dr3
-    
+
     def test_nonzero(self):
         # Only valid date ranges are non-zero
         assert MonthRange(date(2008, 9, 1))
         assert not DateRange(date(2008, 9, 2), date(2008, 9, 1))
-    
+
     def test_running_year(self, monkeypatch):
         # The running year ends at the end of the current month and adds 'ahead_months' to it. the
         # start date is then one year earlier.
@@ -173,13 +171,13 @@ class TestRangesNoSetup:
         eq_(dr.end, date(2009, 3, 31))
         eq_(dr.start, date(2008, 4, 1))
         eq_(dr.display, 'Running year (Apr - Mar)')
-    
+
     def test_year_to_date(self, monkeypatch):
         monkeypatch.patch_today(2009, 10, 7)
         dr = YearToDateRange(year_start_month=2)
         eq_(dr.display, 'Feb 2009 - Now')
-    
+
     def test_year_with_start_month(self):
         dr = YearRange(date(2009, 10, 7), year_start_month=5)
         eq_(dr.display, 'May 2009 - Apr 2010')
-    
+
