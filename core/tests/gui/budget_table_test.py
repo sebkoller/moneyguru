@@ -23,7 +23,6 @@ def test_attrs(app):
     eq_(len(app.btable), 1)
     row = app.btable[0]
     eq_(row.start_date, '01/01/2008')
-    eq_(row.stop_date, '')
     eq_(row.repeat_type, 'Monthly')
     eq_(row.interval, '1')
     eq_(row.account, 'Some Expense')

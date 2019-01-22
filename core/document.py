@@ -689,7 +689,6 @@ class Document(GUIObject):
         original.start_date = new.start_date
         original.repeat_type = new.repeat_type
         original.repeat_every = new.repeat_every
-        original.stop_date = new.stop_date
         original.account = new.account
         original.amount = new.amount
         original.notes = new.notes

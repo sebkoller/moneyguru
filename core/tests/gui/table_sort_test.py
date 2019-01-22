@@ -100,21 +100,6 @@ def test_sort_by_reconciliation_date(app):
     eq_(app.etable[0].reconciliation_date, '05/01/2010')
     eq_(app.etable[1].reconciliation_date, '')
 
-# --- Two budgets with one stop date
-def app_two_budgets_one_stop_date():
-    app = TestApp()
-    app.add_account('expense', account_type=AccountType.Expense)
-    app.add_budget('expense', '42', stop_date=None)
-    app.add_budget('expense', '42', stop_date='21/12/2012')
-    return app
-
-@with_app(app_two_budgets_one_stop_date)
-def test_sort_btable_by_stop_date(app):
-    # Don't crash because some dates are None.
-    app.btable.sort_by('stop_date') # no crash
-    eq_(app.btable[0].stop_date, '')
-    eq_(app.btable[1].stop_date, '21/12/2012')
-
 # --- Two schedules one stop date
 def app_two_schedules_one_stop_date():
     app = TestApp()

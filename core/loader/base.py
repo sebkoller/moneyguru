@@ -372,7 +372,6 @@ class Loader:
             start_date = nonone(info.start_date, fallback_start_date)
             budget = Budget(account, amount, start_date, repeat_type=info.repeat_type)
             budget.notes = nonone(info.notes, '')
-            budget.stop_date = info.stop_date
             if info.repeat_every:
                 budget.repeat_every = info.repeat_every
             self.budgets.append(budget)
@@ -470,7 +469,6 @@ class BudgetInfo:
         self.repeat_type = None
         self.repeat_every = None
         self.start_date = None
-        self.stop_date = None
 
     def is_valid(self):
         return self.account and self.amount
