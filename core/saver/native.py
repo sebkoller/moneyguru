@@ -100,11 +100,11 @@ def save(filename, document_id, properties, accounts, groups, transactions, sche
         budget_element = ET.SubElement(root, 'budget')
         attrib = budget_element.attrib
         attrib['account'] = budget.account.name
-        attrib['type'] = budget.repeat_type
-        attrib['every'] = str(budget.repeat_every)
+        attrib['type'] = budgets.repeat_type
+        attrib['every'] = str(budgets.repeat_every)
         attrib['amount'] = format_amount(budget.amount)
         attrib['notes'] = budget.notes
-        attrib['start_date'] = date2str(budget.start_date)
+        attrib['start_date'] = date2str(budgets.start_date)
     for elem in root.iter():
         attrib = elem.attrib
         for key, value in attrib.items():

@@ -40,7 +40,7 @@ class Oven:
         # TODO: fix this
         if not isinstance(self._budgets, BudgetList):
             self._budgets = BudgetList(self._budgets)
-        ref_date = min(b.start_date for b in self._budgets)
+        ref_date = self._budgets.start_date
         relevant_txns = list(dropwhile(lambda t: t.date < ref_date, self._transactions)) + schedule_spawns
         return self._budgets.get_spawns(until_date, relevant_txns)
 

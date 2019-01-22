@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -39,7 +39,7 @@ REPEAT_EVERY_DESCS_PLURAL = {
     RepeatType.WeekdayLast: tr('months'),
 }
 
-class PanelWithScheduleMixIn:
+class WithScheduleMixIn:
     def _refresh_repeat_types(self):
         descs = (
             get_repeat_type_desc(rtype, self.schedule.start_date)
@@ -63,19 +63,6 @@ class PanelWithScheduleMixIn:
             return
         self.schedule.start_date = parsed
         self._refresh_repeat_types()
-
-    @property
-    def stop_date(self):
-        if self.schedule.stop_date is None:
-            return ''
-        return self.app.format_date(self.schedule.stop_date)
-
-    @stop_date.setter
-    def stop_date(self, value):
-        try:
-            self.schedule.stop_date = self.app.parse_date(value)
-        except (ValueError, TypeError):
-            self.schedule.stop_date = None
 
     @property
     def repeat_every(self):
@@ -108,7 +95,7 @@ class PanelWithScheduleMixIn:
     def create_repeat_type_list(self):
         self.repeat_type_list = LinkedSelectableList(setfunc=self._update_repeat_type_selection)
 
-class SchedulePanel(PanelWithTransaction, PanelWithScheduleMixIn):
+class SchedulePanel(PanelWithTransaction, WithScheduleMixIn):
     def __init__(self, mainwindow):
         PanelWithTransaction.__init__(self, mainwindow)
         self.create_repeat_type_list()
@@ -142,4 +129,18 @@ class SchedulePanel(PanelWithTransaction, PanelWithScheduleMixIn):
         self.repeat_type_list.select(REPEAT_OPTIONS_ORDER.index(schedule.repeat_type))
         self.view.refresh_repeat_every()
         self.split_table.refresh_initial()
+
+    # --- Properties
+    @property
+    def stop_date(self):
+        if self.schedule.stop_date is None:
+            return ''
+        return self.app.format_date(self.schedule.stop_date)
+
+    @stop_date.setter
+    def stop_date(self, value):
+        try:
+            self.schedule.stop_date = self.app.parse_date(value)
+        except (ValueError, TypeError):
+            self.schedule.stop_date = None
 

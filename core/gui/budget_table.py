@@ -4,6 +4,7 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
+from core.model.recurrence import get_repeat_type_desc
 from core.trans import trget
 from .column import Column
 
@@ -60,10 +61,11 @@ class BudgetTableRow(Row):
     # --- Public
     def load(self):
         budget = self.budget
-        self._start_date = budget.start_date
+        budgets = self.document.budgets
+        self._start_date = budgets.start_date
         self._start_date_fmt = self.document.app.format_date(self._start_date)
-        self._repeat_type = budget.repeat_type_desc
-        self._interval = str(budget.repeat_every)
+        self._repeat_type = get_repeat_type_desc(budgets.repeat_type, budgets.start_date)
+        self._interval = str(budgets.repeat_every)
         self._account = budget.account.name
         self._amount = budget.amount
         self._amount_fmt = self.document.format_amount(self._amount)

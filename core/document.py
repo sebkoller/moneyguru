@@ -684,10 +684,10 @@ class Document(GUIObject):
             action = Action(tr('Add Budget'))
             action.added_budgets.add(original)
         self._undoer.record(action)
-        min_date = min(original.start_date, new.start_date)
-        original.start_date = new.start_date
-        original.repeat_type = new.repeat_type
-        original.repeat_every = new.repeat_every
+        min_date = min(self.budgets.start_date, new.start_date)
+        self.budgets.start_date = new.start_date
+        self.budgets.repeat_type = new.repeat_type
+        self.budgets.repeat_every = new.repeat_every
         original.account = new.account
         original.amount = new.amount
         original.notes = new.notes
@@ -707,8 +707,7 @@ class Document(GUIObject):
         self._undoer.record(action)
         for budget in budgets:
             self.budgets.remove(budget)
-        min_date = min(b.start_date for b in budgets)
-        self._cook(from_date=min_date)
+        self._cook(from_date=self.budgets.start_date)
 
     # --- Schedule
     def change_schedule(self, schedule, new_ref, repeat_type, repeat_every, stop_date):
@@ -790,6 +789,9 @@ class Document(GUIObject):
             self.transactions.add(transaction, True)
         for recurrence in loader.schedules:
             self.schedules.append(recurrence)
+        self.budgets.start_date = loader.budgets.start_date
+        self.budgets.repeat_type = loader.budgets.repeat_type
+        self.budgets.repeat_every = loader.budgets.repeat_every
         for budget in loader.budgets:
             self.budgets.append(budget)
         self.accounts.default_currency = self.default_currency

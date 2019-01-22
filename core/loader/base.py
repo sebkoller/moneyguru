@@ -17,7 +17,7 @@ from ..exception import FileFormatError
 from ..model._ccore import AccountList, Split, TransactionList
 from ..model.account import Group, GroupList, AccountType
 from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
-from ..model.budget import Budget
+from ..model.budget import Budget, BudgetList
 from ..model.currency import Currencies
 from ..model.oven import Oven
 from ..model.recurrence import Recurrence, Spawn
@@ -76,7 +76,7 @@ class Loader:
         # I did not manage to create a repeatable test for it, but self.schedules has to be ordered
         # because the order in which the spawns are created must stay the same
         self.schedules = []
-        self.budgets = []
+        self.budgets = BudgetList()
         self.properties = {}
         self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
         self.target_account = None # when set, overrides the reference matching system
@@ -362,18 +362,20 @@ class Loader:
                 recurrence.date2globalchange[date] = spawn
             self.schedules.append(recurrence)
         # Budgets
-        TODAY = datetime.date.today()
-        fallback_start_date = datetime.date(TODAY.year, TODAY.month, 1)
+        if self.budget_infos:
+            info = self.budget_infos[0]
+            if info.start_date:
+                self.budgets.start_date = info.start_date
+            self.budgets.repeat_type = info.repeat_type
+            if info.repeat_every:
+                self.budgets.repeat_every = info.repeat_every
         for info in self.budget_infos:
             account = self.accounts.find(info.account)
             if account is None:
                 continue
             amount = self.parse_amount(info.amount, account.currency)
-            start_date = nonone(info.start_date, fallback_start_date)
-            budget = Budget(account, amount, start_date, repeat_type=info.repeat_type)
+            budget = Budget(account, amount)
             budget.notes = nonone(info.notes, '')
-            if info.repeat_every:
-                budget.repeat_every = info.repeat_every
             self.budgets.append(budget)
         self._post_load()
         self.oven.cook(datetime.date.min, until_date=None)

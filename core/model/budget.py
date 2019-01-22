@@ -37,10 +37,7 @@ class Budget:
 
     .. seealso:: :doc:`/forecast`
     """
-    def __init__(self, account, amount, ref_date, repeat_type=RepeatType.Monthly):
-        self.start_date = ref_date
-        self.repeat_type = repeat_type
-        self.repeat_every = 1
+    def __init__(self, account, amount):
         #: :class:`.Account` for which we budget. Has to be an income or expense.
         self.account = account
         #: The :class:`.Amount` we budget for our time span.
@@ -48,7 +45,6 @@ class Budget:
         #: ``str``. Freeform notes from the user.
         self.notes = ''
         self._previous_spawns = []
-        self.repeat_type_desc = get_repeat_type_desc(self.repeat_type, self.start_date)
 
     def __repr__(self):
         return '<Budget %r %r>' % (self.account, self.amount)
@@ -61,7 +57,7 @@ class Budget:
     def get_spawns(self, start_date, repeat_type, repeat_every, end, transactions, consumedtxns):
         date_counter = DateCounter(start_date, repeat_type, repeat_every, end)
         spawns = []
-        current_ref = Transaction(self.start_date)
+        current_ref = Transaction(start_date)
         for current_date in date_counter:
             # `recurrence_date` is the date at which the budget *starts*.
             # We need a date counter to see which date is next (so we can know when our period ends
@@ -128,6 +124,13 @@ class BudgetList(list):
     This subclasses ``list`` and provides a few methods for getting stats for all budgets in the
     list.
     """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.start_date = date.today()
+        self.repeat_type = RepeatType.Monthly
+        self.repeat_every = 1
+        self.repeat_type_desc = get_repeat_type_desc(self.repeat_type, self.start_date)
+
     def amount_for_account(self, account, date_range, currency=None):
         """Returns the amount for all budgets for ``account``.
 
@@ -162,9 +165,9 @@ class BudgetList(list):
     def get_spawns(self, until_date, txns):
         if not self:
             return []
-        start_date = self[0].start_date
-        repeat_type = self[0].repeat_type
-        repeat_every = self[0].repeat_every
+        start_date = self.start_date
+        repeat_type = self.repeat_type
+        repeat_every = self.repeat_every
         result = []
         # It's possible to have 2 budgets overlapping in date range and having the same account
         # When it happens, we need to keep track of which budget "consume" which txns

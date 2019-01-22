@@ -4,7 +4,6 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from datetime import date
 import weakref
 
 from core.util import first
@@ -14,7 +13,7 @@ from ..exception import OperationAborted
 from ..model.account import sort_accounts
 from ..model.budget import Budget
 from .base import GUIPanel
-from .schedule_panel import PanelWithScheduleMixIn, REPEAT_OPTIONS_ORDER
+from .schedule_panel import WithScheduleMixIn, REPEAT_OPTIONS_ORDER
 from .selectable_list import GUISelectableList
 
 class AccountList(GUISelectableList):
@@ -30,7 +29,7 @@ class AccountList(GUISelectableList):
     def refresh(self):
         self[:] = [a.name for a in self.panel._accounts]
 
-class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
+class BudgetPanel(GUIPanel, WithScheduleMixIn):
     def __init__(self, mainwindow):
         GUIPanel.__init__(self, mainwindow)
         self.create_repeat_type_list()
@@ -42,7 +41,7 @@ class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
         self._load_budget(budget)
 
     def _new(self):
-        self._load_budget(Budget(None, 0, date.today()))
+        self._load_budget(Budget(None, 0))
 
     def _save(self):
         self.document.change_budget(self.original, self.budget)
@@ -54,9 +53,13 @@ class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
             raise OperationAborted
         self.original = budget
         self.budget = budget.replicate()
-        self.schedule = self.budget # for PanelWithScheduleMixIn
+        # temporary hack to make things work
+        self.budget.start_date = self.document.budgets.start_date
+        self.budget.repeat_type = self.document.budgets.repeat_type
+        self.budget.repeat_every = self.document.budgets.repeat_every
+        self.schedule = self.budget # for WithScheduleMixIn
         self._refresh_repeat_types()
-        self.repeat_type_list.select(REPEAT_OPTIONS_ORDER.index(budget.repeat_type))
+        self.repeat_type_list.select(REPEAT_OPTIONS_ORDER.index(self.schedule.repeat_type))
         self._accounts = [a for a in self.document.accounts if a.is_income_statement_account()]
         if not self._accounts:
             msg = tr("Income/Expense accounts must be created before budgets can be set.")

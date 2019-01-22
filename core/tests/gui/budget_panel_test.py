@@ -85,7 +85,9 @@ def test_edit_without_selection(app):
 @with_app(app_one_expense_with_budget)
 def test_new_budget(app):
     app.bpanel = app.mainwindow.new_item()
-    eq_(app.bpanel.start_date, '27/01/2008') # mocked date
+    # date of the first added budget, which TestApp.add_budget() fixes at the
+    # first day of today (which is mocked)
+    eq_(app.bpanel.start_date, '01/01/2008')
     eq_(app.bpanel.repeat_type_list.selected_index, 2) # monthly
     eq_(app.bpanel.account_list.selected_index, 0)
     app.bpanel.save()

@@ -736,13 +736,13 @@ def compare_apps(first, second, qif_mode=False):
             txn1 = rec1.date2globalchange[date_]
             txn2 = rec2.date2globalchange[date_]
             compare_txns(txn1, txn2)
+    eq_(first.budgets.repeat_type, second.budgets.repeat_type)
+    eq_(first.budgets.start_date, second.budgets.start_date)
+    eq_(first.budgets.repeat_every, second.budgets.repeat_every)
     for budget1, budget2 in zip(first.budgets, second.budgets):
         eq_(budget1.account.name, budget2.account.name)
         eq_(budget1.amount, budget2.amount)
         eq_(budget1.notes, budget2.notes)
-        eq_(budget1.repeat_type, budget2.repeat_type)
-        eq_(budget1.start_date, budget2.start_date)
-        eq_(budget1.repeat_every, budget2.repeat_every)
 
 def print_table(table, extra_attrs=[]):
     def getval(row, attrname):
