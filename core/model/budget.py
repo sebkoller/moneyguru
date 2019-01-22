@@ -5,6 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 import copy
+from collections import defaultdict
 from datetime import date
 
 from core.util import extract
@@ -57,28 +58,14 @@ class Budget:
         result = copy.copy(self)
         return result
 
-    def get_spawns(self, end, transactions, consumedtxns):
-        """Returns the list of transactions spawned by our budget.
-
-        Works pretty much like :meth:`core.model.recurrence.Recurrence.get_spawns`, except for the
-        extra arguments.
-
-        :param transactions: Transactions that can affect our budget spawns' final amount.
-        :type transactions: list of :class:`.Transaction`
-        :param consumedtxns: Transactions that have already been "consumed" by a budget spawn in
-                             this current round of spawning (one a budget "ate" a transaction, we
-                             don't have it affect another). This set is going to be mutated
-                             (augmented) by this method. All you have to do is start with an empty
-                             set and pass it around for each call.
-        :type consumedtxns: set of :class:`.Transaction`
-        """
-        date_counter = DateCounter(self.start_date, self.repeat_type, self.repeat_every, end)
+    def get_spawns(self, start_date, repeat_type, repeat_every, end, transactions, consumedtxns):
+        date_counter = DateCounter(start_date, repeat_type, repeat_every, end)
         spawns = []
         current_ref = Transaction(self.start_date)
         for current_date in date_counter:
             # `recurrence_date` is the date at which the budget *starts*.
             # We need a date counter to see which date is next (so we can know when our period ends
-            end_date = inc_date(current_date, self.repeat_type, self.repeat_every) - ONE_DAY
+            end_date = inc_date(current_date, repeat_type, repeat_every) - ONE_DAY
             if end_date <= date.today():
                 # No spawn in the past
                 continue
@@ -171,4 +158,23 @@ class BudgetList(list):
         """
         budgeted_amount = self.amount_for_account(account, date_range, currency)
         return account.normalize_amount(budgeted_amount)
+
+    def get_spawns(self, until_date, txns):
+        if not self:
+            return []
+        start_date = self[0].start_date
+        repeat_type = self[0].repeat_type
+        repeat_every = self[0].repeat_every
+        result = []
+        # It's possible to have 2 budgets overlapping in date range and having the same account
+        # When it happens, we need to keep track of which budget "consume" which txns
+        account2consumedtxns = defaultdict(set)
+        for budget in self:
+            if not budget.amount:
+                continue
+            consumedtxns = account2consumedtxns[budget.account]
+            spawns = budget.get_spawns(start_date, repeat_type, repeat_every, until_date, txns, consumedtxns)
+            spawns = [spawn for spawn in spawns if not spawn.is_null]
+            result += spawns
+        return result
 

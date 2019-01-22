@@ -1,10 +1,9 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from collections import defaultdict
 from datetime import date
 from itertools import dropwhile
 from operator import attrgetter
@@ -12,6 +11,7 @@ from operator import attrgetter
 from core.util import flatten
 
 from ._ccore import oven_cook_txns
+from .budget import BudgetList
 
 class Oven:
     """Computes raw data from transactions, schedules, budgets.
@@ -37,20 +37,12 @@ class Oven:
     def _budget_spawns(self, until_date, schedule_spawns):
         if not self._budgets:
             return []
-        result = []
+        # TODO: fix this
+        if not isinstance(self._budgets, BudgetList):
+            self._budgets = BudgetList(self._budgets)
         ref_date = min(b.start_date for b in self._budgets)
         relevant_txns = list(dropwhile(lambda t: t.date < ref_date, self._transactions)) + schedule_spawns
-        # It's possible to have 2 budgets overlapping in date range and having the same account
-        # When it happens, we need to keep track of which budget "consume" which txns
-        account2consumedtxns = defaultdict(set)
-        for budget in self._budgets:
-            if not budget.amount:
-                continue
-            consumedtxns = account2consumedtxns[budget.account]
-            spawns = budget.get_spawns(until_date, relevant_txns, consumedtxns)
-            spawns = [spawn for spawn in spawns if not spawn.is_null]
-            result += spawns
-        return result
+        return self._budgets.get_spawns(until_date, relevant_txns)
 
     def continue_cooking(self, until_date):
         """Cooks from where we stop last time until ``until_date``.
