@@ -140,6 +140,5 @@ class Loader(base.Loader):
             self.budget_info.amount = attrib.get('amount')
             self.budget_info.notes = attrib.get('notes')
             self.budget_info.start_date = str2date(attrib.get('start_date'))
-            self.budget_info.stop_date = str2date(attrib.get('stop_date'))
             self.flush_budget()
 

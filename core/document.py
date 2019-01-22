@@ -286,7 +286,6 @@ class Document(GUIObject):
                         budget.account = reassign_to
                 elif budget.target == account:
                     budget.target = reassign_to
-                budget.reset_spawn_cache()
             self.accounts.remove(account)
         self._cook()
 
@@ -692,7 +691,6 @@ class Document(GUIObject):
         original.account = new.account
         original.amount = new.amount
         original.notes = new.notes
-        original.reset_spawn_cache()
         if original not in self.budgets:
             self.budgets.append(original)
         self._cook(from_date=min_date)

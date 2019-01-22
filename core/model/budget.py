@@ -1,22 +1,21 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
+import copy
 from datetime import date
 
 from core.util import extract
 
+from ._ccore import inc_date
 from .amount import prorate_amount
 from .date import DateRange, ONE_DAY
-from .recurrence import Recurrence, Spawn, DateCounter, RepeatType
+from .recurrence import get_repeat_type_desc, Spawn, DateCounter, RepeatType
 from .transaction import Transaction
 
-def BudgetSpawn(*args, **kwargs):
-    return Spawn(*args, txntype=3, **kwargs)
-
-class Budget(Recurrence):
+class Budget:
     """Regular budget for a specific account.
 
     A budgets yields spawns with amounts depending on how much money we've already spent in our
@@ -38,6 +37,9 @@ class Budget(Recurrence):
     .. seealso:: :doc:`/forecast`
     """
     def __init__(self, account, amount, ref_date, repeat_type=RepeatType.Monthly):
+        self.start_date = ref_date
+        self.repeat_type = repeat_type
+        self.repeat_every = 1
         #: :class:`.Account` for which we budget. Has to be an income or expense.
         self.account = account
         #: The :class:`.Amount` we budget for our time span.
@@ -45,20 +47,15 @@ class Budget(Recurrence):
         #: ``str``. Freeform notes from the user.
         self.notes = ''
         self._previous_spawns = []
-        ref = Transaction(ref_date)
-        Recurrence.__init__(self, ref, repeat_type, 1)
+        self.repeat_type_desc = get_repeat_type_desc(self.repeat_type, self.start_date)
 
     def __repr__(self):
         return '<Budget %r %r>' % (self.account, self.amount)
 
-    # --- Override
-    def _create_spawn(self, ref, recurrence_date):
-        # `recurrence_date` is the date at which the budget *starts*.
-        # We need a date counter to see which date is next (so we can know when our period ends
-        date_counter = DateCounter(recurrence_date, self.repeat_type, self.repeat_every, date.max)
-        next(date_counter) # first next() is the start_date
-        end_date = next(date_counter) - ONE_DAY
-        return BudgetSpawn(self, ref, recurrence_date=recurrence_date, date=end_date)
+    # --- Public
+    def replicate(self):
+        result = copy.copy(self)
+        return result
 
     def get_spawns(self, end, transactions, consumedtxns):
         """Returns the list of transactions spawned by our budget.
@@ -75,9 +72,20 @@ class Budget(Recurrence):
                              set and pass it around for each call.
         :type consumedtxns: set of :class:`.Transaction`
         """
-        spawns = Recurrence.get_spawns(self, end)
-        # No spawn in the past
-        spawns = [spawn for spawn in spawns if spawn.date > date.today()]
+        date_counter = DateCounter(self.start_date, self.repeat_type, self.repeat_every, end)
+        spawns = []
+        current_ref = Transaction(self.start_date)
+        for current_date in date_counter:
+            # `recurrence_date` is the date at which the budget *starts*.
+            # We need a date counter to see which date is next (so we can know when our period ends
+            end_date = inc_date(current_date, self.repeat_type, self.repeat_every) - ONE_DAY
+            if end_date <= date.today():
+                # No spawn in the past
+                continue
+            spawn = Spawn(
+                self, current_ref, recurrence_date=current_date, date=end_date,
+                txntype=3)
+            spawns.append(spawn)
         account = self.account
         budget_amount = self.amount if account.is_debit_account() else -self.amount
         relevant_transactions = set(t for t in transactions if account in t.affected_accounts())

@@ -45,7 +45,6 @@ def app_one_expense_with_budget(monkeypatch):
 @with_app(app_one_expense_with_budget)
 def test_attrs(app):
     eq_(app.bpanel.start_date, '01/01/2008')
-    eq_(app.bpanel.stop_date, '')
     eq_(app.bpanel.repeat_type_list.selected_index, 2) # monthly
     eq_(app.bpanel.repeat_every, 1)
     eq_(app.bpanel.account_list[:], ['Some Income', 'Some Expense'])

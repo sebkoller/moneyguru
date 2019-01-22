@@ -742,7 +742,6 @@ def compare_apps(first, second, qif_mode=False):
         eq_(budget1.notes, budget2.notes)
         eq_(budget1.repeat_type, budget2.repeat_type)
         eq_(budget1.start_date, budget2.start_date)
-        eq_(budget1.stop_date, budget2.stop_date)
         eq_(budget1.repeat_every, budget2.repeat_every)
 
 def print_table(table, extra_attrs=[]):
