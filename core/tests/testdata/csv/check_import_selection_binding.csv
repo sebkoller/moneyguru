@@ -1,0 +1,6 @@
+Account;Date;Description;Payee;Check #;Transfer;Amount;Currency
+A;15/01/2019;txn 1;;;income 1;1.00;USD
+A;16/01/2019;txn 2;;;expense 1;-1.00;USD
+A;17/01/2019;txn 3;;;income 1;2.00;USD
+A;18/01/2019;txn 4;;;expense 2;-1.00;USD
+A;18/01/2019;txn 5;;;expense 3;-1.00;USD

@@ -6,6 +6,7 @@ build
 env
 _build
 .tox
+.idea/
 /conf.json
 /run.py
 /ccore/runtests
