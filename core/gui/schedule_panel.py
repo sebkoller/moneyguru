@@ -5,15 +5,15 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from datetime import date
-import weakref
 
+from core.model.recurrence import get_repeat_type_desc
 from core.util import first
 from core.trans import tr
 
 from ..exception import OperationAborted
 from ..model.recurrence import Recurrence, RepeatType
 from ..model.transaction import Transaction
-from .selectable_list import GUISelectableList
+from .selectable_list import LinkedSelectableList
 from .transaction_panel import PanelWithTransaction
 
 REPEAT_OPTIONS_ORDER = [
@@ -39,23 +39,19 @@ REPEAT_EVERY_DESCS_PLURAL = {
     RepeatType.WeekdayLast: tr('months'),
 }
 
-class RepeatTypeList(GUISelectableList):
-    def __init__(self, panel):
-        self.panel = panel
-        GUISelectableList.__init__(self)
-
-    def _update_selection(self):
-        GUISelectableList._update_selection(self)
-        repeat_type = REPEAT_OPTIONS_ORDER[self.selected_index]
-        self.panel.repeat_type = repeat_type
-
-    def refresh(self):
-        descs = [self.panel.schedule.rtype2desc[rtype] for rtype in REPEAT_OPTIONS_ORDER]
+class PanelWithScheduleMixIn:
+    def _refresh_repeat_types(self):
+        descs = (
+            get_repeat_type_desc(rtype, self.schedule.start_date)
+            for rtype in REPEAT_OPTIONS_ORDER)
         # remove empty descs
         descs = [desc for desc in descs if desc]
-        self[:] = descs
+        self.repeat_type_list[:] = descs
 
-class PanelWithScheduleMixIn:
+    def _update_repeat_type_selection(self, index):
+        repeat_type = REPEAT_OPTIONS_ORDER[index]
+        self.repeat_type = repeat_type
+
     @property
     def start_date(self):
         return self.app.format_date(self.schedule.start_date)
@@ -66,7 +62,7 @@ class PanelWithScheduleMixIn:
         if parsed == self.schedule.start_date:
             return
         self.schedule.start_date = parsed
-        self.repeat_type_list.refresh()
+        self._refresh_repeat_types()
 
     @property
     def stop_date(self):
@@ -110,7 +106,7 @@ class PanelWithScheduleMixIn:
         self.view.refresh_repeat_every()
 
     def create_repeat_type_list(self):
-        self.repeat_type_list = RepeatTypeList(weakref.proxy(self))
+        self.repeat_type_list = LinkedSelectableList(setfunc=self._update_repeat_type_selection)
 
 class SchedulePanel(PanelWithTransaction, PanelWithScheduleMixIn):
     def __init__(self, mainwindow):
@@ -142,7 +138,7 @@ class SchedulePanel(PanelWithTransaction, PanelWithScheduleMixIn):
         self.original = schedule
         self.schedule = schedule.replicate()
         self.transaction = self.schedule.ref
-        self.repeat_type_list.refresh()
+        self._refresh_repeat_types()
         self.repeat_type_list.select(REPEAT_OPTIONS_ORDER.index(schedule.repeat_type))
         self.view.refresh_repeat_every()
         self.split_table.refresh_initial()

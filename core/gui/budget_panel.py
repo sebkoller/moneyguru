@@ -55,7 +55,7 @@ class BudgetPanel(GUIPanel, PanelWithScheduleMixIn):
         self.original = budget
         self.budget = budget.replicate()
         self.schedule = self.budget # for PanelWithScheduleMixIn
-        self.repeat_type_list.refresh()
+        self._refresh_repeat_types()
         self.repeat_type_list.select(REPEAT_OPTIONS_ORDER.index(budget.repeat_type))
         self._accounts = [a for a in self.document.accounts if a.is_income_statement_account()]
         if not self._accounts:
