@@ -8,6 +8,9 @@
 static bool
 _remove_accounts(Account **accounts, AccountList *alist)
 {
+    if (accounts == NULL) {
+        return true;
+    }
     while (*accounts != NULL) {
         if (!accounts_remove(alist, *accounts)) {
             return false;
@@ -20,6 +23,9 @@ _remove_accounts(Account **accounts, AccountList *alist)
 static bool
 _readd_accounts(Account **accounts, AccountList *alist)
 {
+    if (accounts == NULL) {
+        return true;
+    }
     while (*accounts != NULL) {
         if (!accounts_undelete(alist, *accounts)) {
             return false;
@@ -57,11 +63,19 @@ undostep_init(
     Account **changed_accounts)
 {
     int count = listlen((void *)added_accounts);
-    step->added_accounts = malloc(sizeof(Account*) * (count + 1));
-    memcpy(step->added_accounts, added_accounts, sizeof(Account*) * (count + 1));
+    if (count) {
+        step->added_accounts = malloc(sizeof(Account*) * (count + 1));
+        memcpy(step->added_accounts, added_accounts, sizeof(Account*) * (count + 1));
+    } else {
+        step->added_accounts = NULL;
+    }
     count = listlen((void *)deleted_accounts);
-    step->deleted_accounts = malloc(sizeof(Account*) * (count + 1));
-    memcpy(step->deleted_accounts, deleted_accounts, sizeof(Account*) * (count + 1));
+    if (count) {
+        step->deleted_accounts = malloc(sizeof(Account*) * (count + 1));
+        memcpy(step->deleted_accounts, deleted_accounts, sizeof(Account*) * (count + 1));
+    } else {
+        step->deleted_accounts = NULL;
+    }
     step->changed_count = listlen((void *)changed_accounts);
     step->changed_accounts = calloc(sizeof(ChangedAccount), step->changed_count);
     for (int i=0; i<step->changed_count; i++) {

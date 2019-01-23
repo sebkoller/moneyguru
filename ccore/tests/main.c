@@ -7,6 +7,7 @@ void test_amount_init();
 void test_account_init();
 void test_transaction_init();
 void test_recurrence_init();
+void test_undo_init();
 
 int main()
 {
@@ -18,6 +19,7 @@ int main()
     test_account_init();
     test_transaction_init();
     test_recurrence_init();
+    test_undo_init();
     CU_basic_run_tests();
     CU_cleanup_registry();
     currency_global_deinit();

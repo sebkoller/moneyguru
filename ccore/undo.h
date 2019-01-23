@@ -14,6 +14,11 @@ typedef struct {
  * References to changed entities, however, are copies. To be able to remember
  * changed values, we need to copy those entities. Those copies are owned by
  * the UndoStep.
+ * 
+ * MEMORY MANAGEMENT: memory model of the UndoStep is sound as long as it is
+ * used sanely, that is, in the proper order. Don't undo or redo twice in a
+ * row, redo only after an undo, etc. The undo history is linear and that line
+ * has to be respected for memory management to stay sound.
  */
 typedef struct {
     Account **added_accounts;
