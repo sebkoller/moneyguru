@@ -12,17 +12,17 @@ static void test_string_ownership()
     account_init(a, "foo", CAD, ACCOUNT_ASSET);
     UndoStep us = {0};
     Account *changed_accounts[2] = {a, NULL};
-    undostep_init(&us, NULL, NULL, changed_accounts);
+    undostep_init(&us, NULL, NULL, changed_accounts, NULL, NULL, NULL);
     // We now have a copy of `a` in `us`. Now, let's change the name so that
     // we free the string "foo".
     account_name_set(a, "bar");
     // The "foo" we had is supposed to properly be kept in memory. To verify
     // this, let's perform an undo and check for the account name.
-    undostep_undo(&us, &al);
+    undostep_undo(&us, &al, NULL);
     CU_ASSERT_STRING_EQUAL(a->name, "foo"); // no segfault
-    undostep_redo(&us, &al);
+    undostep_redo(&us, &al, NULL);
     CU_ASSERT_STRING_EQUAL(a->name, "bar"); // no segfault
-    undostep_undo(&us, &al);
+    undostep_undo(&us, &al, NULL);
     CU_ASSERT_STRING_EQUAL(a->name, "foo"); // no segfault
 }
 
