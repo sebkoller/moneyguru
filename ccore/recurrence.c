@@ -16,7 +16,7 @@ _inc_weekly(time_t date, int count)
 static time_t
 _inc_monthly(time_t date, int count)
 {
-    struct tm *d = gmtime(&date);
+    struct tm *d = localtime(&date);
     if (d == NULL) {
         return -1;
     }
@@ -42,7 +42,7 @@ _inc_yearly(time_t date, int count)
 static time_t
 _inc_weekday(time_t date, int count)
 {
-    struct tm *d = gmtime(&date);
+    struct tm *d = localtime(&date);
     if (d == NULL) {
         return -1;
     }
@@ -73,7 +73,7 @@ _inc_weekday(time_t date, int count)
 static time_t
 _inc_weekday_last(time_t date, int count)
 {
-    struct tm *d = gmtime(&date);
+    struct tm *d = localtime(&date);
     if (d == NULL) {
         return -1;
     }
