@@ -16,6 +16,8 @@ from .schedule_panel import WithScheduleMixIn, REPEAT_OPTIONS_ORDER
 class BudgetView(BaseView, WithScheduleMixIn):
     # --- model -> view calls:
     # get_panel_view(panel_model) -> view
+    # refresh()
+    # refresh_repeat_every()
     #
 
     VIEW_TYPE = PaneType.Budget
@@ -33,6 +35,7 @@ class BudgetView(BaseView, WithScheduleMixIn):
         self._refresh_repeat_types()
         self.repeat_type_list.select(REPEAT_OPTIONS_ORDER.index(self.schedule.repeat_type))
         self.view.refresh_repeat_every()
+        self.view.refresh()
 
     # --- Override
     def save_preferences(self):

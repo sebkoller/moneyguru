@@ -10,7 +10,7 @@
 
 from ...const import FilterType
 from ...model.account import AccountType
-from ..base import TestApp, with_app, testdata
+from ..base import TestApp, testdata
 
 # --- No Setup
 def test_initial_gui_calls():
@@ -21,15 +21,56 @@ def test_initial_gui_calls():
     app.mw.view.check_gui_calls(expected)
     app.drsel.view.check_gui_calls(['refresh_custom_ranges', 'refresh'])
 
+def test_views_are_refreshed():
+    # view.refresh() is called on file load
+    app = TestApp()
+    app.show_nwview()
+    app.clear_gui_calls()
+    app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
+    app.check_gui_calls_partial(app.bsheet_gui, ['refresh'])
+    app.check_gui_calls_partial(app.nwgraph_gui, ['refresh'])
+
+def test_etable_show_income_account():
+    # show_transfer_account() correctly refreshes the gui even if the graph type doesn't change.
+    app = TestApp()
+    app.add_account('income', account_type=AccountType.Income)
+    app.add_account('expense', account_type=AccountType.Expense)
+    app.add_txn(from_='income', to='expense', amount='42')
+    app.clear_gui_calls()
+    income_aview = app.show_account('income')
+    income_aview.etable.edited = income_aview.etable.selected_row # edit something
+    app.clear_gui_calls()
+    app.etable.show_transfer_account()
+    app.link_aview()
+    income_aview.etable.view.check_gui_calls_partial(['stop_editing'])
+    app.etable.view.check_gui_calls(['update_selection', 'show_selected_row', 'refresh'])
+    app.bargraph.view.check_gui_calls(['refresh'])
+
+def test_etable_show_asset_account():
+    # show_transfer_account() correctly refreshes the gui even if the graph type doesn't change.
+    app = TestApp()
+    app.add_account('asset', account_type=AccountType.Asset)
+    app.add_account('liability', account_type=AccountType.Liability)
+    app.add_txn(from_='liability', to='asset', amount='42')
+    app.clear_gui_calls()
+    asset_aview = app.show_account('asset')
+    asset_aview.etable.edited = asset_aview.etable.selected_row # edit something
+    app.clear_gui_calls()
+    app.etable.show_transfer_account()
+    app.link_aview()
+    asset_aview.etable.view.check_gui_calls_partial(['stop_editing'])
+    app.etable.view.check_gui_calls(['update_selection', 'show_selected_row', 'refresh'])
+    app.balgraph.view.check_gui_calls(['refresh'])
+
 # --- Cleared GUI calls
 def app_cleared_gui_calls():
     app = TestApp()
     app.clear_gui_calls()
     return app
 
-@with_app(app_cleared_gui_calls)
-def test_add_account_and_show_it(app):
+def test_add_account_and_show_it():
     # When an account is shown, the reconciliation button is refreshed.
+    app = app_cleared_gui_calls()
     app.add_account()
     app.show_account()
     app.check_gui_calls_partial(app.aview.view, ['refresh_reconciliation_button'])
@@ -57,9 +98,9 @@ def test_add_transaction():
     app.ttable.save_edits()
     app.check_gui_calls(app.mainwindow_gui, ['refresh_undo_actions', 'refresh_status_line'])
 
-@with_app(app_cleared_gui_calls)
-def test_change_column_visibility(app):
+def test_change_column_visibility():
     # Changing the visibility option of a column calls the table's gui to actually hide the thing.
+    app = app_cleared_gui_calls()
     app.show_tview()
     app.set_column_visible('description', False)
     app.ttable.columns.view.check_gui_calls(['set_column_visible'])
@@ -78,9 +119,9 @@ def test_change_default_currency():
     app.check_gui_calls_partial(app.nwgraph_gui, ['refresh'])
     app.check_gui_calls_partial(app.nwview.pie.view, ['refresh'])
 
-@with_app(app_cleared_gui_calls)
-def test_mainwindow_move_pane(app):
+def test_mainwindow_move_pane():
     # Moving a pane in the mainwindow calls refresh_panes on the view.
+    app = app_cleared_gui_calls()
     app.mw.move_pane(0, 1)
     app.mainwindow_gui.check_gui_calls(['refresh_panes'])
 
@@ -98,8 +139,8 @@ def test_new_schedule():
     scpanel = app.mw.new_item()
     scpanel.repeat_type_list.view.check_gui_calls_partial(['refresh'])
 
-@with_app(app_cleared_gui_calls)
-def test_select_mainwindow_next_previous_view(app):
+def test_select_mainwindow_next_previous_view():
+    app = app_cleared_gui_calls()
     app.mw.select_next_view()
     app.check_gui_calls(app.mainwindow_gui, ['change_current_pane', 'refresh_status_line'])
     app.mw.select_previous_view()
@@ -133,9 +174,9 @@ def test_ttable_add_and_cancel():
     expected = ['stop_editing', 'refresh']
     app.check_gui_calls(app.ttable_gui, expected, verify_order=True)
 
-@with_app(app_cleared_gui_calls)
-def test_save_custom_range(app):
+def test_save_custom_range():
     # Saving a custom range causes the date range selector's view to refresh them.
+    app = app_cleared_gui_calls()
     cdrpanel = app.drsel.invoke_custom_range_panel()
     cdrpanel.slot_index = 1
     cdrpanel.slot_name = 'foo'
@@ -150,14 +191,19 @@ def test_show_account():
     app.show_account()
     app.check_gui_calls_partial(app.mainwindow_gui, ['refresh_status_line'])
 
-@with_app(app_cleared_gui_calls)
-def test_stop_editing_on_applying_filter(app):
+def test_stop_editing_on_applying_filter():
     # Applying a filter on the filter bar stops table editing.
+    app = app_cleared_gui_calls()
     tview = app.show_tview()
     tview.ttable.add() # edit something
     app.clear_gui_calls()
     tview.filter_bar.filter_type = FilterType.Income
     tview.ttable.view.check_gui_calls_partial(['stop_editing'])
+
+def test_show_bview():
+    app = app_cleared_gui_calls()
+    bview = app.show_bview()
+    bview.view.check_gui_calls_partial(['refresh'])
 
 # --- On transaction view
 def app_on_transaction_view():
@@ -172,9 +218,9 @@ def test_changing_date_range_refreshes_transaction_totals():
     app.drsel.select_quarter_range()
     app.check_gui_calls(app.mainwindow_gui, ['refresh_status_line'])
 
-@with_app(app_on_transaction_view)
-def test_stop_editing_on_pane_change(app):
+def test_stop_editing_on_pane_change():
     # To avoid buggy editing (for example, #283), stop all editing before a pane switch occurs.
+    app = app_on_transaction_view()
     app.ttable.add() # edit something
     app.mw.select_next_view()
     app.check_gui_calls_partial(app.ttable_gui, ['stop_editing'])
@@ -214,8 +260,8 @@ def test_delete_entry():
     app.mainwindow.delete_item()
     app.check_gui_calls_partial(app.mainwindow_gui, ['refresh_status_line'])
 
-@with_app(app_one_account)
-def test_edit_account(app):
+def test_edit_account():
+    app = app_one_account()
     app.show_nwview()
     apanel = app.mw.edit_item() # apanel popping up
     # Popping the panel refreshes the type list selection
@@ -230,8 +276,8 @@ def test_jump_to_account():
     app.alookup.go()
     app.alookup.view.check_gui_calls(['hide'])
 
-@with_app(app_one_account)
-def test_export_panel(app):
+def test_export_panel():
+    app = app_one_account()
     app.mw.export()
     expanel = app.get_current_panel()
     expanel.view.check_gui_calls_partial(['set_table_enabled'])
@@ -248,73 +294,17 @@ def app_one_transaction():
     app.clear_gui_calls()
     return app
 
-@with_app(app_one_transaction)
-def test_delete_transaction(app):
+def test_delete_transaction():
     # Deleting a transaction refreshes the totals label
+    app = app_one_transaction()
     app.mw.delete_item()
     app.check_gui_calls_partial(app.mainwindow_gui, ['refresh_status_line'])
 
-@with_app(app_one_transaction)
-def test_change_tview_filter(app):
+def test_change_tview_filter():
     # Changing tview's filter type updates the totals
+    app = app_one_transaction()
     app.tfbar.filter_type = FilterType.Reconciled
     app.check_gui_calls_partial(app.mainwindow_gui, ['refresh_status_line'])
-
-# --- Load file with balance sheet selected
-def app_load_file_with_bsheet_selected():
-    app = TestApp()
-    app.show_nwview()
-    app.clear_gui_calls()
-    app.mw.load_from_xml(testdata.filepath('moneyguru', 'simple.moneyguru'))
-    return app
-
-@with_app(app_load_file_with_bsheet_selected)
-def test_views_are_refreshed(app):
-    # view.refresh() is called on file load
-    app.check_gui_calls_partial(app.bsheet_gui, ['refresh'])
-    app.check_gui_calls_partial(app.nwgraph_gui, ['refresh'])
-
-# --- Transaction between income and expense
-def app_transaction_between_income_and_expense():
-    app = TestApp()
-    app.add_account('income', account_type=AccountType.Income)
-    app.add_account('expense', account_type=AccountType.Expense)
-    app.add_txn(from_='income', to='expense', amount='42')
-    app.clear_gui_calls()
-    return app
-
-@with_app(app_transaction_between_income_and_expense)
-def test_etable_show_income_account(app):
-    # show_transfer_account() correctly refreshes the gui even if the graph type doesn't change.
-    income_aview = app.show_account('income')
-    income_aview.etable.edited = income_aview.etable.selected_row # edit something
-    app.clear_gui_calls()
-    app.etable.show_transfer_account()
-    app.link_aview()
-    income_aview.etable.view.check_gui_calls_partial(['stop_editing'])
-    app.etable.view.check_gui_calls(['update_selection', 'show_selected_row', 'refresh'])
-    app.bargraph.view.check_gui_calls(['refresh'])
-
-# --- Transaction between asset and liability
-def app_transaction_between_asset_and_liability():
-    app = TestApp()
-    app.add_account('asset', account_type=AccountType.Asset)
-    app.add_account('liability', account_type=AccountType.Liability)
-    app.add_txn(from_='liability', to='asset', amount='42')
-    app.clear_gui_calls()
-    return app
-
-@with_app(app_transaction_between_asset_and_liability)
-def test_etable_show_asset_account(app):
-    # show_transfer_account() correctly refreshes the gui even if the graph type doesn't change.
-    asset_aview = app.show_account('asset')
-    asset_aview.etable.edited = asset_aview.etable.selected_row # edit something
-    app.clear_gui_calls()
-    app.etable.show_transfer_account()
-    app.link_aview()
-    asset_aview.etable.view.check_gui_calls_partial(['stop_editing'])
-    app.etable.view.check_gui_calls(['update_selection', 'show_selected_row', 'refresh'])
-    app.balgraph.view.check_gui_calls(['refresh'])
 
 # --- Transaction with panel loaded
 def app_transaction_with_panel_loaded():
@@ -344,51 +334,51 @@ def app_completable_edit():
     app.clear_gui_calls()
     return app
 
-@with_app(app_completable_edit)
-def test_cedit_set_text(app):
+def test_cedit_set_text():
     # Setting the text of the cedit results in a refresh of the view
+    app = app_completable_edit()
     app.ce.text = 'f'
     app.check_gui_calls(app.ce_gui, ['refresh'])
 
-@with_app(app_completable_edit)
-def test_cedit_set_text_no_completion(app):
+def test_cedit_set_text_no_completion():
     # Setting the text when there's no completion doesn't result in a refresh.
+    app = app_completable_edit()
     app.ce.text = 'nomatch'
     app.check_gui_calls_partial(app.ce_gui, not_expected=['refresh'])
 
-@with_app(app_completable_edit)
-def test_cedit_up(app):
+def test_cedit_up():
     # Pressing up() refreshes the view
+    app = app_completable_edit()
     app.ce.text = 'b'
     app.clear_gui_calls()
     app.ce.up()
     app.check_gui_calls(app.ce_gui, ['refresh'])
 
-@with_app(app_completable_edit)
-def test_cedit_up_no_completion(app):
+def test_cedit_up_no_completion():
     # Pressing up() when there's no completion doesn't result in a refresh
+    app = app_completable_edit()
     app.ce.up()
     app.check_gui_calls_partial(app.ce_gui, not_expected=['refresh'])
 
-@with_app(app_completable_edit)
-def test_cedit_commit_partial_value(app):
+def test_cedit_commit_partial_value():
     # Commiting when the text is a partial value of the completion results in a view refresh
+    app = app_completable_edit()
     app.ce.text = 'b'
     app.clear_gui_calls()
     app.ce.commit()
     app.check_gui_calls(app.ce_gui, ['refresh'])
 
-@with_app(app_completable_edit)
-def test_cedit_commit_complete_value(app):
+def test_cedit_commit_complete_value():
     # Commiting when cedit's text is the whole completion doesn't result in a refresh.
+    app = app_completable_edit()
     app.ce.text = 'bazooka'
     app.clear_gui_calls()
     app.ce.commit()
     app.check_gui_calls_partial(app.ce_gui, not_expected=['refresh'])
 
-@with_app(app_completable_edit)
-def test_cedit_lookup_and_select(app):
+def test_cedit_lookup_and_select():
     # When selecting a value through the completion lookup, the edit view is refreshed.
+    app = app_completable_edit()
     app.ce.lookup()
     app.clookup.go()
     app.check_gui_calls(app.ce_gui, ['refresh'])
