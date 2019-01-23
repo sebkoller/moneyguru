@@ -4,7 +4,6 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from core.model.recurrence import get_repeat_type_desc
 from core.trans import trget
 from .column import Column
 
@@ -15,9 +14,6 @@ trcol = trget('columns')
 class BudgetTable(GUITable, TableWithAmountMixin):
     SAVENAME = 'BudgetTable'
     COLUMNS = [
-        Column('start_date', display=trcol("Start Date")),
-        Column('repeat_type', display=trcol("Repeat Type")),
-        Column('interval', display=trcol("Interval")),
         Column('account', display=trcol("Account")),
         Column('amount', display=trcol("Amount")),
     ]
@@ -61,11 +57,6 @@ class BudgetTableRow(Row):
     # --- Public
     def load(self):
         budget = self.budget
-        budgets = self.document.budgets
-        self._start_date = budgets.start_date
-        self._start_date_fmt = self.document.app.format_date(self._start_date)
-        self._repeat_type = get_repeat_type_desc(budgets.repeat_type, budgets.start_date)
-        self._interval = str(budgets.repeat_every)
         self._account = budget.account.name
         self._amount = budget.amount
         self._amount_fmt = self.document.format_amount(self._amount)
@@ -74,9 +65,6 @@ class BudgetTableRow(Row):
         pass # read-only
 
     # --- Properties
-    start_date = rowattr('_start_date_fmt')
-    repeat_type = rowattr('_repeat_type')
-    interval = rowattr('_interval')
     account = rowattr('_account')
     amount = rowattr('_amount_fmt')
 

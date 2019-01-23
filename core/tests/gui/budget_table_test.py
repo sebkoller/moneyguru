@@ -22,9 +22,6 @@ def app_with_budget(monkeypatch):
 def test_attrs(app):
     eq_(len(app.btable), 1)
     row = app.btable[0]
-    eq_(row.start_date, '01/01/2008')
-    eq_(row.repeat_type, 'Monthly')
-    eq_(row.interval, '1')
     eq_(row.account, 'Some Expense')
     eq_(row.amount, '100.00')
 
