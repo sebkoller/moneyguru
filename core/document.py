@@ -684,10 +684,7 @@ class Document(GUIObject):
             action = Action(tr('Add Budget'))
             action.added_budgets.add(original)
         self._undoer.record(action)
-        min_date = min(self.budgets.start_date, new.start_date)
-        self.budgets.start_date = new.start_date
-        self.budgets.repeat_type = new.repeat_type
-        self.budgets.repeat_every = new.repeat_every
+        min_date = min(self.budgets.start_date, datetime.date.today())
         original.account = new.account
         original.amount = new.amount
         original.notes = new.notes

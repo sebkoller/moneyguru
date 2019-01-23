@@ -44,9 +44,9 @@ def app_one_expense_with_budget(monkeypatch):
 
 @with_app(app_one_expense_with_budget)
 def test_attrs(app):
-    eq_(app.bpanel.start_date, '01/01/2008')
-    eq_(app.bpanel.repeat_type_list.selected_index, 2) # monthly
-    eq_(app.bpanel.repeat_every, 1)
+    eq_(app.bview.start_date, '01/01/2008')
+    eq_(app.bview.repeat_type_list.selected_index, 2) # monthly
+    eq_(app.bview.repeat_every, 1)
     eq_(app.bpanel.account_list[:], ['Some Income', 'Some Expense'])
     eq_(app.bpanel.account_list.selected_index, 1)
     eq_(app.bpanel.amount, '100.00')
@@ -87,8 +87,8 @@ def test_new_budget(app):
     app.bpanel = app.mainwindow.new_item()
     # date of the first added budget, which TestApp.add_budget() fixes at the
     # first day of today (which is mocked)
-    eq_(app.bpanel.start_date, '01/01/2008')
-    eq_(app.bpanel.repeat_type_list.selected_index, 2) # monthly
+    eq_(app.bview.start_date, '01/01/2008')
+    eq_(app.bview.repeat_type_list.selected_index, 2) # monthly
     eq_(app.bpanel.account_list.selected_index, 0)
     app.bpanel.save()
     eq_(len(app.btable), 2) # has been added

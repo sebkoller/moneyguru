@@ -358,7 +358,7 @@ def app_budget_with_all_fields_set():
     app.add_account('income', account_type=AccountType.Income)
     app.add_budget(
         'income', '100', start_date='01/01/2009', repeat_type_index=3,
-        repeat_every=2, stop_date='01/01/2022')
+        repeat_every=2)
     return app
 
 def app_account_with_apanel_attrs():

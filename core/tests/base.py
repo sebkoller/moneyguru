@@ -265,17 +265,15 @@ class TestApp(TestAppBase):
 
     def add_budget(
             self, account_name, str_amount, start_date=None,
-            repeat_type_index=2, repeat_every=1, stop_date=None):
+            repeat_type_index=2, repeat_every=1):
         # if no target, set target_name to None
-        self.show_bview()
+        bview = self.show_bview()
         bpanel = self.mainwindow.new_item()
         if start_date is None:
             start_date = self.app.format_date(date(date.today().year, date.today().month, 1))
-        bpanel.start_date = start_date
-        bpanel.repeat_type_list.select(repeat_type_index)
-        bpanel.repeat_every = repeat_every
-        if stop_date is not None:
-            bpanel.stop_date = stop_date
+        bview.start_date = start_date
+        bview.repeat_type_list.select(repeat_type_index)
+        bview.repeat_every = repeat_every
         account_index = bpanel.account_list.index(account_name)
         bpanel.account_list.select(account_index)
         bpanel.amount = str_amount

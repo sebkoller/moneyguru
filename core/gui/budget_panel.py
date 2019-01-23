@@ -13,7 +13,6 @@ from ..exception import OperationAborted
 from ..model.account import sort_accounts
 from ..model.budget import Budget
 from .base import GUIPanel
-from .schedule_panel import WithScheduleMixIn, REPEAT_OPTIONS_ORDER
 from .selectable_list import GUISelectableList
 
 class AccountList(GUISelectableList):
@@ -29,10 +28,9 @@ class AccountList(GUISelectableList):
     def refresh(self):
         self[:] = [a.name for a in self.panel._accounts]
 
-class BudgetPanel(GUIPanel, WithScheduleMixIn):
+class BudgetPanel(GUIPanel):
     def __init__(self, mainwindow):
         GUIPanel.__init__(self, mainwindow)
-        self.create_repeat_type_list()
         self.account_list = AccountList(weakref.proxy(self))
 
     # --- Override
@@ -53,13 +51,6 @@ class BudgetPanel(GUIPanel, WithScheduleMixIn):
             raise OperationAborted
         self.original = budget
         self.budget = budget.replicate()
-        # temporary hack to make things work
-        self.budget.start_date = self.document.budgets.start_date
-        self.budget.repeat_type = self.document.budgets.repeat_type
-        self.budget.repeat_every = self.document.budgets.repeat_every
-        self.schedule = self.budget # for WithScheduleMixIn
-        self._refresh_repeat_types()
-        self.repeat_type_list.select(REPEAT_OPTIONS_ORDER.index(self.schedule.repeat_type))
         self._accounts = [a for a in self.document.accounts if a.is_income_statement_account()]
         if not self._accounts:
             msg = tr("Income/Expense accounts must be created before budgets can be set.")
@@ -67,7 +58,6 @@ class BudgetPanel(GUIPanel, WithScheduleMixIn):
         sort_accounts(self._accounts)
         self.account_list.refresh()
         self.account_list.select(self._accounts.index(budget.account) if budget.account is not None else 0)
-        self.view.refresh_repeat_every()
 
     # --- Properties
     @property

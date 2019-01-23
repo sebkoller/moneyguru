@@ -85,12 +85,11 @@ def test_mainwindow_move_pane(app):
     app.mainwindow_gui.check_gui_calls(['refresh_panes'])
 
 def test_new_budget():
-    # Repeat options must be updated upon panel load
+    # Repeat options must be updated upon view revalidation
     app = app_cleared_gui_calls()
     app.add_account('income', account_type=AccountType.Income) # we need an account for the panel to load
-    app.show_bview()
-    bpanel = app.mw.new_item()
-    bpanel.repeat_type_list.view.check_gui_calls_partial(['refresh'])
+    bview = app.show_bview()
+    bview.repeat_type_list.view.check_gui_calls_partial(['refresh'])
 
 def test_new_schedule():
     # Repeat options and mct notices must be updated upon panel load
