@@ -3241,26 +3241,49 @@ _pyseq2accounts(PyObject *seq)
     return res;
 }
 
+static Transaction**
+_pyseq2txns(PyObject *seq)
+{
+    Transaction **res;
+    Py_ssize_t len = PySequence_Length(seq);
+    res = malloc(sizeof(Transaction*) * (len + 1));
+    PyObject *fast = PySequence_Fast(seq, "");
+    for (int i=0; i<len; i++) {
+        res[i] = ((PyTransaction *)PySequence_Fast_GET_ITEM(fast, i))->txn;
+    }
+    res[len] = NULL;
+    Py_DECREF(fast);
+    return res;
+}
+
 static int
 PyUndoStep_init(PyUndoStep *self, PyObject *args, PyObject *kwds)
 {
     PyObject *added_accounts, *deleted_accounts, *changed_accounts;
+    PyObject *added_txns, *deleted_txns, *changed_txns;
     static char *kwlist[] = {
-        "added_accounts", "deleted_accounts", "changed_accounts", NULL};
+        "added_accounts", "deleted_accounts", "changed_accounts",
+        "added_txns", "deleted_txns", "changed_txns", NULL};
 
     int res = PyArg_ParseTupleAndKeywords(
-        args, kwds, "OOO", kwlist, &added_accounts, &deleted_accounts,
-        &changed_accounts);
+        args, kwds, "OOOOOO", kwlist, &added_accounts, &deleted_accounts,
+        &changed_accounts, &added_txns, &deleted_txns, &changed_txns);
     if (!res) {
         return -1;
     }
-    Account **a = _pyseq2accounts(added_accounts);
-    Account **d = _pyseq2accounts(deleted_accounts);
-    Account **c = _pyseq2accounts(changed_accounts);
-    undostep_init(&self->step, a, d, c);
-    free(a);
-    free(d);
-    free(c);
+    Account **aa = _pyseq2accounts(added_accounts);
+    Account **da = _pyseq2accounts(deleted_accounts);
+    Account **ca = _pyseq2accounts(changed_accounts);
+    Transaction **at = _pyseq2txns(added_txns);
+    Transaction **dt = _pyseq2txns(deleted_txns);
+    Transaction **ct = _pyseq2txns(changed_txns);
+    undostep_init(&self->step, aa, da, ca, at, dt, ct);
+    free(aa);
+    free(da);
+    free(ca);
+    free(at);
+    free(dt);
+    free(ct);
     return 0;
 }
 
@@ -3268,11 +3291,12 @@ static PyObject *
 PyUndoStep_undo(PyUndoStep *self, PyObject *args)
 {
     PyAccountList *alist;
+    PyTransactionList *tlist;
 
-    if (!PyArg_ParseTuple(args, "O", &alist)) {
+    if (!PyArg_ParseTuple(args, "OO", &alist, &tlist)) {
         return NULL;
     }
-    if (!undostep_undo(&self->step, &alist->alist)) {
+    if (!undostep_undo(&self->step, &alist->alist, &tlist->tlist)) {
         return NULL;
     }
     Py_RETURN_NONE;
@@ -3282,11 +3306,12 @@ static PyObject *
 PyUndoStep_redo(PyUndoStep *self, PyObject *args)
 {
     PyAccountList *alist;
+    PyTransactionList *tlist;
 
-    if (!PyArg_ParseTuple(args, "O", &alist)) {
+    if (!PyArg_ParseTuple(args, "OO", &alist, &tlist)) {
         return NULL;
     }
-    if (!undostep_redo(&self->step, &alist->alist)) {
+    if (!undostep_redo(&self->step, &alist->alist, &tlist->tlist)) {
         return NULL;
     }
     Py_RETURN_NONE;

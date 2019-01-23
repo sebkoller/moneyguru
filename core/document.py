@@ -583,11 +583,11 @@ class Document(GUIObject):
         else:
             global_scope = False # It doesn't make sense to set a reconciliation date globally
         action = self._get_action_from_changed_transactions([entry.transaction], global_scope)
-        self._undoer.record(action)
         if reconciliation_date is not NOEDIT and entry.transaction.is_spawn:
             newtxn, newsplit = self._reconcile_spawn_split(entry, reconciliation_date)
             entry = Entry(newsplit, newtxn)
             action.added_transactions.add(newtxn)
+        self._undoer.record(action)
         candidate_dates = [entry.date, date, reconciliation_date, entry.reconciliation_date]
         min_date = min(d for d in candidate_dates if d is not NOEDIT and d is not None)
         if reconciliation_date is not NOEDIT:
@@ -631,15 +631,19 @@ class Document(GUIObject):
         min_date = min(entry.date for entry in entries)
         spawns, entries = extract(lambda e: e.transaction.is_spawn, entries)
         action.change_transactions({e.transaction for e in spawns}, self.schedules)
-        self._undoer.record(action)
+        # spawns have to be processed before the action's recording, but
+        # record() has to be called before we change the entries. This is why
+        # we have this rather convulted code.
         if newvalue:
-            for entry in entries:
-                entry.split.reconciliation_date = entry.transaction.date
             for spawn in spawns:
                 # XXX update transaction selection
                 newtxn, newsplit = self._reconcile_spawn_split(
                     spawn, spawn.transaction.date)
                 action.added_transactions.add(newtxn)
+        self._undoer.record(action)
+        if newvalue:
+            for entry in entries:
+                entry.split.reconciliation_date = entry.transaction.date
         else:
             for entry in entries:
                 entry.split.reconciliation_date = None

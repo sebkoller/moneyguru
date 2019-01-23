@@ -49,7 +49,7 @@ class Action:
         self.changed_groups = {}
         self.deleted_groups = set()
         self.added_transactions = set()
-        self.changed_transactions = {}
+        self.changed_transactions = set()
         self.deleted_transactions = set()
         self.added_schedules = set()
         self.changed_schedules = {}
@@ -86,8 +86,7 @@ class Action:
         """
         spawns, normal = extract(lambda t: t.is_spawn, transactions)
         for t in normal:
-            if t not in self.changed_transactions:
-                self.changed_transactions[t] = t.replicate()
+            self.changed_transactions.add(t)
         for spawn in spawns:
             for schedule in schedules:
                 if schedule.contains_ref(spawn.ref):
@@ -120,17 +119,9 @@ class Undoer:
         self._save_point = None
 
     # --- Private
-    def _add_auto_created_accounts(self, transaction):
-        for split in transaction.splits:
-            if split.account is not None and split.account not in self._accounts:
-                split.account = self._accounts.create_from(split.account)
-
-    def _do_adds(self, accounts, groups, transactions, schedules, budgets):
+    def _do_adds(self, accounts, groups, schedules, budgets):
         for group in groups:
             self._groups.append(group)
-        for txn in transactions:
-            self._transactions.add(txn, True)
-            self._add_auto_created_accounts(txn)
         for schedule in schedules:
             self._scheduled.append(schedule)
         for budget in budgets:
@@ -139,12 +130,6 @@ class Undoer:
     def _do_changes(self, action):
         for group, old in action.changed_groups.items():
             swapvalues(group, old, GROUP_SWAP_ATTRS)
-        for txn, old in action.changed_transactions.items():
-            self._remove_auto_created_account(txn)
-            newold = txn.replicate()
-            txn.copy_from(old)
-            old.copy_from(newold)
-            self._add_auto_created_accounts(txn)
         for schedule, old in action.changed_schedules.items():
             swapvalues(schedule, old, SCHEDULE_SWAP_ATTRS)
             newold = schedule.ref.replicate()
@@ -153,27 +138,13 @@ class Undoer:
         for budget, old in action.changed_budgets.items():
             swapvalues(budget, old, BUDGET_SWAP_ATTRS)
 
-    def _do_deletes(self, accounts, groups, transactions, schedules, budgets):
+    def _do_deletes(self, accounts, groups, schedules, budgets):
         for group in groups:
             self._groups.remove(group)
-        for txn in transactions:
-            self._remove_auto_created_account(txn)
-            self._transactions.remove(txn)
         for schedule in schedules:
             self._scheduled.remove(schedule)
         for budget in budgets:
             self._budgets.remove(budget)
-
-    def _remove_auto_created_account(self, transaction):
-        for split in transaction.splits:
-            account = split.account
-            if account is not None:
-                entries = self._accounts.entries_for_account(account)
-            else:
-                entries = []
-            # if len(account.entries) == 1, it means that the transactions was last
-            if account and account.autocreated and len(entries) == 1:
-                self._accounts.remove(account)
 
     # --- Public
     def can_redo(self):
@@ -227,7 +198,10 @@ class Undoer:
         action.undostep = UndoStep(
             action.added_accounts,
             action.deleted_accounts,
-            action.changed_accounts)
+            action.changed_accounts,
+            action.added_transactions,
+            action.deleted_transactions,
+            action.changed_transactions)
         if self._index < -1:
             self._actions = self._actions[:self._index + 1]
         self._actions.append(action)
@@ -244,16 +218,17 @@ class Undoer:
         """
         assert self.can_undo()
         action = self._actions[self._index]
-        action.undostep.undo(self._accounts)
+        action.undostep.undo(self._accounts, self._transactions)
         self._do_adds(
-            action.deleted_accounts, action.deleted_groups, action.deleted_transactions,
+            action.deleted_accounts, action.deleted_groups,
             action.deleted_schedules, action.deleted_budgets
         )
         self._do_deletes(
-            action.added_accounts, action.added_groups, action.added_transactions,
+            action.added_accounts, action.added_groups,
             action.added_schedules, action.added_budgets
         )
         self._do_changes(action)
+        self._transactions.clear_cache()
         self._index -= 1
 
     def redo(self):
@@ -266,16 +241,17 @@ class Undoer:
         """
         assert self.can_redo()
         action = self._actions[self._index + 1]
-        action.undostep.redo(self._accounts)
+        action.undostep.redo(self._accounts, self._transactions)
         self._do_adds(
-            action.added_accounts, action.added_groups, action.added_transactions,
+            action.added_accounts, action.added_groups,
             action.added_schedules, action.added_budgets
         )
         self._do_deletes(
-            action.deleted_accounts, action.deleted_groups, action.deleted_transactions,
+            action.deleted_accounts, action.deleted_groups,
             action.deleted_schedules, action.deleted_budgets
         )
         self._do_changes(action)
+        self._transactions.clear_cache()
         self._index += 1
 
     # --- Properties
