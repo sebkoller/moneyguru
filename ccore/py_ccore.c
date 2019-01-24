@@ -62,8 +62,6 @@ static PyObject *AccountList_Type;
 typedef struct {
     PyObject_HEAD
     Split *split;
-    // If true, we own the Split instance and have to free it.
-    bool owned;
 } PySplit;
 
 static PyObject *Split_Type;
@@ -1242,16 +1240,6 @@ PySplit_reconciled(PySplit *self)
 }
 
 static PyObject *
-PySplit_is_new(PySplit *self)
-{
-    if (self->owned) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static PyObject *
 PySplit_index(PySplit *self)
 {
     return PyLong_FromLong(self->split->index);
@@ -1262,32 +1250,8 @@ static PySplit*
 _PySplit_proxy(Split *split)
 {
     PySplit *r = (PySplit *)PyType_GenericAlloc((PyTypeObject *)Split_Type, 0);
-    r->owned = false;
     r->split = split;
     return r;
-}
-
-static int
-PySplit_init(PySplit *self, PyObject *args, PyObject *kwds)
-{
-    PyObject *account, *amount_p;
-
-    static char *kwlist[] = {"account", "amount", NULL};
-
-    int res = PyArg_ParseTupleAndKeywords(
-        args, kwds, "OO", kwlist, &account, &amount_p);
-    if (!res) {
-        return -1;
-    }
-
-    self->split = malloc(sizeof(Split));
-    self->owned = true;
-    const Amount *amount = get_amount(amount_p);
-    split_init(self->split, NULL, amount, 0);
-    if (PySplit_account_set(self, account) != 0) {
-        return -1;
-    }
-    return 0;
 }
 
 static PyObject *
@@ -1307,17 +1271,6 @@ PySplit_repr(PySplit *self)
     Py_DECREF(fmt);
     Py_DECREF(args);
     return r;
-}
-
-static void
-PySplit_dealloc(PySplit *self)
-{
-    if (self->owned) {
-        split_deinit(self->split);
-        free(self->split);
-        self->split = NULL;
-    }
-    Py_TYPE(self)->tp_free(self);
 }
 
 static PyObject *
@@ -1635,11 +1588,10 @@ PyTransaction_affected_accounts(PyTransaction *self, PyObject *args)
 }
 
 static PyObject *
-PyTransaction_add_split(PyTransaction *self, PySplit *split)
+PyTransaction_new_split(PyTransaction *self)
 {
     transaction_resize_splits(self->txn, self->txn->splitcount+1);
     Split *newsplit = &self->txn->splits[self->txn->splitcount-1];
-    split_copy(newsplit, split->split);
     newsplit->index = self->txn->splitcount-1;
     return (PyObject *)_PySplit_proxy(newsplit);
 }
@@ -3390,21 +3342,17 @@ static PyGetSetDef PySplit_getseters[] = {
     // bool. Whether `reconciliation_date` is set to something.
     {"reconciled", (getter)PySplit_reconciled, NULL, "reconciled", NULL},
 
-    // Whether out split is part of a txn or a new split being created.
-    {"is_new", (getter)PySplit_is_new, NULL, NULL, NULL},
     // index within its parent txn
     {"index", (getter)PySplit_index, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
 };
 
 static PyType_Slot Split_Slots[] = {
-    {Py_tp_init, PySplit_init},
     {Py_tp_methods, PySplit_methods},
     {Py_tp_getset, PySplit_getseters},
     {Py_tp_repr, PySplit_repr},
     {Py_tp_richcompare, PySplit_richcompare},
     {Py_tp_hash, PySplit_hash},
-    {Py_tp_dealloc, PySplit_dealloc},
     {0, 0},
 };
 
@@ -3605,7 +3553,7 @@ PyType_Spec AccountList_Type_Spec = {
 
 static PyMethodDef PyTransaction_methods[] = {
     {"amount_for_account", (PyCFunction)PyTransaction_amount_for_account, METH_VARARGS, ""},
-    {"add_split", (PyCFunction)PyTransaction_add_split, METH_O, ""},
+    {"new_split", (PyCFunction)PyTransaction_new_split, METH_NOARGS, ""},
     {"affected_accounts", (PyCFunction)PyTransaction_affected_accounts, METH_NOARGS, ""},
     {"assign_imbalance", (PyCFunction)PyTransaction_assign_imbalance, METH_O, ""},
     {"balance", (PyCFunction)PyTransaction_balance, METH_VARARGS, ""},

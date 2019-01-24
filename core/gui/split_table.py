@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -25,8 +25,7 @@ class SplitTable(GUITable):
 
     # --- Override
     def _do_add(self):
-        split = self.panel.new_split()
-        row = SplitTableRow(self, split)
+        row = SplitTableRow(self, None)
         return row, len(self)
 
     def _do_delete(self):
@@ -80,9 +79,14 @@ class SplitTableRow(Row, RowWithDebitAndCreditMixIn):
         return self.table.document.parse_amount(value, default_currency=currency)
 
     def load(self):
-        self._account = self.split.account.name if self.split.account else ''
-        self._memo = self.split.memo
-        self._amount = self.split.amount
+        if self.split:
+            self._account = self.split.account.name if self.split.account else ''
+            self._memo = self.split.memo
+            self._amount = self.split.amount
+        else:
+            self._account = ''
+            self._memo = ''
+            self._amount = 0
 
     def save(self):
         self.table.panel.change_split(self.split, self.account, self._amount, self._memo)

@@ -14,7 +14,7 @@ from core.util import nonone, flatten, stripfalse, dedupe
 from core.trans import tr
 
 from ..exception import FileFormatError
-from ..model._ccore import AccountList, Split, TransactionList
+from ..model._ccore import AccountList, TransactionList
 from ..model.account import Group, GroupList, AccountType
 from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
 from ..model.budget import Budget, BudgetList
@@ -255,7 +255,9 @@ class Loader:
                 if split_info.amount_reversed:
                     amount = -amount
                 memo = nonone(split_info.memo, '')
-                split = Split(account, amount)
+                split = transaction.new_split()
+                split.account = account
+                split.amount = amount
                 split.memo = memo
                 if account is None or not of_currency(amount, account.currency):
                     # fix #442: off-currency transactions shouldn't be reconciled
@@ -265,9 +267,8 @@ class Loader:
                 elif split_info.reconciled: # legacy
                     split.reconciliation_date = transaction.date
                 split.reference = split_info.reference
-                transaction.add_split(split)
             while len(transaction.splits) < 2:
-                transaction.add_split(Split(None, 0))
+                transaction.new_split()
             transaction.balance()
             transaction.mtime = info.mtime
             if info.reference is not None:

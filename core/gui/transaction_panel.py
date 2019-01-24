@@ -9,7 +9,7 @@ from datetime import date
 
 from core.util import first
 
-from ..model._ccore import AccountList, Split
+from ..model._ccore import AccountList
 from ..model.account import AccountType
 from ..model.transaction import Transaction
 from .base import GUIPanel
@@ -31,6 +31,8 @@ class PanelWithTransaction(GUIPanel):
         self.split_table = SplitTable(weakref.proxy(self))
 
     def change_split(self, split, account_name, amount, memo):
+        if split is None:
+            split = self.transaction.new_split()
         if account_name:
             if split.account:
                 account_type = split.account.type
@@ -41,8 +43,6 @@ class PanelWithTransaction(GUIPanel):
             split.account = None
         split.amount = amount
         split.memo = memo
-        if split.is_new:
-            split = self.transaction.add_split(split)
         self.transaction.balance(split)
         self.split_table.refresh_splits()
         self.view.refresh_for_multi_currency()
@@ -50,9 +50,6 @@ class PanelWithTransaction(GUIPanel):
     def delete_split(self, split):
         self.transaction.remove_split(split)
         self.view.refresh_for_multi_currency()
-
-    def new_split(self):
-        return Split(None, 0)
 
     def select_splits(self, splits):
         self._selected_splits = splits
