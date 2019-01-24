@@ -289,7 +289,7 @@ class Document(GUIObject):
             self.accounts.remove(account)
         self._cook()
 
-    def new_account(self, type, group):
+    def new_account(self, type, groupname):
         """Create a new account in the document.
 
         Creates a new account of type ``type``, within the ``group`` (which can be ``None`` to
@@ -303,8 +303,8 @@ class Document(GUIObject):
         """
         name = self.accounts.new_name(tr('New account'))
         account = self.accounts.create(name, self.default_currency, type)
-        if group:
-            account.change(groupname=group.name)
+        if groupname:
+            account.change(groupname=groupname)
         action = Action(tr('Add account'))
         action.added_accounts.add(account)
         self._undoer.record(action)

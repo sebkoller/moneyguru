@@ -85,17 +85,17 @@ class Report(ViewChild, tree.Tree):
         node = self.selected
         if isinstance(node, Node) and node.is_group:
             account_type = node.group.type
-            account_group = node.group
+            account_group = node.group.name
         elif isinstance(node, Node) and node.is_account:
             account_type = node.account.type
-            account_group = self.document.groups.group_of_account(node.account)
+            account_group = node.account.groupname
         else:
             # there are only 2 types per report
             path = self.selected_path
             account_type = self[1].type if path and path[0] == 1 else self[0].type
             account_group = None
-        if account_group is not None:
-            self.parent_view.expand_group(account_group)
+        if account_group:
+            self.parent_view.expand_group(account_group, account_type)
         account = self.document.new_account(account_type, account_group)
         self.mainwindow.revalidate()
         self.selected = self._node_of_account(account)
@@ -157,7 +157,7 @@ class Report(ViewChild, tree.Tree):
     def collapse_node(self, node):
         self._expanded_paths.discard(tuple(node.path))
         if node.is_group:
-            self.parent_view.collapse_group(node.group)
+            self.parent_view.collapse_group(node.group.name, node.group.type)
 
     def delete(self):
         if not self.can_delete():
@@ -181,7 +181,7 @@ class Report(ViewChild, tree.Tree):
     def expand_node(self, node):
         self._expanded_paths.add(tuple(node.path))
         if node.is_group:
-            self.parent_view.expand_group(node.group)
+            self.parent_view.expand_group(node.group.name, node.group.type)
 
     def make_account_node(self, account):
         node = self._make_node(account.name)

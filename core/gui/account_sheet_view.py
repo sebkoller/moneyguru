@@ -61,8 +61,8 @@ class AccountSheetView(BaseView):
         self.view.update_visibility()
 
     # --- Public
-    def collapse_group(self, group):
-        self._expanded_groups.discard((group.name, group.type))
+    def collapse_group(self, groupname, grouptype):
+        self._expanded_groups.discard((groupname, grouptype))
         self.pie._revalidate()
 
     def delete_item(self):
@@ -76,8 +76,8 @@ class AccountSheetView(BaseView):
             account_panel.load(selected_account)
             return account_panel
 
-    def expand_group(self, group):
-        self._expanded_groups.add((group.name, group.type))
+    def expand_group(self, groupname, grouptype):
+        self._expanded_groups.add((groupname, grouptype))
         self.pie._revalidate()
 
     def get_account_reassign_panel(self):
@@ -85,8 +85,8 @@ class AccountSheetView(BaseView):
         panel.view = weakref.proxy(self.view.get_panel_view(panel))
         return panel
 
-    def is_group_expanded(self, group):
-        return (group.name, group.type) in self._expanded_groups
+    def is_group_expanded(self, groupname, grouptype):
+        return (groupname, grouptype) in self._expanded_groups
 
     def new_item(self):
         self.sheet.add_account()
