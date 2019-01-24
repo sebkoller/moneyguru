@@ -143,6 +143,7 @@ time2pydate(time_t date)
     return PyDate_FromDate(d->tm_year + 1900, d->tm_mon + 1, d->tm_mday);
 }
 
+// 0 mean no date. -1 means error.
 static time_t
 pydate2time(PyObject *pydate)
 {
@@ -155,7 +156,7 @@ pydate2time(PyObject *pydate)
     }
     if (!PyDate_Check(pydate)) {
         PyErr_SetString(PyExc_ValueError, "pydate2tm needs a date value");
-        return 1;
+        return -1;
     }
     date.tm_year = PyDateTime_GET_YEAR(pydate) - 1900;
     date.tm_mon = PyDateTime_GET_MONTH(pydate) - 1;
@@ -353,11 +354,11 @@ py_currency_register(PyObject *self, PyObject *args)
     }
 
     start_date = pydate2time(py_startdate);
-    if (start_date == 1) {
+    if (start_date == -1) {
         return NULL;
     }
     stop_date = pydate2time(py_stopdate);
-    if (stop_date == 1) {
+    if (stop_date == -1) {
         return NULL;
     }
     currency_register(code, exponent, start_date, startrate, stop_date, latestrate);
@@ -378,7 +379,7 @@ py_currency_getrate(PyObject *self, PyObject *args)
     }
 
     time_t date = pydate2time(pydate);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
 
@@ -408,7 +409,7 @@ py_currency_set_CAD_value(PyObject *self, PyObject *args)
     }
 
     time_t date = pydate2time(pydate);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
 
@@ -848,7 +849,7 @@ py_amount_convert(PyObject *self, PyObject *args)
         return amount_p;
     }
     time_t date = pydate2time(pydate);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
     if (!amount_convert(&dest, amount, date)) {
@@ -1114,7 +1115,7 @@ static int
 PySplit_reconciliation_date_set(PySplit *self, PyObject *value)
 {
     time_t res = pydate2time(value);
-    if (res == 1) {
+    if (res == -1) {
         return -1;
     } else {
         self->split->reconciliation_date = res;
@@ -1311,7 +1312,7 @@ static int
 PyTransaction_date_set(PyTransaction *self, PyObject *value)
 {
     time_t res = pydate2time(value);
-    if (res == 1) {
+    if (res == -1) {
         return -1;
     } else {
         self->txn->date = res;
@@ -1434,7 +1435,7 @@ static int
 PyTransaction_recurrence_date_set(PyTransaction *self, PyObject *value)
 {
     time_t res = pydate2time(value);
-    if (res == 1) {
+    if (res == -1) {
         return -1;
     } else {
         self->txn->recurrence_date = res;
@@ -1673,7 +1674,7 @@ PyTransaction_change(PyTransaction *self, PyObject *args, PyObject *kwds)
     }
     if (date_p != NULL) {
         time_t date = pydate2time(date_p);
-        if (date == 1) {
+        if (date == -1) {
             return NULL;
         }
         bool future = date > today();
@@ -1936,7 +1937,7 @@ PyTransaction_init(PyTransaction *self, PyObject *args, PyObject *kwds)
     }
 
     time_t date = pydate2time(date_p);
-    if (date == 1) {
+    if (date == -1) {
         return -1;
     }
     self->txn = malloc(sizeof(Transaction));
@@ -2233,7 +2234,7 @@ PyEntryList_last_entry(PyEntryList *self, PyObject *args)
         return NULL;
     }
     time_t date = pydate2time(date_p);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
     Entry *entry = entries_last_entry(self->entries, date);
@@ -2253,7 +2254,7 @@ PyEntryList_clear(PyEntryList *self, PyObject *args)
         return NULL;
     }
     time_t date = pydate2time(date_p);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
     entries_clear(self->entries, date);
@@ -2277,7 +2278,7 @@ PyEntryList_balance(PyEntryList *self, PyObject *args)
         return NULL;
     }
     time_t date = pydate2time(date_p);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
     if (!entries_balance(self->entries, &dst, date, with_budget)) {
@@ -2292,7 +2293,7 @@ _PyEntryList_cash_flow(PyEntryList *self, Amount *dst, PyObject *daterange)
 {
     time_t from = pydate2time(PyObject_GetAttrString(daterange, "start"));
     time_t to = pydate2time(PyObject_GetAttrString(daterange, "end"));
-    if (from == 1 || to == 1) {
+    if (from == -1 || to == -1) {
         return false;
     }
     return entries_cash_flow(self->entries, dst, from, to);
@@ -2337,7 +2338,7 @@ PyEntryList_normal_balance(PyEntryList *self, PyObject *args)
         }
     }
     time_t date = pydate2time(date_p);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
     if (!entries_balance(self->entries, &res, date, false)) {
@@ -2813,7 +2814,7 @@ py_patch_today(PyObject *self, PyObject *today_p)
         today_patch(0);
     } else {
         time_t today = pydate2time(today_p);
-        if (today == 1) {
+        if (today == -1) {
             return NULL;
         }
         today_patch(today);
@@ -2832,7 +2833,7 @@ py_inc_date(PyObject *self, PyObject *args)
         return NULL;
     }
     time_t date = pydate2time(date_py);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
     RepeatType rt;
@@ -3095,7 +3096,7 @@ static PyObject*
 PyTransactionList_transactions_at_date(PyTransactionList *self, PyObject *date_py)
 {
     time_t date = pydate2time(date_py);
-    if (date == 1) {
+    if (date == -1) {
         return NULL;
     }
     Transaction **txns = transactions_at_date(&self->tlist, date);
