@@ -940,16 +940,6 @@ PyAccount_inactive(PyAccount *self)
 }
 
 static PyObject *
-PyAccount_autocreated(PyAccount *self)
-{
-    if (self->account->autocreated) {
-        Py_RETURN_TRUE;
-    } else {
-        Py_RETURN_FALSE;
-    }
-}
-
-static PyObject *
 PyAccount_notes(PyAccount *self)
 {
     return _strget(self->account->notes);
@@ -1271,20 +1261,6 @@ PySplit_repr(PySplit *self)
     Py_DECREF(fmt);
     Py_DECREF(args);
     return r;
-}
-
-static PyObject *
-PySplit_copy_from(PySplit *self, PyObject *other)
-{
-    if (!Split_Check(other)) {
-        PyErr_SetString(PyExc_TypeError, "not a split");
-        return NULL;
-    }
-    if (!split_copy(self->split, ((PySplit *)other)->split)) {
-        PyErr_SetString(PyExc_ValueError, "something wen't wrong");
-        return NULL;
-    }
-    Py_RETURN_NONE;
 }
 
 static Py_hash_t
@@ -3307,11 +3283,6 @@ PyType_Spec Amount_Type_Spec = {
     Amount_Slots,
 };
 
-static PyMethodDef PySplit_methods[] = {
-    {"copy_from", (PyCFunction)PySplit_copy_from, METH_O, ""},
-    {0, 0, 0, 0},
-};
-
 static PyGetSetDef PySplit_getseters[] = {
     /* Account our split is assigned to.
      * Can be `None`. We are then considered an "unassigned split".
@@ -3348,7 +3319,6 @@ static PyGetSetDef PySplit_getseters[] = {
 };
 
 static PyType_Slot Split_Slots[] = {
-    {Py_tp_methods, PySplit_methods},
     {Py_tp_getset, PySplit_getseters},
     {Py_tp_repr, PySplit_repr},
     {Py_tp_richcompare, PySplit_richcompare},
@@ -3480,7 +3450,6 @@ static PyGetSetDef PyAccount_getseters[] = {
     {"account_number", (getter)PyAccount_account_number, NULL, NULL, NULL},
     {"inactive", (getter)PyAccount_inactive, NULL, NULL, NULL},
     {"notes", (getter)PyAccount_notes, NULL, NULL, NULL},
-    {"autocreated", (getter)PyAccount_autocreated, NULL, NULL, NULL},
     {0, 0, 0, 0, 0},
 };
 
