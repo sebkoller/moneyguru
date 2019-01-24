@@ -28,7 +28,7 @@ class _AccountPieChart(PieChart):
         for account, amount in account_data:
             name = account.name
             group = self.document.groups.group_of_account(account)
-            if group and not group.expanded:
+            if group and not self.parent_view.is_group_expanded(group):
                 name = group.name
             data[name] += amount
         return data

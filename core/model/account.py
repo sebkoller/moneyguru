@@ -49,7 +49,6 @@ class Group:
         self.name = name
         #: :class:`AccountType` for this group.
         self.type = type
-        self.expanded = False
 
     def __repr__(self):
         return '<Group %s>' % self.name

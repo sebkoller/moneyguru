@@ -95,7 +95,7 @@ class Report(ViewChild, tree.Tree):
             account_type = self[1].type if path and path[0] == 1 else self[0].type
             account_group = None
         if account_group is not None:
-            account_group.expanded = True
+            self.parent_view.expand_group(account_group)
         account = self.document.new_account(account_type, account_group)
         self.mainwindow.revalidate()
         self.selected = self._node_of_account(account)
