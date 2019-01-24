@@ -683,15 +683,6 @@ def compare_apps(first, second, qif_mode=False):
             except AssertionError:
                 raise
 
-    eq_(len(first.groups), len(second.groups))
-    group_pairs = list(zip(sorted(first.groups, key=attrgetter('name')),
-        sorted(second.groups, key=attrgetter('name'))))
-    for group1, group2 in group_pairs:
-        try:
-            eq_(group1.name, group2.name)
-            eq_(group1.type, group2.type)
-        except AssertionError:
-            raise
     eq_(len(first.accounts), len(second.accounts))
     account_pairs = list(zip(sorted(first.accounts, key=attrgetter('name')),
         sorted(second.accounts, key=attrgetter('name'))))

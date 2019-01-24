@@ -91,7 +91,7 @@ class Document(GUIObject):
         self.excluded_accounts = set()
         #: :class:`.GroupList` containing all account groups of the document.
         self.groups = GroupList()
-        self._undoer = Undoer(self.accounts, self.groups, self.transactions, self.schedules, self.budgets)
+        self._undoer = Undoer(self.accounts, self.transactions, self.schedules, self.budgets)
         self._date_range = YearRange(datetime.date.today())
         self._document_id = None
         self._dirty_flag = False
@@ -325,7 +325,7 @@ class Document(GUIObject):
             self.excluded_accounts |= accounts
 
     # --- Group
-    def change_group(self, group, name=NOEDIT):
+    def change_group(self, group, name):
         """Properly sets properties for ``group``.
 
         Sets ``group``'s properties in a proper manner.
@@ -335,18 +335,17 @@ class Document(GUIObject):
         :param name: ``str``
         """
         assert group is not None
-        action = Action(tr('Change group'))
-        action.change_groups([group])
-        if name is not NOEDIT:
-            oldname = group.name
-            other = self.groups.find(name, group.type)
-            if (other is not None) and (other is not group):
-                return False
-            group.name = name
-            for account in self.accounts:
-                if account.groupname == oldname:
-                    account.groupname = name
+        action = Action(tr('Rename group'))
+        oldname = group.name
+        affected_accounts = {a for a in self.accounts if a.groupname == oldname}
+        action.change_accounts(affected_accounts)
+        other = self.groups.find(name, group.type)
+        if (other is not None) and (other is not group):
+            return False
         self._undoer.record(action)
+        group.name = name
+        for account in affected_accounts:
+            account.groupname = name
         self.touch()
         return True
 
@@ -362,7 +361,6 @@ class Document(GUIObject):
         groupnames = {g.name for g in groups}
         accounts = [a for a in self.accounts if a.groupname in groupnames]
         action = Action(tr('Remove group'))
-        action.deleted_groups |= groups
         action.change_accounts(accounts)
         self._undoer.record(action)
         for group in groups:
@@ -382,9 +380,6 @@ class Document(GUIObject):
         """
         name = self.groups.new_name(tr('New group'), type)
         group = Group(name, type)
-        action = Action(tr('Add group'))
-        action.added_groups.add(group)
-        self._undoer.record(action)
         self.groups.append(group)
         self.touch()
         return group

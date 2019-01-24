@@ -4,12 +4,9 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import copy
-
 from core.model._ccore import UndoStep
 from core.util import extract
 
-GROUP_SWAP_ATTRS = ['name', 'type']
 SPLIT_SWAP_ATTRS = ['account', 'amount', 'reconciliation_date']
 SCHEDULE_SWAP_ATTRS = ['repeat_type', 'repeat_every', 'stop_date', 'date2exception',
                        'date2globalchange', 'date2instances']
@@ -24,9 +21,10 @@ def swapvalues(first, second, attrs):
 class Action:
     """A unit of change that can be undone and redone.
 
-    In here, we store changes that happened to a document in the form of sets containing instances.
-    These set's are not documented individually to reduce verbosity, but there's 3 types (``added``,
-    ``changed`` and ``deleted``) of sets for each supported instance (``accounts``, ``groups``,
+    In here, we store changes that happened to a document in the form of sets
+    containing instances.  These set's are not documented individually to
+    reduce verbosity, but there's 3 types (``added``, ``changed`` and
+    ``deleted``) of sets for each supported instance (``accounts``,
     ``transactions``, ``schedules``, ``budgets``).
 
     For ``added`` and ``deleted``, it's rather easy. The set contains instances directly. For
@@ -45,9 +43,6 @@ class Action:
         self.added_accounts = set()
         self.changed_accounts = set()
         self.deleted_accounts = set()
-        self.added_groups = set()
-        self.changed_groups = {}
-        self.deleted_groups = set()
         self.added_transactions = set()
         self.changed_transactions = set()
         self.deleted_transactions = set()
@@ -61,12 +56,6 @@ class Action:
     def change_accounts(self, accounts):
         """Record imminent changes to ``accounts``."""
         self.changed_accounts |= set(accounts)
-
-    def change_groups(self, groups):
-        """Record imminent changes to ``groups``."""
-        for g in groups:
-            if g not in self.changed_groups:
-                self.changed_groups[g] = copy.copy(g)
 
     def change_schedule(self, schedule):
         """Record imminent changes to ``schedule``."""
@@ -108,10 +97,9 @@ class Undoer:
     (most of the time, it's the last action). When we undo or redo an action, we use the information
     we has stored in our action and make proper modifications, then move our action index.
     """
-    def __init__(self, accounts, groups, transactions, scheduled, budgets):
+    def __init__(self, accounts, transactions, scheduled, budgets):
         self._actions = []
         self._accounts = accounts
-        self._groups = groups
         self._transactions = transactions
         self._scheduled = scheduled
         self._budgets = budgets
@@ -119,17 +107,13 @@ class Undoer:
         self._save_point = None
 
     # --- Private
-    def _do_adds(self, accounts, groups, schedules, budgets):
-        for group in groups:
-            self._groups.append(group)
+    def _do_adds(self, accounts, schedules, budgets):
         for schedule in schedules:
             self._scheduled.append(schedule)
         for budget in budgets:
             self._budgets.append(budget)
 
     def _do_changes(self, action):
-        for group, old in action.changed_groups.items():
-            swapvalues(group, old, GROUP_SWAP_ATTRS)
         for schedule, old in action.changed_schedules.items():
             swapvalues(schedule, old, SCHEDULE_SWAP_ATTRS)
             newold = schedule.ref.replicate()
@@ -138,9 +122,7 @@ class Undoer:
         for budget, old in action.changed_budgets.items():
             swapvalues(budget, old, BUDGET_SWAP_ATTRS)
 
-    def _do_deletes(self, accounts, groups, schedules, budgets):
-        for group in groups:
-            self._groups.remove(group)
+    def _do_deletes(self, accounts, schedules, budgets):
         for schedule in schedules:
             self._scheduled.remove(schedule)
         for budget in budgets:
@@ -220,12 +202,11 @@ class Undoer:
         action = self._actions[self._index]
         action.undostep.undo(self._accounts, self._transactions)
         self._do_adds(
-            action.deleted_accounts, action.deleted_groups,
-            action.deleted_schedules, action.deleted_budgets
+            action.deleted_accounts, action.deleted_schedules,
+            action.deleted_budgets
         )
         self._do_deletes(
-            action.added_accounts, action.added_groups,
-            action.added_schedules, action.added_budgets
+            action.added_accounts, action.added_schedules, action.added_budgets
         )
         self._do_changes(action)
         self._transactions.clear_cache()
@@ -243,12 +224,11 @@ class Undoer:
         action = self._actions[self._index + 1]
         action.undostep.redo(self._accounts, self._transactions)
         self._do_adds(
-            action.added_accounts, action.added_groups,
-            action.added_schedules, action.added_budgets
+            action.added_accounts, action.added_schedules, action.added_budgets
         )
         self._do_deletes(
-            action.deleted_accounts, action.deleted_groups,
-            action.deleted_schedules, action.deleted_budgets
+            action.deleted_accounts, action.deleted_schedules,
+            action.deleted_budgets
         )
         self._do_changes(action)
         self._transactions.clear_cache()

@@ -80,13 +80,6 @@ def test_undo_add_account(app, checkstate):
     checkstate()
 
 @with_app(TestApp)
-def test_undo_add_group(app, checkstate):
-    # It's possible to undo the addition of an account group.
-    app.show_nwview()
-    app.bsheet.add_account_group()
-    checkstate()
-
-@with_app(TestApp)
 def test_add_schedule(app, checkstate):
     # schedule addition are undoable
     app.show_scview()
@@ -319,18 +312,6 @@ def app_account_group():
     return app
 
 @with_app(app_account_group)
-def test_descriptions_after_group(app):
-    # All group descriptions are there.
-    eq_(app.doc.undo_description(), 'Add group')
-    app.show_nwview()
-    app.bsheet.selected = app.bsheet.assets[0]
-    app.bsheet.selected.name = 'foobar'
-    app.bsheet.save_edits()
-    eq_(app.doc.undo_description(), 'Change group')
-    app.bsheet.delete()
-    eq_(app.doc.undo_description(), 'Remove group')
-
-@with_app(app_account_group)
 def test_undo_delete_group(app, checkstate):
     # It's possible to undo group deletion.
     app.show_nwview()
@@ -354,16 +335,6 @@ def app_account_in_group():
     app.add_account(group_name='group')
     app.show_account()
     return app
-
-@with_app(app_account_in_group)
-def test_change_group_on_duplicate_account_name_doesnt_record_action(app):
-    # Renaming a group and causing a duplicate account name error doesn't cause an action to
-    # be recorded
-    app.show_nwview()
-    app.bsheet.add_account_group()
-    app.bsheet.selected.name = 'group'
-    app.bsheet.save_edits()
-    eq_(app.doc.undo_description(), 'Add group') # We're still at undoing the add
 
 @with_app(app_account_in_group)
 def test_undo_delete_group_with_account(app, checkstate):
@@ -416,14 +387,6 @@ def test_undo_add_entry_in_grouped_account(app, checkstate):
     # The undoer keeps its transaction list up-to-date after a load.
     # Previously, the Undoer would hold an old instance of TransactionList
     app.add_entry(description='foobar', transfer='some_account', increase='42')
-    checkstate()
-
-@with_app(app_load_file)
-def test_undo_add_group_besides_account_in_group(app, checkstate):
-    # The undoer keeps its group list up-to-date after a load.
-    # Previously, the Undoer would hold an old instance of GroupList
-    app.show_nwview()
-    app.bsheet.add_account_group()
     checkstate()
 
 @with_app(app_load_file)
