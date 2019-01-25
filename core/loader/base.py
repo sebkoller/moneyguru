@@ -13,9 +13,9 @@ from operator import attrgetter
 from core.util import nonone, flatten, stripfalse, dedupe
 from core.trans import tr
 
+from ..const import AccountType
 from ..exception import FileFormatError
 from ..model._ccore import AccountList, TransactionList
-from ..model.account import AccountType
 from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
 from ..model.budget import Budget, BudgetList
 from ..model.currency import Currencies

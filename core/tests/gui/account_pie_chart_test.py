@@ -11,7 +11,7 @@ from ..testutil import eq_
 from ..base import ApplicationGUI, TestApp, with_app
 from ...app import Application
 from ...gui.pie_chart import MIN_SLICE_COUNT, MIN_VIEW_SIZE, SIZE_COST_FOR_SLICE, COLOR_COUNT
-from ...model.account import AccountType
+from ...const import AccountType
 from ...model.currency import Currencies
 
 # --- Slice count

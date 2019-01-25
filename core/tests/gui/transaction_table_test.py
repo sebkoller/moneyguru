@@ -13,10 +13,9 @@ import pytest
 from ..testutil import eq_
 
 from ..base import TestApp, with_app, testdata
-from ...const import PaneType
+from ...const import PaneType, AccountType
 from ...gui.transaction_table import TransactionTable
 from ...model.date import MonthRange, YearRange
-from ...model.account import AccountType
 from ...model.currency import Currencies
 
 

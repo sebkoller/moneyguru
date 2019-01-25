@@ -7,7 +7,7 @@
 from .testutil import eq_
 
 from .base import TestApp, with_app
-from ..model.account import AccountType
+from ..const import AccountType
 
 # a little helper that creates a completable edit, sets the text and returns the completion
 def complete_table(target_table, value, attrname):

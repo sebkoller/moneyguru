@@ -7,8 +7,7 @@
 from ..testutil import eq_
 
 from ..base import TestApp, with_app
-from ...const import FilterType
-from ...model.account import AccountType
+from ...const import FilterType, AccountType
 
 class TestPristine:
     @with_app(TestApp)

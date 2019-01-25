@@ -56,3 +56,23 @@ class FilterType:
     NotReconciled = object()
 
 
+class AccountType:
+    """Enum of all possible account types.
+
+    * ``Asset``
+    * ``Liability``
+    * ``Income``
+    * ``Expense``
+
+    Special values:
+
+    * ``All``: set containing all account types
+    * ``InOrder``: all account type in "sort" order.
+    """
+    Asset = 'asset'
+    Liability = 'liability'
+    Income = 'income'
+    Expense = 'expense'
+    InOrder = [Asset, Liability, Income, Expense]
+    All = set(InOrder)
+

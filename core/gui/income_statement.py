@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -6,7 +6,7 @@
 
 from core.trans import trget, tr
 from .column import Column
-from ..model.account import AccountType
+from ..const import AccountType
 from .report import Report, get_delta_perc
 
 trcol = trget('columns')

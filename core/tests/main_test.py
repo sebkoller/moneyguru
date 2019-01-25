@@ -17,7 +17,7 @@ from ..document import Document, AUTOSAVE_BUFFER_COUNT
 from ..exception import FileFormatError
 from ..gui.entry_table import EntryTable
 from ..loader import base
-from ..model.account import AccountType
+from ..const import AccountType
 from ..model.date import MonthRange, QuarterRange, YearRange
 
 # --- No Setup

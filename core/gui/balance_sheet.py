@@ -8,7 +8,7 @@ from datetime import timedelta, date
 
 from core.trans import trget, tr
 from .column import Column
-from ..model.account import AccountType
+from ..const import AccountType
 from ..model.date import DateRange
 from .report import Report, get_delta_perc
 

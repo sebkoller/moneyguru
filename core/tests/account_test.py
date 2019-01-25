@@ -7,8 +7,8 @@
 from .testutil import eq_
 
 from .base import TestApp, with_app, testdata
+from ..const import AccountType
 from ..exception import FileFormatError
-from ..model.account import AccountType
 
 # --- Pristine
 @with_app(TestApp)

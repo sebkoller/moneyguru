@@ -8,7 +8,7 @@ from datetime import date
 
 from pytest import raises
 
-from core.model.account import AccountType
+from core.const import AccountType
 from .testutil import eq_
 
 from .base import ApplicationGUI, TestApp, with_app, testdata

@@ -8,7 +8,7 @@ import weakref
 
 from core.trans import tr
 
-from ..model.account import AccountType
+from ..const import AccountType
 from ..model.currency import Currencies
 from .base import GUIPanel
 from .selectable_list import GUISelectableList, LinkedSelectableList

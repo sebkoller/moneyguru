@@ -9,7 +9,7 @@ from io import StringIO
 
 from core.trans import tr
 
-from ..model.account import ACCOUNT_SORT_KEY
+from ..model.sort import ACCOUNT_SORT_KEY
 from ..util import extract
 from .column import Columns
 from .base import ViewChild

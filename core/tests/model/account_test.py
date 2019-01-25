@@ -8,8 +8,9 @@ from datetime import date
 
 from ..testutil import eq_
 
+from ...const import AccountType
 from ...model._ccore import AccountList, TransactionList
-from ...model.account import AccountType, ACCOUNT_SORT_KEY
+from ...model.sort import ACCOUNT_SORT_KEY
 from ...model.currency import Currencies
 from ...model.date import MonthRange
 from ...model.oven import Oven

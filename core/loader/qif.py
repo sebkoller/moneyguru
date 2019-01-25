@@ -1,6 +1,4 @@
-# Created By: Virgil Dupras
-# Created On: 2008-02-11
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -14,8 +12,8 @@ from operator import attrgetter
 
 from core.util import first, stripfalse
 
+from ..const import AccountType
 from ..exception import FileFormatError
-from ..model.account import AccountType
 from . import base
 
 # LITTLE NOTE ON QIF AND SPLITS

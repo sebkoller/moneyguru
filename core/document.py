@@ -15,12 +15,11 @@ from functools import wraps
 from core.util import nonone, allsame, dedupe, extract, first, flatten
 from core.trans import tr
 
-from .const import NOEDIT
+from .const import NOEDIT, AccountType
 from .exception import FileFormatError, OperationAborted
 from .gui.base import GUIObject
 from .loader import native
 from .model._ccore import AccountList, Entry, TransactionList
-from .model.account import AccountType
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
 from .model.budget import BudgetList

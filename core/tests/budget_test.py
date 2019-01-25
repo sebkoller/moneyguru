@@ -6,7 +6,7 @@
 
 from .testutil import eq_
 
-from ..model.account import AccountType
+from ..const import AccountType
 from .base import TestApp, with_app
 
 # -- Account with budget

@@ -1,11 +1,11 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from core.trans import trget
-from ..model.account import ACCOUNT_SORT_KEY
+from ..model.sort import ACCOUNT_SORT_KEY
 from .column import Column
 from .table import GUITable, Row
 

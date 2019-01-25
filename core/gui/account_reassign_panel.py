@@ -6,7 +6,7 @@
 
 from core.trans import tr
 
-from ..model.account import sort_accounts
+from ..model.sort import ACCOUNT_SORT_KEY
 from .base import GUIPanel
 from .selectable_list import GUISelectableList
 
@@ -18,8 +18,9 @@ class AccountReassignPanel(GUIPanel):
     def _load(self, accounts):
         self.deleted_accounts = set(accounts)
         all_accounts = list(self.document.accounts)
-        target_accounts = [a for a in all_accounts if a not in self.deleted_accounts]
-        sort_accounts(target_accounts)
+        target_accounts = sorted(
+            (a for a in all_accounts if a not in self.deleted_accounts),
+            key=ACCOUNT_SORT_KEY)
         target_account_names = [a.name for a in target_accounts]
         target_account_names.insert(0, tr('No Account'))
         self._target_accounts = target_accounts

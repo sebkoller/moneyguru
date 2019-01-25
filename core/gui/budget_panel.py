@@ -10,8 +10,8 @@ from core.util import first
 from core.trans import tr
 
 from ..exception import OperationAborted
-from ..model.account import sort_accounts
 from ..model.budget import Budget
+from ..model.sort import ACCOUNT_SORT_KEY
 from .base import GUIPanel
 from .selectable_list import GUISelectableList
 
@@ -55,7 +55,7 @@ class BudgetPanel(GUIPanel):
         if not self._accounts:
             msg = tr("Income/Expense accounts must be created before budgets can be set.")
             raise OperationAborted(msg)
-        sort_accounts(self._accounts)
+        self._accounts.sort(key=ACCOUNT_SORT_KEY)
         self.account_list.refresh()
         self.account_list.select(self._accounts.index(budget.account) if budget.account is not None else 0)
 

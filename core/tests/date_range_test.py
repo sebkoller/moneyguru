@@ -8,8 +8,7 @@ from datetime import date
 
 from .testutil import eq_
 
-from ..const import PaneType
-from ..model.account import AccountType
+from ..const import PaneType, AccountType
 from ..model.date import MonthRange, QuarterRange, YearRange, YearToDateRange
 from .base import TestApp, with_app, testdata
 

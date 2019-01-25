@@ -13,7 +13,7 @@ from ..testutil import eq_
 from ..base import DocumentGUI, ApplicationGUI, TestApp, with_app, testdata
 from ...app import Application
 from ...document import Document
-from ...model.account import AccountType
+from ...const import AccountType
 from ...model.date import MonthRange
 from ...model.currency import Currencies
 

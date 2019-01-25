@@ -9,7 +9,7 @@ from datetime import date
 from ..testutil import eq_
 
 from ..base import TestApp, with_app, testdata
-from ...model.account import AccountType
+from ...const import AccountType
 from ...model.currency import Currencies
 
 class TestAssetsAndLiabilitiesInDifferentAccounts:

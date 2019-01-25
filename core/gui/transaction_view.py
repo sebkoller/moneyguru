@@ -7,8 +7,7 @@
 import weakref
 
 from core.trans import tr
-from ..const import PaneType, FilterType
-from ..model.account import AccountType
+from ..const import PaneType, FilterType, AccountType
 from ..model.amount import convert_amount
 from ..model.transaction import txn_matches
 from .base import BaseView

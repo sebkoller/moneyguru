@@ -8,8 +8,7 @@
 # in every test unit can get tedious, so this test unit is a "theme based" unit which tests calls
 # made to GUIs' view.
 
-from ...const import FilterType
-from ...model.account import AccountType
+from ...const import FilterType, AccountType
 from ..base import TestApp, testdata
 
 # --- No Setup

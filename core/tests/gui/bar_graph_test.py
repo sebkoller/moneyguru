@@ -7,7 +7,7 @@
 from ..testutil import eq_
 
 from ..base import TestApp, with_app
-from ...model.account import AccountType
+from ...const import AccountType
 
 class TestPristine:
     def do_setup(self):

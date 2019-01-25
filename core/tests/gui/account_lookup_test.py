@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -8,8 +8,7 @@ from ..testutil import eq_
 
 import pytest
 
-from ...const import PaneType
-from ...model.account import AccountType
+from ...const import PaneType, AccountType
 from ..base import TestApp, with_app
 
 # --- Some accounts

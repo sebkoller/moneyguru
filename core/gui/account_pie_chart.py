@@ -9,7 +9,7 @@
 
 from collections import defaultdict
 from core.trans import tr
-from ..model.account import AccountType
+from ..const import AccountType
 from .pie_chart import PieChart
 
 class _AccountPieChart(PieChart):

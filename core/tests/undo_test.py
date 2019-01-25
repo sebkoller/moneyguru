@@ -12,10 +12,9 @@ import pytest
 
 from .testutil import eq_
 
-from ..const import PaneType
+from ..const import PaneType, AccountType
 from ..document import ScheduleScope
 from ..model.date import MonthRange
-from ..model.account import AccountType
 from .base import compare_apps, testdata, TestApp, with_app
 
 class bag: pass

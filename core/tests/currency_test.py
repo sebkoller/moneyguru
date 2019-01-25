@@ -14,7 +14,7 @@ import pytest
 
 from ..app import Application
 from ..model import currency
-from ..model.account import AccountType
+from ..const import AccountType
 from ..model.currency import Currencies
 from ..model.date import MonthRange
 from .base import ApplicationGUI, TestApp, with_app, compare_apps

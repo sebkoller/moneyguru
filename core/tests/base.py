@@ -11,13 +11,13 @@ from operator import attrgetter
 from ..app import Application, PreferenceNames
 from ..document import Document, ScheduleScope
 from ..exception import FileFormatError
-from ..const import PaneType
+from ..const import AccountType, PaneType
 from ..gui.base import GUIObject
 from ..gui.completable_edit import CompletableEdit
 from ..gui.main_window import MainWindow
 from ..gui.account_panel import AccountPanel
 from ..loader import base
-from ..model.account import AccountType, ACCOUNT_SORT_KEY
+from ..model.sort import ACCOUNT_SORT_KEY
 from ..model.amount import parse_amount
 from ..model.date import DateFormat
 from ..util import flatten
