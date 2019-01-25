@@ -298,8 +298,7 @@ class Loader:
             account = self.accounts.create(
                 info.name, account_currency, account_type)
             if info.group:
-                group = self.groups.find(info.group, account_type)
-                account.change(groupname=group.name)
+                account.change(groupname=info.group)
             if info.budget:
                 self.budget_infos.append(BudgetInfo(info.name, info.budget))
             account.change(

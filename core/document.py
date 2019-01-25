@@ -89,6 +89,8 @@ class Document(GUIObject):
         self.step = 1
         #: Set of accounts that are currently in "excluded" state.
         self.excluded_accounts = set()
+        # Keep track of newly added groups between refreshes
+        self.newgroups = set()
         #: :class:`.GroupList` containing all account groups of the document.
         self.groups = GroupList()
         self._undoer = Undoer(self.accounts, self.transactions, self.schedules, self.budgets)
@@ -194,8 +196,9 @@ class Document(GUIObject):
 
     # --- Account
     def change_accounts(
-            self, accounts, name=NOEDIT, type=NOEDIT, currency=NOEDIT, group=NOEDIT,
-            account_number=NOEDIT, inactive=NOEDIT, notes=NOEDIT):
+            self, accounts, name=NOEDIT, type=NOEDIT, currency=NOEDIT,
+            groupname=NOEDIT, account_number=NOEDIT, inactive=NOEDIT,
+            notes=NOEDIT):
         """Properly sets properties for ``accounts``.
 
         Sets ``accounts``' properties in a proper manner. Attributes
@@ -205,7 +208,7 @@ class Document(GUIObject):
         :param name: ``str``
         :param type: :class:`.AccountType`
         :param currency: :class:`.Currency`
-        :param group: :class:`.Group`
+        :param groupname: ``str``
         :param account_number: ``str``
         :param inactive: ``bool``
         :param notes: ``str``
@@ -230,8 +233,8 @@ class Document(GUIObject):
                 entries = self.accounts.entries_for_account(account)
                 assert not any(e.reconciled for e in entries)
                 kwargs['currency'] = currency
-            if group is not NOEDIT:
-                kwargs['groupname'] = group.name if group else None
+            if groupname is not NOEDIT:
+                kwargs['groupname'] = groupname
             if account_number is not NOEDIT:
                 kwargs['account_number'] = account_number
             if inactive is not NOEDIT:
@@ -325,49 +328,15 @@ class Document(GUIObject):
             self.excluded_accounts |= accounts
 
     # --- Group
-    def change_group(self, group, name):
-        """Properly sets properties for ``group``.
-
-        Sets ``group``'s properties in a proper manner.
-        Attributes corresponding to arguments set to ``NOEDIT`` will not be touched.
-
-        :param group: :class:`.Group` to be changed
-        :param name: ``str``
-        """
-        assert group is not None
+    def rename_group(self, oldname, newname):
         action = Action(tr('Rename group'))
-        oldname = group.name
         affected_accounts = {a for a in self.accounts if a.groupname == oldname}
         action.change_accounts(affected_accounts)
-        other = self.groups.find(name, group.type)
-        if (other is not None) and (other is not group):
-            return False
         self._undoer.record(action)
-        group.name = name
         for account in affected_accounts:
-            account.groupname = name
+            account.groupname = newname
         self.touch()
         return True
-
-    def delete_groups(self, groups):
-        """Removes ``groups`` from the document.
-
-        Removes ``groups`` from the group list. All accounts
-        belonging to the deleted group have their :attr:`.Account.group` attribute set to ``None``.
-
-        :param groups: list of :class:`.Group`
-        """
-        groups = set(groups)
-        groupnames = {g.name for g in groups}
-        accounts = [a for a in self.accounts if a.groupname in groupnames]
-        action = Action(tr('Remove group'))
-        action.change_accounts(accounts)
-        self._undoer.record(action)
-        for group in groups:
-            self.groups.remove(group)
-        for account in accounts:
-            account.change(groupname=None)
-        self.touch()
 
     def new_group(self, type):
         """Creates a new group of type ``type``.
@@ -960,6 +929,7 @@ class Document(GUIObject):
         self._undoer.clear()
         self._dirty_flag = False
         self.excluded_accounts = set()
+        self.newgroups = set()
         self.accounts.clear()
         self.transactions.clear()
         self._cook()

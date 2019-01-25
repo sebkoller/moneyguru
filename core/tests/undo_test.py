@@ -306,29 +306,6 @@ def test_undo_twice(app):
     eq_(app.bsheet.assets.children_count, 2)
 
 # ---
-def app_account_group():
-    app = TestApp()
-    app.add_group()
-    return app
-
-@with_app(app_account_group)
-def test_undo_delete_group(app, checkstate):
-    # It's possible to undo group deletion.
-    app.show_nwview()
-    app.bsheet.selected = app.bsheet.assets[0]
-    app.bsheet.delete()
-    checkstate()
-
-@with_app(app_account_group)
-def test_undo_rename_group(app, checkstate):
-    # It's possible to undo a group rename.
-    app.show_nwview()
-    app.bsheet.selected = app.bsheet.assets[0]
-    app.bsheet.selected.name = 'foobar'
-    app.bsheet.save_edits()
-    checkstate()
-
-# ---
 def app_account_in_group():
     app = TestApp()
     app.add_group('group')

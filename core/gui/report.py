@@ -10,6 +10,7 @@ from io import StringIO
 from core.trans import tr
 
 from ..model.account import ACCOUNT_SORT_KEY
+from ..util import extract
 from .column import Columns
 from .base import ViewChild
 from . import tree
@@ -84,8 +85,8 @@ class Report(ViewChild, tree.Tree):
         self.stop_editing()
         node = self.selected
         if isinstance(node, Node) and node.is_group:
-            account_type = node.group.type
-            account_group = node.group.name
+            account_type = node.parent.type
+            account_group = node.name
         elif isinstance(node, Node) and node.is_account:
             account_type = node.account.type
             account_group = node.account.groupname
@@ -107,15 +108,16 @@ class Report(ViewChild, tree.Tree):
         self.stop_editing()
         node = self.selected
         if isinstance(node, Node) and node.is_group:
-            account_type = node.group.type
+            account_type = node.parent.type
         elif isinstance(node, Node) and node.is_account:
             account_type = node.account.type
         else:
             path = self.selected_path
             account_type = self[1].type if path and path[0] == 1 else self[0].type
         group = self.document.new_group(account_type)
+        self.document.newgroups.add((group.name, group.type))
         self.mainwindow.revalidate()
-        self.selected = self.find(lambda n: getattr(n, 'group', None) is group)
+        self.selected = self.find(lambda n: n.name == group.name and n.is_group)
         self.view.update_selection()
         self.view.start_editing()
 
@@ -151,13 +153,13 @@ class Report(ViewChild, tree.Tree):
         if node is None:
             return
         assert node.is_account or node.is_group
-        node.name = node.account.name if node.is_account else node.group.name
+        node.name = node.account.name if node.is_account else node.oldname
         self.edited = None
 
     def collapse_node(self, node):
         self._expanded_paths.discard(tuple(node.path))
         if node.is_group:
-            self.parent_view.collapse_group(node.group.name, node.group.type)
+            self.parent_view.collapse_group(node.name, node.parent.type)
 
     def delete(self):
         if not self.can_delete():
@@ -165,9 +167,13 @@ class Report(ViewChild, tree.Tree):
         self.view.stop_editing()
         selected_nodes = self.selected_nodes
         gnodes = [n for n in selected_nodes if n.is_group]
-        if gnodes:
-            groups = [n.group for n in gnodes]
-            self.document.delete_groups(groups)
+        for node in gnodes:
+            accounts = self.document.accounts.filter(
+                groupname=node.name, type=node.parent.type)
+            if accounts:
+                self.document.change_accounts(accounts, groupname=None)
+            self.document.newgroups.discard((node.name, node.parent.type))
+            self.document.touch()
         anodes = [n for n in selected_nodes if n.is_account]
         if anodes:
             accounts = [n.account for n in anodes]
@@ -181,7 +187,7 @@ class Report(ViewChild, tree.Tree):
     def expand_node(self, node):
         self._expanded_paths.add(tuple(node.path))
         if node.is_group:
-            self.parent_view.expand_group(node.group.name, node.group.type)
+            self.parent_view.expand_group(node.name, node.parent.type)
 
     def make_account_node(self, account):
         node = self._make_node(account.name)
@@ -198,18 +204,17 @@ class Report(ViewChild, tree.Tree):
         node.is_blank = True
         return node
 
-    def make_group_node(self, group):
-        node = self._make_node(group.name)
-        node.group = group
+    def make_group_node(self, groupname, grouptype):
+        node = self._make_node(groupname)
         node.is_group = True
-        groupname = group.name if group else None
+        node.oldname = groupname # in case we rename
         accounts = self.document.accounts.filter(
-            groupname=groupname, type=group.type)
+            groupname=groupname, type=grouptype)
         for account in sorted(accounts, key=ACCOUNT_SORT_KEY):
             node.append(self.make_account_node(account))
         node.is_excluded = bool(accounts) and set(accounts) <= self.document.excluded_accounts # all accounts excluded
         if not node.is_excluded:
-            node.append(self.make_total_node(node, tr('Total ') + group.name))
+            node.append(self.make_total_node(node, tr('Total ') + groupname))
         node.append(self.make_blank_node())
         return node
 
@@ -222,10 +227,13 @@ class Report(ViewChild, tree.Tree):
         node = self._make_node(name)
         node.type = type
         node.is_type = True
-        for group in sorted(self.document.groups.filter(type=type)):
-            node.append(self.make_group_node(group))
-        accounts = self.document.accounts.filter(type=type, groupname='')
-        for account in sorted(accounts, key=ACCOUNT_SORT_KEY):
+        accounts = self.document.accounts.filter(type=type)
+        grouped, ungrouped = extract(lambda a: bool(a.groupname), accounts)
+        groupnames = {a.groupname for a in grouped}
+        groupnames |= {n for n, t in self.document.newgroups if t == type}
+        for groupname in sorted(groupnames):
+            node.append(self.make_group_node(groupname, type))
+        for account in sorted(ungrouped, key=ACCOUNT_SORT_KEY):
             node.append(self.make_account_node(account))
         accounts = self.document.accounts.filter(type=type)
         node.is_excluded = bool(accounts) and set(accounts) <= self.document.excluded_accounts # all accounts excluded
@@ -240,9 +248,11 @@ class Report(ViewChild, tree.Tree):
         accounts = [self.get_node(p).account for p in source_paths]
         dest_node = self.get_node(dest_path)
         if dest_node.is_type:
-            self.document.change_accounts(accounts, group=None, type=dest_node.type)
+            self.document.change_accounts(
+                accounts, groupname=None, type=dest_node.type)
         elif dest_node.is_group:
-            self.document.change_accounts(accounts, group=dest_node.group, type=dest_node.group.type)
+            self.document.change_accounts(
+                accounts, groupname=dest_node.name, type=dest_node.parent.type)
         self.mainwindow.revalidate()
 
     def refresh(self, refresh_view=True):
@@ -288,12 +298,18 @@ class Report(ViewChild, tree.Tree):
         if node.is_account:
             success = self.document.change_accounts([node.account], name=node.name)
         else:
-            success = self.document.change_group(node.group, name=node.name)
+            other = node.parent.find(
+                lambda n: n.is_group and n.name.lower() == node.name.lower())
+            success = other is None or other is node
+            if success:
+                self.document.rename_group(node.oldname, node.name)
+                self.document.newgroups.discard((node.oldname, node.parent.type))
+                self.document.newgroups.add((node.name, node.parent.type))
         self.mainwindow.revalidate()
         if not success:
             msg = tr("The account '{0}' already exists.").format(node.name)
             # we use _name because we don't want to change self.edited
-            node._name = node.account.name if node.is_account else node.group.name
+            node._name = node.account.name if node.is_account else node.oldname
             self.mainwindow.show_message(msg)
 
     def save_preferences(self):
@@ -339,7 +355,7 @@ class Report(ViewChild, tree.Tree):
                 affected_accounts |= set(self.document.accounts.filter(type=node.type))
             elif node.is_group:
                 accounts = self.document.accounts.filter(
-                    groupname=node.group.name, type=node.group.type)
+                    groupname=node.name, type=node.parent.type)
                 affected_accounts |= set(accounts)
             elif node.is_account:
                 affected_accounts.add(node.account)

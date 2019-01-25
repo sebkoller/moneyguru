@@ -304,10 +304,22 @@ class TestApp(TestAppBase):
         self.etable.save_edits()
 
     def add_group(self, name=None, account_type=AccountType.Asset):
-        group = self.doc.new_group(account_type)
+        if account_type in {AccountType.Income, AccountType.Expense}:
+            view = self.show_pview()
+            if account_type == AccountType.Expense:
+                view.sheet.selected = view.sheet.expenses
+            else:
+                view.sheet.selected = view.sheet.income
+        else:
+            view = self.show_nwview()
+            if account_type == AccountType.Liability:
+                view.sheet.selected = view.sheet.liabilities
+            else:
+                view.sheet.selected = view.sheet.assets
+        view.sheet.add_account_group()
         if name is not None:
-            self.doc.change_group(group, name=name)
-        self.mw.revalidate()
+            view.sheet.selected.name = name
+            view.sheet.save_edits()
 
     def add_schedule(self, start_date=None, description='', account=None, amount='0',
             repeat_type_index=0, repeat_every=1, stop_date=None):
