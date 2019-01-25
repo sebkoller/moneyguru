@@ -9,7 +9,7 @@ from datetime import date
 from ..testutil import eq_
 
 from ...model._ccore import AccountList, TransactionList
-from ...model.account import Group, AccountType, ACCOUNT_SORT_KEY
+from ...model.account import AccountType, ACCOUNT_SORT_KEY
 from ...model.currency import Currencies
 from ...model.date import MonthRange
 from ...model.oven import Oven
@@ -25,25 +25,6 @@ class TestAccountComparison:
         achigan = l.create('achigan', 'USD', AccountType.Asset)
         accounts = [bell, belarus, achigan]
         eq_(sorted(accounts, key=ACCOUNT_SORT_KEY), [achigan, belarus, bell])
-
-
-class TestGroupComparison:
-    def test_comparison(self):
-        # Groups are sorted by name. The sort is insensitive to case and accents.
-        bell = Group('Bell', AccountType.Asset)
-        belarus = Group('Bélarus', AccountType.Asset)
-        achigan = Group('achigan', AccountType.Asset)
-        groups = [bell, belarus, achigan]
-        eq_(sorted(groups), [achigan, belarus, bell])
-
-    def test_equality(self):
-        # Two different group objects are never equal.
-        zoo1 = Group('Zoo', AccountType.Asset)
-        zoo2 = Group('Zoo', AccountType.Asset)
-        zoo3 = Group('Zoö', AccountType.Asset)
-        eq_(zoo1, zoo1)
-        assert zoo1 != zoo2
-        assert zoo1 != zoo3
 
 
 class TestOneAccount:

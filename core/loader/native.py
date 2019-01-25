@@ -85,12 +85,6 @@ class Loader(base.Loader):
                     value = tryint(value, default=None)
                 if name and value is not None:
                     self.properties[name] = value
-        for group_element in root.iter('group'):
-            self.start_group()
-            attrib = group_element.attrib
-            self.group_info.name = attrib.get('name')
-            self.group_info.type = attrib.get('type')
-            self.flush_group()
         for account_element in root.iter('account'):
             self.start_account()
             attrib = account_element.attrib

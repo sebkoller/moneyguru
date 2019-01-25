@@ -20,7 +20,7 @@ from .exception import FileFormatError, OperationAborted
 from .gui.base import GUIObject
 from .loader import native
 from .model._ccore import AccountList, Entry, TransactionList
-from .model.account import Group, GroupList, AccountType
+from .model.account import AccountType
 from .model.amount import parse_amount, format_amount
 from .model.currency import Currencies
 from .model.budget import BudgetList
@@ -91,8 +91,6 @@ class Document(GUIObject):
         self.excluded_accounts = set()
         # Keep track of newly added groups between refreshes
         self.newgroups = set()
-        #: :class:`.GroupList` containing all account groups of the document.
-        self.groups = GroupList()
         self._undoer = Undoer(self.accounts, self.transactions, self.schedules, self.budgets)
         self._date_range = YearRange(datetime.date.today())
         self._document_id = None
@@ -326,32 +324,6 @@ class Document(GUIObject):
             self.excluded_accounts -= accounts
         else:
             self.excluded_accounts |= accounts
-
-    # --- Group
-    def rename_group(self, oldname, newname):
-        action = Action(tr('Rename group'))
-        affected_accounts = {a for a in self.accounts if a.groupname == oldname}
-        action.change_accounts(affected_accounts)
-        self._undoer.record(action)
-        for account in affected_accounts:
-            account.groupname = newname
-        self.touch()
-        return True
-
-    def new_group(self, type):
-        """Creates a new group of type ``type``.
-
-        The new group will have a unique name based on the string "New Group" (if it exists, a
-        unique number will be appended to it). Once created, the group is added to the group list.
-
-        :param type: :class:`.AccountType`
-        :rtype: :class:`.Group`
-        """
-        name = self.groups.new_name(tr('New group'), type)
-        group = Group(name, type)
-        self.groups.append(group)
-        self.touch()
-        return group
 
     # --- Transaction
     def can_move_transactions(self, transactions, before, after):
@@ -745,8 +717,6 @@ class Document(GUIObject):
         for propname in self._properties:
             if propname in loader.properties:
                 self._properties[propname] = loader.properties[propname]
-        for group in loader.groups:
-            self.groups.append(group)
         self.accounts = loader.accounts
         self.oven._accounts = self.accounts
         self._undoer._accounts = self.accounts
@@ -779,7 +749,7 @@ class Document(GUIObject):
             self._document_id = uuid.uuid4().hex
         save_native(
             filename, self._document_id, self._properties, self.accounts,
-            self.groups, self.transactions, self.schedules, self.budgets
+            self.transactions, self.schedules, self.budgets
         )
         if not autosave:
             self._undoer.set_save_point()
@@ -923,7 +893,6 @@ class Document(GUIObject):
     # --- Misc
     def clear(self):
         self._document_id = None
-        self.groups.clear()
         del self.schedules[:]
         del self.budgets[:]
         self._undoer.clear()

@@ -11,7 +11,7 @@ import xml.etree.cElementTree as ET
 from ..model.amount import format_amount
 from core.util import remove_invalid_xml, ensure_folder
 
-def save(filename, document_id, properties, accounts, groups, transactions, schedules, budgets):
+def save(filename, document_id, properties, accounts, transactions, schedules, budgets):
     def date2str(date):
         return date.strftime('%Y-%m-%d')
 
@@ -53,11 +53,6 @@ def save(filename, document_id, properties, accounts, groups, transactions, sche
     for name, value in properties.items():
         value = str(value)
         props_element.attrib[name] = value
-    for group in groups:
-        group_element = ET.SubElement(root, 'group')
-        attrib = group_element.attrib
-        attrib['name'] = group.name
-        attrib['type'] = group.type
     for account in accounts:
         account_element = ET.SubElement(root, 'account')
         attrib = account_element.attrib

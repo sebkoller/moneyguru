@@ -22,6 +22,14 @@ def get_delta_perc(delta_amount, start_amount):
     else:
         return '---'
 
+def new_name(base_name, search_func):
+    name = base_name
+    index = 0
+    while search_func(name) is not None:
+        index += 1
+        name = '%s %d' % (base_name, index)
+    return name
+
 class Report(ViewChild, tree.Tree):
     SAVENAME = ''
     COLUMNS = []
@@ -107,17 +115,20 @@ class Report(ViewChild, tree.Tree):
         self.view.stop_editing()
         self.stop_editing()
         node = self.selected
-        if isinstance(node, Node) and node.is_group:
-            account_type = node.parent.type
-        elif isinstance(node, Node) and node.is_account:
-            account_type = node.account.type
-        else:
-            path = self.selected_path
-            account_type = self[1].type if path and path[0] == 1 else self[0].type
-        group = self.document.new_group(account_type)
-        self.document.newgroups.add((group.name, group.type))
+        while node is not None and not node.is_type:
+            node = node.parent
+        if node is None:
+            node = self[0]
+
+        def findname(name):
+            return node.find(lambda n: n.is_group and n.name.lower() == name.lower())
+
+        name = new_name(tr("New group"), findname)
+        self.document.newgroups.add((name, node.type))
+        self.document.touch()
         self.mainwindow.revalidate()
-        self.selected = self.find(lambda n: n.name == group.name and n.is_group)
+        self.selected = self.find(
+            lambda n: n.name == name and n.is_group and n.parent.type == node.type)
         self.view.update_selection()
         self.view.start_editing()
 
@@ -302,7 +313,12 @@ class Report(ViewChild, tree.Tree):
                 lambda n: n.is_group and n.name.lower() == node.name.lower())
             success = other is None or other is node
             if success:
-                self.document.rename_group(node.oldname, node.name)
+                accounts = self.document.accounts.filter(
+                    groupname=node.oldname, type=node.parent.type)
+                if accounts:
+                    self.document.change_accounts(accounts, groupname=node.name)
+                else:
+                    self.document.touch()
                 self.document.newgroups.discard((node.oldname, node.parent.type))
                 self.document.newgroups.add((node.name, node.parent.type))
         self.mainwindow.revalidate()

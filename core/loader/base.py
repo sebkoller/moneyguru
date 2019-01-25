@@ -15,7 +15,7 @@ from core.trans import tr
 
 from ..exception import FileFormatError
 from ..model._ccore import AccountList, TransactionList
-from ..model.account import Group, GroupList, AccountType
+from ..model.account import AccountType
 from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
 from ..model.budget import Budget, BudgetList
 from ..model.currency import Currencies
@@ -70,7 +70,6 @@ class Loader:
     def __init__(self, default_currency, default_date_format=None):
         self.default_currency = default_currency
         self.default_date_format = default_date_format
-        self.groups = GroupList()
         self.accounts = AccountList(default_currency)
         self.transactions = TransactionList()
         # I did not manage to create a repeatable test for it, but self.schedules has to be ordered
@@ -80,12 +79,10 @@ class Loader:
         self.properties = {}
         self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
         self.target_account = None # when set, overrides the reference matching system
-        self.group_infos = []
         self.account_infos = []
         self.transaction_infos = []
         self.recurrence_infos = []
         self.budget_infos = []
-        self.group_info = GroupInfo()
         self.account_info = AccountInfo()
         self.transaction_info = TransactionInfo()
         self.transaction_cancelled = False
@@ -157,14 +154,6 @@ class Loader:
             year = (result.year % 100) + 2000
             result = result.replace(year=year)
         return result
-
-    def start_group(self):
-        pass
-
-    def flush_group(self):
-        if self.group_info.is_valid():
-            self.group_infos.append(self.group_info)
-        self.group_info = GroupInfo()
 
     def start_account(self):
         self.flush_account() # Implicit
@@ -282,9 +271,6 @@ class Loader:
         # Now, we take the info we have and transform it into model instances
         currencies = set()
         start_date = datetime.date.max
-        for info in self.group_infos:
-            group = Group(info.name, info.type)
-            self.groups.append(group)
         for info in self.account_infos:
             account_type = info.type
             if account_type not in AccountType.All:
@@ -380,15 +366,6 @@ class Loader:
         self._post_load()
         self.oven.cook(datetime.date.min, until_date=None)
         Currencies.get_rates_db().ensure_rates(start_date, list(currencies))
-
-
-class GroupInfo:
-    def __init__(self):
-        self.name = None
-        self.type = AccountType.Asset
-
-    def is_valid(self):
-        return bool(self.name)
 
 
 class AccountInfo:
