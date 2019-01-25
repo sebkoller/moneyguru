@@ -15,6 +15,7 @@ from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtWidgets import QApplication
 
 import core.trans
+from core import __version__
 from core.args import get_parser
 from qt.support.error_report_dialog import install_excepthook
 from qt.util import setupQtLogging
@@ -27,6 +28,7 @@ def main():
     app.setWindowIcon(QIcon(QPixmap(":/logo_small")))
     app.setOrganizationName('Hardcoded Software')
     app.setApplicationName('moneyGuru')
+    app.setApplicationVersion(__version__)
     if args.debug:
         LOGGING_LEVEL = logging.DEBUG
     else:
@@ -45,7 +47,6 @@ def main():
     # Many strings are translated at import time, so this is why we only import after the translator
     # has been installed
     from qt.app import MoneyGuru
-    app.setApplicationVersion(MoneyGuru.VERSION)
     MoneyGuru.DOC_PATH = op.join('@DOCPATH@', 'index.html')
     mgapp = MoneyGuru(filepath=args.filepath)
     install_excepthook('https://github.com/hsoft/moneyguru/issues')

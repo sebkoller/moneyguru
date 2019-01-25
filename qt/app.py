@@ -22,7 +22,6 @@ from .support.date_edit import DateEdit
 from .preferences import Preferences
 
 class MoneyGuru(QObject):
-    VERSION = MoneyGuruModel.VERSION
     LOGO_NAME = 'logo'
     DOC_PATH = '/usr/share/doc/moneyguru/index.html'
     DOC_URL = 'https://www.hardcoded.net/moneyguru/help/en'

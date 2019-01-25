@@ -109,7 +109,7 @@ class TransactionView(TransactionViewBase):
             self._visible_transactions = txns
             return
         if query_string:
-            query = self.app.parse_search_query(query_string)
+            query = self.mainwindow.parse_search_query(query_string)
             txns = [t for t in txns if txn_matches(t, query)]
         if filter_type is FilterType.Unassigned:
             txns = [t for t in txns if t.has_unassigned_split]

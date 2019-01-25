@@ -38,10 +38,10 @@ class MassEditDateField(MassEditTextField):
 
 class MassEditAmountField(MassEditTextField):
     def _parse(self, text):
-        return self._panel.app.parse_amount(text)
+        return self._panel.document.parse_amount(text)
 
     def _format(self, value):
-        return self._panel.app.format_amount(value)
+        return self._panel.document.format_amount(value)
 
 
 class MassEditionPanel(GUIPanel):

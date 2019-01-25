@@ -5,6 +5,7 @@
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 import logging
+import re
 import weakref
 
 from core.util import first, minmax, nonone
@@ -279,7 +280,7 @@ class MainWindow(DocumentGUIObject):
         query_string = self.filter_string
         filter_type = self.filter_type
         if query_string:
-            query = self.app.parse_search_query(query_string)
+            query = self.parse_search_query(query_string)
             entries = [e for e in entries if txn_matches(e.transaction, query)]
         if filter_type is FilterType.Unassigned:
             entries = [e for e in entries if not e.transfer]
@@ -515,6 +516,37 @@ class MainWindow(DocumentGUIObject):
             return panel
         else:
             return self.load_parsed_file_for_import()
+
+    def parse_search_query(self, query_string):
+        """Parses ``query_string`` into something that can be used to filter transactions.
+
+        :param str query_string: Search string that comes straight from the user through the search
+                                 box.
+        :rtype: a dict of query arguments
+        """
+        query_string = query_string.strip().lower()
+        ALL_QUERY_TYPES = ['account', 'group', 'amount', 'description', 'checkno', 'payee', 'memo']
+        RE_TARGETED_SEARCH = re.compile(r'({}):(.*)'.format('|'.join(ALL_QUERY_TYPES)))
+        m = RE_TARGETED_SEARCH.match(query_string)
+        if m is not None:
+            qtype, qargs = m.groups()
+            qtypes = [qtype]
+        else:
+            qtypes = ALL_QUERY_TYPES
+            qargs = query_string
+        query = {}
+        for qtype in qtypes:
+            if qtype in {'account', 'group'}:
+                # account and group args are comma-splitted
+                query[qtype] = {s.strip() for s in qargs.split(',')}
+            elif qtype == 'amount':
+                try:
+                    query['amount'] = abs(self.document.parse_amount(qargs, with_expression=False))
+                except ValueError:
+                    pass
+            else:
+                query[qtype] = qargs
+        return query
 
     def redo(self):
         self.document.redo()

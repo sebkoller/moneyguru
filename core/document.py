@@ -922,12 +922,12 @@ class Document(GUIObject):
             grouping_sep=self.app._grouping_sep, **kwargs
         )
 
-    def parse_amount(self, amount, default_currency=None):
+    def parse_amount(self, amount, default_currency=None, **kwargs):
         if default_currency is None:
             default_currency = self.default_currency
         return amount_parse(
             amount, default_currency,
-            auto_decimal_place=self.app._auto_decimal_place)
+            auto_decimal_place=self.app._auto_decimal_place, **kwargs)
 
     def is_amount_native(self, amount):
         if amount == 0:

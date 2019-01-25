@@ -6,15 +6,12 @@
 
 import os
 import os.path as op
-import re
 
 from core.util import nonone
 
 from .gui.date_widget import DateWidget
 
-from . import __version__
 from .model import currency
-from .model._ccore import amount_parse, amount_format
 from .model.currency import Currencies
 from .model.currency_provider import get_providers
 from .model.date import parse_date, format_date
@@ -22,13 +19,11 @@ from .model.date import parse_date, format_date
 class PreferenceNames:
     """Holds a list of preference key constants used in moneyGuru.
 
-    * ``HadFirstLaunch``
     * ``AutoSaveInterval``
     * ``AutoDecimalPlace``
     * ``CustomRanges``
     * ``ShowScheduleScopeDialog``
     """
-    HadFirstLaunch = 'HadFirstLaunch'
     AutoSaveInterval = 'AutoSaveInterval'
     AutoDecimalPlace = 'AutoDecimalPlace'
     DayFirstDateEntry = 'DayFirstDateEntry'
@@ -62,15 +57,6 @@ class ApplicationView:
         .. seealso:: :meth:`get_default`.
         """
 
-    def show_message(self, msg):
-        """Pops up a modal dialog with ``msg`` as a message, and a OK button."""
-
-    def open_url(self, url):
-        """Open ``url`` with the system's default URL handler."""
-
-    def reveal_path(self, path):
-        """Open ``path`` with the system's default file explorer."""
-
 class Application:
     """Manage a running instance of moneyGuru.
 
@@ -101,9 +87,7 @@ class Application:
     """
 
     APP_NAME = "moneyGuru"
-    PROMPT_NAME = APP_NAME
     NAME = APP_NAME
-    VERSION = __version__
 
     def __init__(
             self, view, date_format='dd/MM/yyyy', decimal_sep='.', grouping_sep='',
@@ -119,9 +103,6 @@ class Application:
         else:
             db_path = ':memory:'
         currency.initialize_db(db_path)
-        self.is_first_run = not self.get_default(PreferenceNames.HadFirstLaunch, False)
-        if self.is_first_run:
-            self.set_default(PreferenceNames.HadFirstLaunch, True)
         self._default_currency = default_currency
         self._date_format = date_format
         self._decimal_sep = decimal_sep
@@ -142,15 +123,6 @@ class Application:
             Currencies.get_rates_db().register_rate_provider(p().wrapped_get_currency_rates)
 
     # --- Public
-    def format_amount(self, amount, **kw):
-        """Returns a formatted amount using app-wide preferences.
-
-        This simply wraps :func:`core.model.amount.format_amount` and adds default values.
-        """
-        return amount_format(
-            amount, self._default_currency, decimal_sep=self._decimal_sep,
-            grouping_sep=self._grouping_sep, **kw)
-
     def format_date(self, date):
         """Returns a formatted date using app-wide preferences.
 
@@ -158,56 +130,12 @@ class Application:
         """
         return format_date(date, self._date_format)
 
-    def parse_amount(self, amount, default_currency=None):
-        """Returns a parsed amount using app-wide preferences.
-
-        This simply wraps :func:`core.model.amount.parse_amount` and adds default values.
-        """
-        if default_currency is None:
-            default_currency = self._default_currency
-        return amount_parse(
-            amount, default_currency,
-            auto_decimal_place=self._auto_decimal_place)
-
     def parse_date(self, date):
         """Returns a parsed date using app-wide preferences.
 
         This simply wraps :func:`core.model.date.parse_date` and adds default values.
         """
         return parse_date(date, self._date_format)
-
-    def parse_search_query(self, query_string):
-        """Parses ``query_string`` into something that can be used to filter transactions.
-
-        :param str query_string: Search string that comes straight from the user through the search
-                                 box.
-        :rtype: a dict of query arguments
-        """
-        # Application might not be an appropriate place for this method. self._default_currency
-        # is used, but I'm not even sure that it's appropriate to use it.
-        query_string = query_string.strip().lower()
-        ALL_QUERY_TYPES = ['account', 'group', 'amount', 'description', 'checkno', 'payee', 'memo']
-        RE_TARGETED_SEARCH = re.compile(r'({}):(.*)'.format('|'.join(ALL_QUERY_TYPES)))
-        m = RE_TARGETED_SEARCH.match(query_string)
-        if m is not None:
-            qtype, qargs = m.groups()
-            qtypes = [qtype]
-        else:
-            qtypes = ALL_QUERY_TYPES
-            qargs = query_string
-        query = {}
-        for qtype in qtypes:
-            if qtype in {'account', 'group'}:
-                # account and group args are comma-splitted
-                query[qtype] = {s.strip() for s in qargs.split(',')}
-            elif qtype == 'amount':
-                try:
-                    query['amount'] = abs(amount_parse(qargs, self._default_currency, with_expression=False))
-                except ValueError:
-                    pass
-            else:
-                query[qtype] = qargs
-        return query
 
     def get_default(self, key, fallback_value=None):
         """Returns moneyGuru user pref for ``key``.
