@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,7 +10,7 @@ from operator import attrgetter
 from core.model.transaction import splitted_splits
 from core.trans import trget, tr
 from .column import Column
-from ..model.amount import convert_amount
+from ..model._ccore import amount_convert
 from ..model.transaction import Transaction
 from .table import Row, RowWithDateMixIn, rowattr
 from .transaction_table_base import TransactionTableBase
@@ -57,7 +57,7 @@ class TransactionTable(TransactionTableBase):
         total_amount = 0
         for transaction in self.parent_view.visible_transactions:
             self.append(TransactionTableRow(self, transaction))
-            convert = lambda a: convert_amount(a, self.document.default_currency, transaction.date)
+            convert = lambda a: amount_convert(a, self.document.default_currency, transaction.date)
             total_amount += convert(transaction.amount)
             if not self.document.is_amount_native(transaction.amount):
                 self._all_amounts_are_native = False

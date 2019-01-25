@@ -15,8 +15,8 @@ from core.trans import tr
 
 from ..const import AccountType
 from ..exception import FileFormatError
-from ..model._ccore import AccountList, TransactionList
-from ..model.amount import parse_amount, of_currency, UnsupportedCurrencyError
+from ..model._ccore import (
+    AccountList, TransactionList, UnsupportedCurrencyError, amount_parse)
 from ..model.budget import Budget, BudgetList
 from ..model.currency import Currencies
 from ..model.oven import Oven
@@ -217,8 +217,9 @@ class Loader:
     @classmethod
     def parse_amount(cls, string, currency):
         try:
-            return parse_amount(
-                string, currency, with_expression=False, strict_currency=cls.STRICT_CURRENCY
+            return amount_parse(
+                string, currency, with_expression=False,
+                strict_currency=cls.STRICT_CURRENCY
             )
         except UnsupportedCurrencyError:
             msg = tr(
@@ -248,7 +249,7 @@ class Loader:
                 split.account = account
                 split.amount = amount
                 split.memo = memo
-                if account is None or not of_currency(amount, account.currency):
+                if account is None or not (not amount or amount.currency_code == account.currency):
                     # fix #442: off-currency transactions shouldn't be reconciled
                     split.reconciliation_date = None
                 elif split_info.reconciliation_date is not None:

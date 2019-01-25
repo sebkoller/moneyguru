@@ -14,7 +14,7 @@ from .gui.date_widget import DateWidget
 
 from . import __version__
 from .model import currency
-from .model.amount import parse_amount, format_amount
+from .model._ccore import amount_parse, amount_format
 from .model.currency import Currencies
 from .model.currency_provider import get_providers
 from .model.date import parse_date, format_date
@@ -147,8 +147,9 @@ class Application:
 
         This simply wraps :func:`core.model.amount.format_amount` and adds default values.
         """
-        return format_amount(amount, self._default_currency, decimal_sep=self._decimal_sep,
-                             grouping_sep=self._grouping_sep, **kw)
+        return amount_format(
+            amount, self._default_currency, decimal_sep=self._decimal_sep,
+            grouping_sep=self._grouping_sep, **kw)
 
     def format_date(self, date):
         """Returns a formatted date using app-wide preferences.
@@ -164,7 +165,9 @@ class Application:
         """
         if default_currency is None:
             default_currency = self._default_currency
-        return parse_amount(amount, default_currency, auto_decimal_place=self._auto_decimal_place)
+        return amount_parse(
+            amount, default_currency,
+            auto_decimal_place=self._auto_decimal_place)
 
     def parse_date(self, date):
         """Returns a parsed date using app-wide preferences.
@@ -199,7 +202,7 @@ class Application:
                 query[qtype] = {s.strip() for s in qargs.split(',')}
             elif qtype == 'amount':
                 try:
-                    query['amount'] = abs(parse_amount(qargs, self._default_currency, with_expression=False))
+                    query['amount'] = abs(amount_parse(qargs, self._default_currency, with_expression=False))
                 except ValueError:
                     pass
             else:

@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -10,8 +10,7 @@ from operator import attrgetter
 from core.util import nonone
 from core.trans import tr
 
-from ..model._ccore import Entry
-from ..model.amount import convert_amount
+from ..model._ccore import Entry, amount_convert
 from ..model.date import ONE_DAY
 from ..model.transaction import Transaction
 from .table import Row, RowWithDebitAndCreditMixIn, RowWithDateMixIn, rowattr
@@ -399,7 +398,7 @@ class EntryTableBase(TransactionTableBase):
         for entry in entries:
             row = self.ENTRY_ROWCLASS(self, entry, account)
             result.append(row)
-            convert = lambda a: convert_amount(a, account.currency, entry.date)
+            convert = lambda a: amount_convert(a, account.currency, entry.date)
             total_debit += convert(row._debit)
             total_credit += convert(row._credit)
         if result:
@@ -422,7 +421,7 @@ class EntryTableBase(TransactionTableBase):
         selected = len(entries)
         total = sum(1 for row in self if isinstance(row, EntryTableRow))
         total_currency = self._get_totals_currency()
-        amounts = [convert_amount(e.amount, total_currency, e.date) for e in entries]
+        amounts = [amount_convert(e.amount, total_currency, e.date) for e in entries]
         total_debit = sum(a for a in amounts if a > 0)
         total_credit = abs(sum(a for a in amounts if a < 0))
         return (selected, total, total_debit, total_credit)

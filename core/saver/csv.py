@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -6,7 +6,7 @@
 
 import csv
 
-from ..model.amount import format_amount
+from ..model._ccore import amount_format
 from ..model.date import format_date
 
 # account_pairs: (account, entries)
@@ -23,7 +23,7 @@ def save(filename, account_pairs, daterange=None):
             transfer = ', '.join(a.name for a in entry.transfer)
             amount = entry.amount
             if amount:
-                amount_fmt = format_amount(amount, amount.currency_code)
+                amount_fmt = amount_format(amount, amount.currency_code)
                 currency_code = amount.currency_code
             else:
                 amount_fmt = '0.00'

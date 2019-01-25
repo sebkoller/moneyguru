@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -7,7 +7,7 @@
 from pytest import raises
 from ..testutil import eq_
 
-from ...model.amount import format_amount
+from ...model._ccore import amount_format
 from ..base import Amount
 
 
@@ -160,17 +160,17 @@ def test_hash():
 # --- Format amount
 def test_format_default_currency():
     # If the amount currency matches default_currency, the currency is not shown.
-    eq_(format_amount(Amount(12.34, 'CAD'), default_currency='CAD'), '12.34')
-    eq_(format_amount(Amount(12.34, 'CAD'), default_currency='USD'), 'CAD 12.34')
+    eq_(amount_format(Amount(12.34, 'CAD'), default_currency='CAD'), '12.34')
+    eq_(amount_format(Amount(12.34, 'CAD'), default_currency='USD'), 'CAD 12.34')
 
 def test_format_none():
     # When None is given, return ''.
-    eq_(format_amount(None), '')
+    eq_(amount_format(None), '')
 
 def test_format_zero():
     # Zero is always shown without a currency, except if zero_currency is not None.
-    eq_(format_amount(0), '0.00')
-    eq_(format_amount(Amount(0, 'CAD')), '0.00')
-    eq_(format_amount(Amount(0, 'USD'), default_currency='CAD'), '0.00')
-    eq_(format_amount(0, default_currency='CAD', zero_currency='EUR'), 'EUR 0.00')
-    eq_(format_amount(0, default_currency='EUR', zero_currency='EUR'), '0.00')
+    eq_(amount_format(0), '0.00')
+    eq_(amount_format(Amount(0, 'CAD')), '0.00')
+    eq_(amount_format(Amount(0, 'USD'), default_currency='CAD'), '0.00')
+    eq_(amount_format(0, default_currency='CAD', zero_currency='EUR'), 'EUR 0.00')
+    eq_(amount_format(0, default_currency='EUR', zero_currency='EUR'), '0.00')

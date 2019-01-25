@@ -10,7 +10,7 @@ from collections import MutableSequence, namedtuple
 from io import StringIO
 
 
-from ..model.amount import is_amount
+from ..model._ccore import Amount
 from ..model.sort import sort_string
 from .base import GUIObject
 from .column import Columns
@@ -677,7 +677,7 @@ class Row(RowBase):
         value = RowBase.sort_key_for_column(self, column_name)
         if isinstance(value, str):
             value = sort_string(value)
-        elif is_amount(value):
+        elif isinstance(value, Amount):
             value = float(value)
         return value
 

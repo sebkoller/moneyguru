@@ -8,7 +8,7 @@ import sys
 import os.path as op
 import xml.etree.cElementTree as ET
 
-from ..model.amount import format_amount
+from ..model._ccore import amount_format
 from core.util import remove_invalid_xml, ensure_folder
 
 def save(filename, document_id, properties, accounts, transactions, schedules, budgets):
@@ -41,7 +41,7 @@ def save(filename, document_id, properties, accounts, transactions, schedules, b
             split_element = ET.SubElement(transaction_element, 'split')
             attrib = split_element.attrib
             attrib['account'] = split.account_name
-            attrib['amount'] = format_amount(split.amount)
+            attrib['amount'] = amount_format(split.amount)
             setattrib(attrib, 'memo', split.memo)
             setattrib(attrib, 'reference', split.reference)
             if split.reconciliation_date is not None:
@@ -97,7 +97,7 @@ def save(filename, document_id, properties, accounts, transactions, schedules, b
         attrib['account'] = budget.account.name
         attrib['type'] = budgets.repeat_type
         attrib['every'] = str(budgets.repeat_every)
-        attrib['amount'] = format_amount(budget.amount)
+        attrib['amount'] = amount_format(budget.amount)
         attrib['notes'] = budget.notes
         attrib['start_date'] = date2str(budgets.start_date)
     for elem in root.iter():

@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -9,7 +9,7 @@ import datetime
 from core.model.transaction import splitted_splits
 from core.trans import trget, tr
 from .column import Column
-from ..model.amount import convert_amount
+from ..model._ccore import amount_convert
 from .table import GUITable, Row, rowattr, TableWithAmountMixin
 
 trcol = trget('columns')
@@ -93,7 +93,7 @@ class ScheduleTableRow(Row):
             self._amount = sum(s.amount for s in tos)
         except ValueError: # currency coercing problem
             currency = self.document.default_currency
-            self._amount = sum(convert_amount(s.amount, currency, s.transaction.date) for s in tos)
+            self._amount = sum(amount_convert(s.amount, currency, s.transaction.date) for s in tos)
         self.is_amount_native = self.document.is_amount_native(self._amount)
         self._amount_fmt = self.document.format_amount(self._amount)
 

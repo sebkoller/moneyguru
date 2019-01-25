@@ -18,7 +18,7 @@ from ..gui.main_window import MainWindow
 from ..gui.account_panel import AccountPanel
 from ..loader import base
 from ..model.sort import ACCOUNT_SORT_KEY
-from ..model.amount import parse_amount
+from ..model._ccore import amount_parse
 from ..model.date import DateFormat
 from ..util import flatten
 from .testutil import eq_, CallLogger, TestApp as TestAppBase, TestData
@@ -764,4 +764,4 @@ def print_table(table, extra_attrs=[]):
 # class. Amount initializer was still widely used in tests, however and for
 # that purpose, this adapter was created.
 def Amount(val, currency):
-    return parse_amount('{} {}'.format(val, currency))
+    return amount_parse('{} {}'.format(val, currency))

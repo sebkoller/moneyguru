@@ -10,7 +10,7 @@ import time
 from pytest import raises
 from ..testutil import jointhreads, eq_
 
-from ...model.amount import convert_amount
+from ...model._ccore import amount_convert
 from ...model.currency import (
     Currencies, RateProviderUnavailable, RatesDB)
 from ...model.currency_provider import boc
@@ -61,8 +61,8 @@ def test_seek_rate():
     Currencies.get_rates_db().set_CAD_value(date(2008, 5, 20), 'USD', 0.98)
     amount = Amount(42, 'USD')
     expected = Amount(42 * .98, 'CAD')
-    eq_(convert_amount(amount, 'CAD', date(2008, 5, 21)), expected)
-    eq_(convert_amount(amount, 'CAD', date(2008, 5, 19)), expected)
+    eq_(amount_convert(amount, 'CAD', date(2008, 5, 21)), expected)
+    eq_(amount_convert(amount, 'CAD', date(2008, 5, 19)), expected)
 
 # ---
 def test_ask_for_rates_in_the_past():

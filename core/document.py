@@ -19,8 +19,8 @@ from .const import NOEDIT, AccountType
 from .exception import FileFormatError, OperationAborted
 from .gui.base import GUIObject
 from .loader import native
-from .model._ccore import AccountList, Entry, TransactionList
-from .model.amount import parse_amount, format_amount
+from .model._ccore import (
+    AccountList, Entry, TransactionList, amount_parse, amount_format)
 from .model.currency import Currencies
 from .model.budget import BudgetList
 from .model.date import YearRange
@@ -917,7 +917,7 @@ class Document(GUIObject):
             default_currency = None
         else:
             default_currency = self.default_currency
-        return format_amount(
+        return amount_format(
             amount, default_currency or '', decimal_sep=self.app._decimal_sep,
             grouping_sep=self.app._grouping_sep, **kwargs
         )
@@ -925,7 +925,9 @@ class Document(GUIObject):
     def parse_amount(self, amount, default_currency=None):
         if default_currency is None:
             default_currency = self.default_currency
-        return parse_amount(amount, default_currency, auto_decimal_place=self.app._auto_decimal_place)
+        return amount_parse(
+            amount, default_currency,
+            auto_decimal_place=self.app._auto_decimal_place)
 
     def is_amount_native(self, amount):
         if amount == 0:
