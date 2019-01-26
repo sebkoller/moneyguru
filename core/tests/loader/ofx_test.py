@@ -92,8 +92,8 @@ def test_reference_desjardins():
     loader = loader_desjardins()
     account = list(loader.accounts)[0]
     eq_(account.reference, '700000100|0389347|815-30219-12345-EOP')
-    transaction = loader.transaction_infos[0]
-    eq_(transaction.reference, 'Th3DJACES')
+    transaction = list(loader.transactions)[0]
+    eq_(transaction.splits[0].reference, 'Th3DJACES')
 
 # ---
 def loader_ing():
@@ -130,8 +130,8 @@ def test_reference_fortis():
     loader = loader_fortis()
     account = list(loader.accounts)[0]
     eq_(account.reference, 'FORTIS||001-5587496-84')
-    transaction = loader.transaction_infos[0]
-    eq_(transaction.reference, '20080026')
+    transaction = list(loader.transactions)[0]
+    eq_(transaction.splits[0].reference, '20080026')
 
 # ---
 def loader_ccstmtrs():

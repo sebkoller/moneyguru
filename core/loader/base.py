@@ -7,7 +7,6 @@
 import datetime
 import logging
 import re
-from operator import attrgetter
 
 from core.util import nonone, stripfalse, dedupe
 from core.trans import tr
@@ -78,7 +77,6 @@ class Loader:
         self.properties = {}
         self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
         self.target_account = None # when set, overrides the reference matching system
-        self.transaction_infos = []
         self.recurrence_infos = []
         self.budget_infos = []
         self.account_info = AccountInfo()
@@ -188,8 +186,14 @@ class Loader:
                     account_currency = info.currency
             except ValueError:
                 pass # keep account_currency as self.default_currency
-            account = self.accounts.create(
-                info.name, account_currency, account_type)
+            account = self.accounts.find(info.name)
+            if account is None:
+                account = self.accounts.create(
+                    info.name, account_currency, account_type)
+            else:
+                # Already auto-created by a transaction. override type and
+                # currency
+                account.change(type=account_type, currency=account_currency)
             if info.group:
                 account.change(groupname=info.group)
             if info.budget:
@@ -220,7 +224,10 @@ class Loader:
                     info.splits.insert(0, SplitInfo(info.account, info.amount, info.currency, False))
                 if info.transfer and info.transfer not in split_accounts:
                     info.splits.append(SplitInfo(info.transfer, info.amount, info.currency, True))
-                self.transaction_infos.append(info)
+                for split_info in info.splits:
+                    self._process_split_info(split_info)
+                transaction = info.load()
+                self.transactions.add(transaction)
         self.transaction_cancelled = False
         self.transaction_info = TransactionInfo()
 
@@ -273,52 +280,9 @@ class Loader:
 
         You must have called parse() before calling this.
         """
-        def load_transaction_info(info):
-            description = info.description
-            payee = info.payee
-            checkno = info.checkno
-            date = info.date
-            transaction = Transaction(date, description, payee, checkno)
-            transaction.notes = nonone(info.notes, '')
-            for split_info in info.splits:
-                account = split_info.account
-                amount = split_info.amount
-                if split_info.amount_reversed:
-                    amount = -amount
-                memo = nonone(split_info.memo, '')
-                split = transaction.new_split()
-                split.account = account
-                split.amount = amount
-                split.memo = memo
-                if account is None or not (not amount or amount.currency_code == account.currency):
-                    # fix #442: off-currency transactions shouldn't be reconciled
-                    split.reconciliation_date = None
-                elif split_info.reconciliation_date is not None:
-                    split.reconciliation_date = split_info.reconciliation_date
-                elif split_info.reconciled: # legacy
-                    split.reconciliation_date = transaction.date
-                split.reference = split_info.reference
-            while len(transaction.splits) < 2:
-                transaction.new_split()
-            transaction.balance()
-            transaction.mtime = info.mtime
-            if info.reference is not None:
-                for split in transaction.splits:
-                    if split.reference is None:
-                        split.reference = info.reference
-            return transaction
-
         self._load()
         self.flush_account() # Implicit
         # Now, we take the info we have and transform it into model instances
-
-        self.transaction_infos.sort(key=attrgetter('date'))
-        for info in self.transaction_infos:
-            for split_info in info.splits:
-                self._process_split_info(split_info)
-            transaction = load_transaction_info(info)
-            self.transactions.add(transaction)
-
         # Scheduled
         for info in self.recurrence_infos:
             all_txn = [info.transaction_info] +\
@@ -327,18 +291,18 @@ class Loader:
             for txn_info in all_txn:
                 for split_info in txn_info.splits:
                     self._process_split_info(split_info)
-            ref = load_transaction_info(info.transaction_info)
+            ref = info.transaction_info.load()
             recurrence = Recurrence(ref, info.repeat_type, info.repeat_every)
             recurrence.stop_date = info.stop_date
             for date, transaction_info in info.date2exception.items():
                 if transaction_info is not None:
-                    exception = load_transaction_info(transaction_info)
+                    exception = transaction_info.load()
                     spawn = Spawn(recurrence, exception, date, exception.date)
                     recurrence.date2exception[date] = spawn
                 else:
                     recurrence.delete_at(date)
             for date, transaction_info in info.date2globalchange.items():
-                change = load_transaction_info(transaction_info)
+                change = transaction_info.load()
                 spawn = Spawn(recurrence, change, date, change.date)
                 recurrence.date2globalchange[date] = spawn
             self.schedules.append(recurrence)
@@ -409,6 +373,41 @@ class TransactionInfo:
 
     def is_valid(self):
         return bool(self.date and ((self.account and self.amount) or self.splits))
+
+    def load(self):
+        description = self.description
+        payee = self.payee
+        checkno = self.checkno
+        date = self.date
+        transaction = Transaction(date, description, payee, checkno)
+        transaction.notes = nonone(self.notes, '')
+        for split_info in self.splits:
+            account = split_info.account
+            amount = split_info.amount
+            if split_info.amount_reversed:
+                amount = -amount
+            memo = nonone(split_info.memo, '')
+            split = transaction.new_split()
+            split.account = account
+            split.amount = amount
+            split.memo = memo
+            if account is None or not (not amount or amount.currency_code == account.currency):
+                # fix #442: off-currency transactions shouldn't be reconciled
+                split.reconciliation_date = None
+            elif split_info.reconciliation_date is not None:
+                split.reconciliation_date = split_info.reconciliation_date
+            elif split_info.reconciled: # legacy
+                split.reconciliation_date = transaction.date
+            split.reference = split_info.reference
+        while len(transaction.splits) < 2:
+            transaction.new_split()
+        transaction.balance()
+        transaction.mtime = self.mtime
+        if self.reference is not None:
+            for split in transaction.splits:
+                if split.reference is None:
+                    split.reference = self.reference
+        return transaction
 
 
 class SplitInfo:

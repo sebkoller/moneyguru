@@ -70,14 +70,14 @@ def test_account_and_entry_values(loader):
     eq_(account.name, 'foobar')
     eq_(account.currency, 'USD')
     eq_(account.type, AccountType.Expense)
-    transactions = loader.transaction_infos
+    transactions = list(loader.transactions)
     eq_(len(transactions), 4)
     transaction = transactions[0]
+    eq_(len(transaction.splits), 2)
     eq_(transaction.date, date(2008, 2, 12))
     eq_(transaction.description, 'Entry 3')
-    eq_(transaction.transfer, None)
+    eq_(transaction.splits[1].account, None)
     eq_(transaction.mtime, 1203095473)
-    eq_(len(transaction.splits), 1)
     split = transaction.splits[0]
     eq_(split.account.name, 'Account 2')
     eq_(split.amount, Amount(89, 'PLN'))
@@ -95,13 +95,13 @@ def test_account_and_entry_values(loader):
     eq_(split.amount, Amount(-42, 'USD'))
 
     transaction = transactions[2]
+    eq_(len(transaction.splits), 2)
     eq_(transaction.date, date(2008, 2, 16))
     eq_(transaction.description, 'Entry 2')
     eq_(transaction.payee, 'Some Payee')
     eq_(transaction.checkno, '42')
-    eq_(transaction.transfer, None)
+    eq_(transaction.splits[1].account, None)
     eq_(transaction.mtime, 1203095456)
-    eq_(len(transaction.splits), 1)
     split = transaction.splits[0]
     eq_(split.account.name, 'Account 1')
     eq_(split.amount, Amount(-14, 'USD'))
@@ -109,7 +109,7 @@ def test_account_and_entry_values(loader):
     transaction = transactions[3]
     eq_(transaction.date, date(2008, 2, 19))
     eq_(transaction.description, 'Entry 4')
-    eq_(transaction.transfer, None)
+    eq_(transaction.splits[1].account, None)
     eq_(transaction.mtime, 1203095497)
     split = transaction.splits[0]
     eq_(split.account.name, 'Account 2')

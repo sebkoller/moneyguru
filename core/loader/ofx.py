@@ -13,11 +13,12 @@ from .sgmllib import SGMLParser
 from . import base
 
 class OFXParser(SGMLParser):
-    def __init__(self, loader):
+    def __init__(self, loader, accounts_only=False):
         super().__init__()
         self.loader = loader
         self.data = ''
         self.data_handler = None
+        self.accounts_only = accounts_only
 
     # --- Helper methods
 
@@ -88,34 +89,46 @@ class OFXParser(SGMLParser):
     # --- Entry tags
 
     def start_stmttrn(self, attributes):
+        if self.accounts_only:
+            return
         self.loader.start_transaction()
         self.transaction_info = self.loader.transaction_info
 
     def end_stmttrn(self):
+        if self.accounts_only:
+            return
         self.loader.flush_transaction()
 
     def start_fitid(self, attributes):
         self.data_handler = self.handle_fitid
 
     def handle_fitid(self, data):
+        if self.accounts_only:
+            return
         self.transaction_info.reference = data
 
     def start_name(self, attributes):
         self.data_handler = self.handle_name
 
     def handle_name(self, data):
+        if self.accounts_only:
+            return
         self.transaction_info.description = data
 
     def start_dtposted(self, attributes):
         self.data_handler = self.handle_dtposted
 
     def handle_dtposted(self, data):
+        if self.accounts_only:
+            return
         self.transaction_info.date = self.loader.parse_date_str(data[:8])
 
     def start_trnamt(self, attributes):
         self.data_handler = self.handle_trnamt
 
     def handle_trnamt(self, data):
+        if self.accounts_only:
+            return
         self.transaction_info.amount = data
 
 
@@ -136,6 +149,10 @@ class Loader(base.Loader):
 
     def _load(self):
         is_header = lambda line: not line.startswith('<')
+        parser = OFXParser(self, accounts_only=True)
+        for line in dropwhile(is_header, self.lines):
+            parser.feed(line)
+        parser.close()
         parser = OFXParser(self)
         for line in dropwhile(is_header, self.lines):
             parser.feed(line)

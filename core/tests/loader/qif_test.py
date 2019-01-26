@@ -131,7 +131,7 @@ def test_four_digit_year():
     loader.load()
     accounts = loader.accounts
     eq_(len(accounts), 1)
-    transactions = loader.transaction_infos
+    transactions = list(loader.transactions)
     eq_(len(transactions), 1)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 1, 1))
@@ -142,7 +142,7 @@ def test_ddmmyy():
     loader.load()
     accounts = loader.accounts
     eq_(len(accounts), 1)
-    transactions = loader.transaction_infos
+    transactions = list(loader.transactions)
     eq_(len(transactions), 1)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 1, 22))
@@ -153,7 +153,7 @@ def test_ddmmyyyy():
     loader.load()
     accounts = loader.accounts
     eq_(len(accounts), 1)
-    transactions = loader.transaction_infos
+    transactions = list(loader.transactions)
     eq_(len(transactions), 1)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 1, 22))
@@ -164,7 +164,7 @@ def test_ddmmyyyy_with_dots():
     loader.load()
     accounts = loader.accounts
     eq_(len(accounts), 1)
-    transactions = loader.transaction_infos
+    transactions = list(loader.transactions)
     eq_(len(transactions), 1)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 1, 22))
@@ -175,7 +175,7 @@ def test_yyyymmdd_without_sep():
     loader.load()
     accounts = loader.accounts
     eq_(len(accounts), 1)
-    transactions = loader.transaction_infos
+    transactions = list(loader.transactions)
     eq_(len(transactions), 1)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 1, 22))
@@ -186,7 +186,7 @@ def test_yyyymmdd_with_sep():
     loader.load()
     accounts = loader.accounts
     eq_(len(accounts), 1)
-    transactions = loader.transaction_infos
+    transactions = list(loader.transactions)
     eq_(len(transactions), 1)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 1, 22))
@@ -198,7 +198,7 @@ def test_chr13_line_sep():
     accounts = loader.accounts
     # One explicit account and one autocreated
     eq_(len(accounts), 2)
-    transactions = loader.transaction_infos
+    transactions = list(loader.transactions)
     eq_(len(transactions), 1)
     transaction = transactions[0]
     eq_(transaction.date, date(2007, 2, 27))
@@ -266,7 +266,7 @@ def test_autoswitch():
     autocreated = [a for a in loader.accounts if not a.is_balance_sheet_account()]
     eq_(len(explicit), 50)
     eq_(len(autocreated), 20)
-    eq_(len(loader.transaction_infos), 37)
+    eq_(len(loader.transactions), 37)
 
 def test_autoswitch_buggy():
     # sp,eQIF exporter put another !Option:AutoSwitch after having cleared it
@@ -277,7 +277,7 @@ def test_autoswitch_buggy():
     autocreated = [a for a in loader.accounts if not a.is_balance_sheet_account()]
     eq_(len(explicit), 50)
     eq_(len(autocreated), 20)
-    eq_(len(loader.transaction_infos), 37)
+    eq_(len(loader.transactions), 37)
 
 def test_autoswitch_none():
     # Some QIF files don't have the autoswitch flag to indicate a list of accounts. The loader used
@@ -287,7 +287,7 @@ def test_autoswitch_none():
     loader.load() # no crash
     # We don't test for accounts because in such buggy cases, we don't care much. We only care
     # that transactions are correctly loaded.
-    eq_(len(loader.transaction_infos), 1)
+    eq_(len(loader.transactions), 1)
 
 def test_with_cat():
     # some file have a "!Type:Cat" section with buggy "D" lines
@@ -295,7 +295,7 @@ def test_with_cat():
     loader.parse(testdata.filepath('qif', 'with_cat.qif'))
     loader.load()
     eq_(len(loader.accounts), 1)
-    eq_(len(loader.transaction_infos), 1)
+    eq_(len(loader.transactions), 1)
 
 def test_transfer():
     # Transfer happen with 2 entries putting [] brackets arround the account names of the 'L'
