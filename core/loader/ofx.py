@@ -1,7 +1,4 @@
-# coding=utf-8
-# Created By: Eric Mc Sween
-# Created On: 2008-02-11
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -15,32 +12,12 @@ from ..exception import FileFormatError
 from .sgmllib import SGMLParser
 from . import base
 
-class Loader(SGMLParser, base.Loader):
-    FILE_ENCODING = 'cp1252'
-    NATIVE_DATE_FORMAT = '%Y%m%d'
-
-    def __init__(self, default_currency, default_date_format=None):
-        SGMLParser.__init__(self)
-        base.Loader.__init__(self, default_currency, default_date_format)
+class OFXParser(SGMLParser):
+    def __init__(self, loader):
+        super().__init__()
+        self.loader = loader
         self.data = ''
         self.data_handler = None
-
-    # --- Override
-    def _parse(self, infile):
-        # First line is OFXHEADER (section 2.2.1)
-        line = '\n'
-        while line and not line.strip(): # skip the first lines if they're blank
-            line = infile.readline()
-        line = line.strip()
-        if line != 'OFXHEADER:100' and not line.startswith('<?OFX'):
-            raise FileFormatError()
-        self.lines = list(infile)
-
-    def _load(self):
-        is_header = lambda line: not line.startswith('<')
-        for line in dropwhile(is_header, self.lines):
-            self.feed(line)
-        self.close()
 
     # --- Helper methods
 
@@ -54,11 +31,11 @@ class Loader(SGMLParser, base.Loader):
 
     def handle_starttag(self, tag, method, attributes):
         self.flush_data()
-        SGMLParser.handle_starttag(self, tag, method, attributes)
+        super().handle_starttag(tag, method, attributes)
 
     def handle_endtag(self, tag, method):
         self.flush_data()
-        SGMLParser.handle_endtag(self, tag, method)
+        super().handle_endtag(tag, method)
 
     def unknown_starttag(self, tag, attributes):
         self.flush_data()
@@ -72,7 +49,8 @@ class Loader(SGMLParser, base.Loader):
     # --- Account tags
 
     def start_stmtrs(self, attributes):
-        self.start_account()
+        self.loader.start_account()
+        self.account_info = self.loader.account_info
     start_ccstmtrs = start_stmtrs
 
     def end_stmtrs(self):
@@ -80,7 +58,7 @@ class Loader(SGMLParser, base.Loader):
         if hasattr(a, 'ofx_bank_id') and hasattr(a, 'ofx_acct_id'):
             ofx_branch_id = getattr(a, 'ofx_branch_id', '')
             a.reference = '|'.join([a.ofx_bank_id, ofx_branch_id, a.ofx_acct_id])
-        self.flush_account()
+        self.loader.flush_account()
 
     def start_curdef(self, attributes):
         self.data_handler = self.handle_curdef
@@ -110,10 +88,11 @@ class Loader(SGMLParser, base.Loader):
     # --- Entry tags
 
     def start_stmttrn(self, attributes):
-        self.start_transaction()
+        self.loader.start_transaction()
+        self.transaction_info = self.loader.transaction_info
 
     def end_stmttrn(self):
-        self.flush_transaction()
+        self.loader.flush_transaction()
 
     def start_fitid(self, attributes):
         self.data_handler = self.handle_fitid
@@ -131,10 +110,34 @@ class Loader(SGMLParser, base.Loader):
         self.data_handler = self.handle_dtposted
 
     def handle_dtposted(self, data):
-        self.transaction_info.date = self.parse_date_str(data[:8])
+        self.transaction_info.date = self.loader.parse_date_str(data[:8])
 
     def start_trnamt(self, attributes):
         self.data_handler = self.handle_trnamt
 
     def handle_trnamt(self, data):
         self.transaction_info.amount = data
+
+
+class Loader(base.Loader):
+    FILE_ENCODING = 'cp1252'
+    NATIVE_DATE_FORMAT = '%Y%m%d'
+
+    # --- Override
+    def _parse(self, infile):
+        # First line is OFXHEADER (section 2.2.1)
+        line = '\n'
+        while line and not line.strip(): # skip the first lines if they're blank
+            line = infile.readline()
+        line = line.strip()
+        if line != 'OFXHEADER:100' and not line.startswith('<?OFX'):
+            raise FileFormatError()
+        self.lines = list(infile)
+
+    def _load(self):
+        is_header = lambda line: not line.startswith('<')
+        parser = OFXParser(self)
+        for line in dropwhile(is_header, self.lines):
+            parser.feed(line)
+        parser.close()
+
