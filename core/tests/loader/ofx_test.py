@@ -1,4 +1,4 @@
-# Copyright 2018 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -62,10 +62,10 @@ def loader_desjardins():
 
 def test_accounts_desjardins():
     loader = loader_desjardins()
-    accounts = [(x.name, x.currency, str(x.balance)) for x in loader.account_infos]
-    expected = [('815-30219-12345-EOP', 'CAD', '3925.84'),
-                ('815-30219-54321-ES1', 'CAD', '0.00'),
-                ('815-30219-11111-EOP', 'USD', '3046.90'),]
+    accounts = [(x.name, x.currency) for x in loader.accounts]
+    expected = [('815-30219-12345-EOP', 'CAD'),
+                ('815-30219-54321-ES1', 'CAD'),
+                ('815-30219-11111-EOP', 'USD'),]
     eq_(accounts, expected)
 
 def test_transactions_usd_account():

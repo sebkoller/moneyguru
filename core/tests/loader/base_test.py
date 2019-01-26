@@ -1,25 +1,23 @@
-# Created By: Virgil Dupras
-# Created On: 2008-02-15
-# Copyright 2015 Hardcoded Software (http://www.hardcoded.net)
-# 
-# This software is licensed under the "GPLv3" License as described in the "LICENSE" file, 
-# which should be included with this package. The terms are also available at 
+# Copyright 2019 Virgil Dupras
+#
+# This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
+# which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
 from ..testutil import eq_
 
 from ...loader import base
-    
+
 def test_accounts():
     loader = base.Loader('USD')
-    eq_(len(loader.account_infos), 0)
+    eq_(len(loader.accounts), 0)
 
 def test_unnamed_account():
     # Name is mandatory.
     loader = base.Loader('USD')
     loader.start_account()
     loader.flush_account()
-    eq_(len(loader.account_infos), 0)
+    eq_(len(loader.accounts), 0)
 
 def test_default_currency():
     # Currency is optional.
@@ -27,8 +25,8 @@ def test_default_currency():
     loader.start_account()
     loader.account_info.name = 'foo'
     loader.flush_account()
-    eq_(len(loader.account_infos), 1)
-    assert loader.account_infos[0].currency is None
+    eq_(len(loader.accounts), 1)
+    assert list(loader.accounts)[0].currency == 'USD'
 
 # --- One account
 def loader_one_account():
@@ -77,4 +75,4 @@ def test_missing_transfer():
     loader.flush_account()
     eq_(len(loader.transaction_infos), 1)
     # But the balancing entry in the imbalance account
-    eq_(len(loader.account_infos), 1)
+    eq_(len(loader.accounts), 1)

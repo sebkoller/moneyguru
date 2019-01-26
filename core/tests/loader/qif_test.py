@@ -129,7 +129,7 @@ def test_four_digit_year():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'four_digit_year.qif'))
     loader.load()
-    accounts = loader.account_infos
+    accounts = loader.accounts
     eq_(len(accounts), 1)
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
@@ -140,7 +140,7 @@ def test_ddmmyy():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'ddmmyy.qif'))
     loader.load()
-    accounts = loader.account_infos
+    accounts = loader.accounts
     eq_(len(accounts), 1)
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
@@ -151,7 +151,7 @@ def test_ddmmyyyy():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'ddmmyyyy.qif'))
     loader.load()
-    accounts = loader.account_infos
+    accounts = loader.accounts
     eq_(len(accounts), 1)
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
@@ -162,7 +162,7 @@ def test_ddmmyyyy_with_dots():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'ddmmyyyy_with_dots.qif'))
     loader.load()
-    accounts = loader.account_infos
+    accounts = loader.accounts
     eq_(len(accounts), 1)
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
@@ -173,7 +173,7 @@ def test_yyyymmdd_without_sep():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'yyyymmdd_without_sep.qif'))
     loader.load()
-    accounts = loader.account_infos
+    accounts = loader.accounts
     eq_(len(accounts), 1)
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
@@ -184,7 +184,7 @@ def test_yyyymmdd_with_sep():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'yyyymmdd_with_sep.qif'))
     loader.load()
-    accounts = loader.account_infos
+    accounts = loader.accounts
     eq_(len(accounts), 1)
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
@@ -195,8 +195,9 @@ def test_chr13_line_sep():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'chr13_line_sep.qif'))
     loader.load()
-    accounts = loader.account_infos
-    eq_(len(accounts), 1)
+    accounts = loader.accounts
+    # One explicit account and one autocreated
+    eq_(len(accounts), 2)
     transactions = loader.transaction_infos
     eq_(len(transactions), 1)
     transaction = transactions[0]
@@ -207,7 +208,7 @@ def test_first_field_not_account():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'first_field_not_account.qif'))
     loader.load()
-    accounts = loader.account_infos
+    accounts = loader.accounts
     eq_(len(accounts), 1)
 
 def test_accountless_with_splits():
@@ -251,7 +252,7 @@ def test_credit_card():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'credit_card.qif'))
     loader.load()
-    accounts = loader.account_infos
+    accounts = list(loader.accounts)
     eq_(len(accounts), 1)
     account = accounts[0]
     eq_(account.type, AccountType.Liability)
@@ -261,7 +262,10 @@ def test_autoswitch():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'autoswitch.qif'))
     loader.load()
-    eq_(len(loader.account_infos), 50)
+    explicit = [a for a in loader.accounts if a.is_balance_sheet_account()]
+    autocreated = [a for a in loader.accounts if not a.is_balance_sheet_account()]
+    eq_(len(explicit), 50)
+    eq_(len(autocreated), 20)
     eq_(len(loader.transaction_infos), 37)
 
 def test_autoswitch_buggy():
@@ -269,7 +273,10 @@ def test_autoswitch_buggy():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'autoswitch_buggy.qif'))
     loader.load()
-    eq_(len(loader.account_infos), 50)
+    explicit = [a for a in loader.accounts if a.is_balance_sheet_account()]
+    autocreated = [a for a in loader.accounts if not a.is_balance_sheet_account()]
+    eq_(len(explicit), 50)
+    eq_(len(autocreated), 20)
     eq_(len(loader.transaction_infos), 37)
 
 def test_autoswitch_none():
@@ -278,7 +285,7 @@ def test_autoswitch_none():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'autoswitch_none.qif'))
     loader.load() # no crash
-    # We don't test for account_info because in such buggy cases, we don't care much. We only care
+    # We don't test for accounts because in such buggy cases, we don't care much. We only care
     # that transactions are correctly loaded.
     eq_(len(loader.transaction_infos), 1)
 
@@ -287,7 +294,7 @@ def test_with_cat():
     loader = Loader('USD')
     loader.parse(testdata.filepath('qif', 'with_cat.qif'))
     loader.load()
-    eq_(len(loader.account_infos), 1)
+    eq_(len(loader.accounts), 1)
     eq_(len(loader.transaction_infos), 1)
 
 def test_transfer():

@@ -7,10 +7,9 @@
 import datetime
 import logging
 import re
-from itertools import groupby
 from operator import attrgetter
 
-from core.util import nonone, flatten, stripfalse, dedupe
+from core.util import nonone, stripfalse, dedupe
 from core.trans import tr
 
 from ..const import AccountType
@@ -79,7 +78,6 @@ class Loader:
         self.properties = {}
         self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
         self.target_account = None # when set, overrides the reference matching system
-        self.account_infos = []
         self.transaction_infos = []
         self.recurrence_infos = []
         self.budget_infos = []
@@ -94,6 +92,25 @@ class Loader:
         # parsing dates. This format is used in the ImportWindow. It is also used in
         # self.parse_date_str as a default value
         self.parsing_date_format = self.NATIVE_DATE_FORMAT
+
+    # --- Private
+    def _process_split_info(self, split_info):
+        # this amount is just to determine the auto_create_type
+        str_amount = split_info.amount
+        if split_info.currency:
+            str_amount += split_info.currency
+        amount = self.parse_amount(str_amount, self.default_currency)
+        auto_create_type = AccountType.Income if amount >= 0 else AccountType.Expense
+        aname = split_info.account
+        if aname:
+            split_info.account = self.accounts.find(aname)
+            if split_info.account is None:
+                split_info.account = self.accounts.create(
+                    aname, self.default_currency, auto_create_type)
+        else:
+            split_info.account = None
+        currency = split_info.account.currency if split_info.account is not None else self.default_currency
+        split_info.amount = self.parse_amount(str_amount, currency)
 
     # --- Virtual
     def _parse(self, infile):
@@ -161,7 +178,25 @@ class Loader:
     def flush_account(self):
         self.flush_transaction()
         if self.account_info.is_valid():
-            self.account_infos.append(self.account_info)
+            info = self.account_info
+            account_type = info.type
+            if account_type not in AccountType.All:
+                account_type = AccountType.Asset
+            account_currency = self.default_currency
+            try:
+                if info.currency and Currencies.has(info.currency):
+                    account_currency = info.currency
+            except ValueError:
+                pass # keep account_currency as self.default_currency
+            account = self.accounts.create(
+                info.name, account_currency, account_type)
+            if info.group:
+                account.change(groupname=info.group)
+            if info.budget:
+                self.budget_infos.append(BudgetInfo(info.name, info.budget))
+            account.change(
+                reference=info.reference, account_number=info.account_number,
+                inactive=info.inactive, notes=info.notes)
         self.account_info = AccountInfo()
 
     def cancel_account(self):
@@ -176,10 +211,16 @@ class Loader:
         """If called between a start_account and flush_account call, ACCOUNT is automatically set"""
         self.flush_split()
         if not self.transaction_cancelled:
-            if self.transaction_info.account is None and self.account_info and self.account_info.name:
-                self.transaction_info.account = self.account_info.name
-            if self.transaction_info.is_valid():
-                self.transaction_infos.append(self.transaction_info)
+            info = self.transaction_info
+            if info.account is None and self.account_info and self.account_info.name:
+                info.account = self.account_info.name
+            if info.is_valid():
+                split_accounts = [s.account for s in info.splits]
+                if info.account and info.account not in split_accounts:
+                    info.splits.insert(0, SplitInfo(info.account, info.amount, info.currency, False))
+                if info.transfer and info.transfer not in split_accounts:
+                    info.splits.append(SplitInfo(info.transfer, info.amount, info.currency, True))
+                self.transaction_infos.append(info)
         self.transaction_cancelled = False
         self.transaction_info = TransactionInfo()
 
@@ -270,69 +311,22 @@ class Loader:
         self._load()
         self.flush_account() # Implicit
         # Now, we take the info we have and transform it into model instances
-        currencies = set()
-        start_date = datetime.date.max
-        for info in self.account_infos:
-            account_type = info.type
-            if account_type not in AccountType.All:
-                account_type = AccountType.Asset
-            account_currency = self.default_currency
-            try:
-                if info.currency and Currencies.has(info.currency):
-                    account_currency = info.currency
-            except ValueError:
-                pass # keep account_currency as self.default_currency
-            account = self.accounts.create(
-                info.name, account_currency, account_type)
-            if info.group:
-                account.change(groupname=info.group)
-            if info.budget:
-                self.budget_infos.append(BudgetInfo(info.name, info.budget))
-            account.change(
-                reference=info.reference, account_number=info.account_number,
-                inactive=info.inactive, notes=info.notes)
-            currencies.add(account.currency)
-
-        # Pre-parse transaction info. We bring all relevant info recorded at the txn level into the split level
-        all_txn = self.transaction_infos + [r.transaction_info for r in self.recurrence_infos] +\
-            flatten([stripfalse(r.date2exception.values()) for r in self.recurrence_infos]) +\
-            flatten([r.date2globalchange.values() for r in self.recurrence_infos])
-        for info in all_txn:
-            split_accounts = [s.account for s in info.splits]
-            if info.account and info.account not in split_accounts:
-                info.splits.insert(0, SplitInfo(info.account, info.amount, info.currency, False))
-            if info.transfer and info.transfer not in split_accounts:
-                info.splits.append(SplitInfo(info.transfer, info.amount, info.currency, True))
-            for split_info in info.splits:
-                # this amount is just to determine the auto_create_type
-                str_amount = split_info.amount
-                if split_info.currency:
-                    str_amount += split_info.currency
-                amount = self.parse_amount(str_amount, self.default_currency)
-                auto_create_type = AccountType.Income if amount >= 0 else AccountType.Expense
-                aname = split_info.account
-                if aname:
-                    split_info.account = self.accounts.find(aname)
-                    if split_info.account is None:
-                        split_info.account = self.accounts.create(
-                            aname, self.default_currency, auto_create_type)
-                else:
-                    split_info.account = None
-                currency = split_info.account.currency if split_info.account is not None else self.default_currency
-                split_info.amount = self.parse_amount(str_amount, currency)
-                if split_info.amount:
-                    currencies.add(split_info.amount.currency_code)
 
         self.transaction_infos.sort(key=attrgetter('date'))
-        for date, transaction_infos in groupby(self.transaction_infos, attrgetter('date')):
-            start_date = min(start_date, date)
-            for position, info in enumerate(transaction_infos, start=1):
-                transaction = load_transaction_info(info)
-                transaction.position = position
-                self.transactions.add(transaction, True)
+        for info in self.transaction_infos:
+            for split_info in info.splits:
+                self._process_split_info(split_info)
+            transaction = load_transaction_info(info)
+            self.transactions.add(transaction)
 
         # Scheduled
         for info in self.recurrence_infos:
+            all_txn = [info.transaction_info] +\
+                list(stripfalse(info.date2exception.values())) +\
+                list(info.date2globalchange.values())
+            for txn_info in all_txn:
+                for split_info in txn_info.splits:
+                    self._process_split_info(split_info)
             ref = load_transaction_info(info.transaction_info)
             recurrence = Recurrence(ref, info.repeat_type, info.repeat_every)
             recurrence.stop_date = info.stop_date
@@ -348,6 +342,7 @@ class Loader:
                 spawn = Spawn(recurrence, change, date, change.date)
                 recurrence.date2globalchange[date] = spawn
             self.schedules.append(recurrence)
+
         # Budgets
         if self.budget_infos:
             info = self.budget_infos[0]
@@ -366,6 +361,14 @@ class Loader:
             self.budgets.append(budget)
         self._post_load()
         self.oven.cook(datetime.date.min, until_date=None)
+
+        # Fetch rates if needed
+        start_date = min((t.date for t in self.transactions), default=datetime.date.max)
+        currencies = {a.currency for a in self.accounts}
+        for txn in self.transactions:
+            for split in txn.splits:
+                if split.amount:
+                    currencies.add(split.amount.currency_code)
         Currencies.get_rates_db().ensure_rates(start_date, list(currencies))
 
 
@@ -378,7 +381,6 @@ class AccountInfo:
         self.budget = None
         self.budget_target = None
         self.reference = None
-        self.balance = None
         self.account_number = ''
         self.inactive = False
         self.notes = ''

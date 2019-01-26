@@ -107,12 +107,6 @@ class Loader(SGMLParser, base.Loader):
         self.account_info.ofx_acct_id = data
         self.account_info.name = data
 
-    def start_balamt(self, attributes):
-        self.data_handler = self.handle_balamt
-
-    def handle_balamt(self, data):
-        self.account_info.balance = data
-
     # --- Entry tags
 
     def start_stmttrn(self, attributes):
