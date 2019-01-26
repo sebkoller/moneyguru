@@ -8,17 +8,15 @@ import datetime
 import logging
 import re
 
-from core.util import nonone, stripfalse, dedupe
+from core.util import nonone, dedupe
 from core.trans import tr
 
 from ..const import AccountType
 from ..exception import FileFormatError
 from ..model._ccore import (
     AccountList, TransactionList, UnsupportedCurrencyError, amount_parse)
-from ..model.budget import Budget, BudgetList
 from ..model.currency import Currencies
 from ..model.oven import Oven
-from ..model.recurrence import Recurrence, Spawn
 from ..model.transaction import Transaction
 
 # date formats to use for format guessing
@@ -70,12 +68,8 @@ class Loader:
         self.default_date_format = default_date_format
         self.accounts = AccountList(default_currency)
         self.transactions = TransactionList()
-        # I did not manage to create a repeatable test for it, but self.schedules has to be ordered
-        # because the order in which the spawns are created must stay the same
-        self.schedules = []
-        self.budgets = BudgetList()
+        self.oven = Oven(self.accounts, self.transactions, None, None)
         self.properties = {}
-        self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
         self.target_account = None # when set, overrides the reference matching system
         self.recurrence_infos = []
         self.budget_infos = []
@@ -83,8 +77,6 @@ class Loader:
         self.transaction_info = TransactionInfo()
         self.transaction_cancelled = False
         self.split_info = SplitInfo()
-        self.recurrence_info = RecurrenceInfo()
-        self.budget_info = BudgetInfo()
         self.document_id = None
         # The Loader subclass should set parsing_date_format to the format used (system-type) when
         # parsing dates. This format is used in the ImportWindow. It is also used in
@@ -92,6 +84,16 @@ class Loader:
         self.parsing_date_format = self.NATIVE_DATE_FORMAT
 
     # --- Private
+    def _fetch_currencies(self):
+        # Fetch rates if needed
+        start_date = min((t.date for t in self.transactions), default=datetime.date.max)
+        currencies = {a.currency for a in self.accounts}
+        for txn in self.transactions:
+            for split in txn.splits:
+                if split.amount:
+                    currencies.add(split.amount.currency_code)
+        Currencies.get_rates_db().ensure_rates(start_date, list(currencies))
+
     def _process_split_info(self, split_info):
         # this amount is just to determine the auto_create_type
         str_amount = split_info.amount
@@ -196,8 +198,6 @@ class Loader:
                 account.change(type=account_type, currency=account_currency)
             if info.group:
                 account.change(groupname=info.group)
-            if info.budget:
-                self.budget_infos.append(BudgetInfo(info.name, info.budget))
             account.change(
                 reference=info.reference, account_number=info.account_number,
                 inactive=info.inactive, notes=info.notes)
@@ -239,16 +239,6 @@ class Loader:
             self.transaction_info.splits.append(self.split_info)
         self.split_info = SplitInfo()
 
-    def flush_recurrence(self):
-        if self.recurrence_info.is_valid():
-            self.recurrence_infos.append(self.recurrence_info)
-        self.recurrence_info = RecurrenceInfo()
-
-    def flush_budget(self):
-        if self.budget_info.is_valid():
-            self.budget_infos.append(self.budget_info)
-        self.budget_info = BudgetInfo()
-
     # --- Public
     def parse(self, filename):
         """Parses 'filename' and raises FileFormatError if appropriate."""
@@ -282,58 +272,9 @@ class Loader:
         """
         self._load()
         self.flush_account() # Implicit
-        # Now, we take the info we have and transform it into model instances
-        # Scheduled
-        for info in self.recurrence_infos:
-            all_txn = [info.transaction_info] +\
-                list(stripfalse(info.date2exception.values())) +\
-                list(info.date2globalchange.values())
-            for txn_info in all_txn:
-                for split_info in txn_info.splits:
-                    self._process_split_info(split_info)
-            ref = info.transaction_info.load()
-            recurrence = Recurrence(ref, info.repeat_type, info.repeat_every)
-            recurrence.stop_date = info.stop_date
-            for date, transaction_info in info.date2exception.items():
-                if transaction_info is not None:
-                    exception = transaction_info.load()
-                    spawn = Spawn(recurrence, exception, date, exception.date)
-                    recurrence.date2exception[date] = spawn
-                else:
-                    recurrence.delete_at(date)
-            for date, transaction_info in info.date2globalchange.items():
-                change = transaction_info.load()
-                spawn = Spawn(recurrence, change, date, change.date)
-                recurrence.date2globalchange[date] = spawn
-            self.schedules.append(recurrence)
-
-        # Budgets
-        if self.budget_infos:
-            info = self.budget_infos[0]
-            if info.start_date:
-                self.budgets.start_date = info.start_date
-            self.budgets.repeat_type = info.repeat_type
-            if info.repeat_every:
-                self.budgets.repeat_every = info.repeat_every
-        for info in self.budget_infos:
-            account = self.accounts.find(info.account)
-            if account is None:
-                continue
-            amount = self.parse_amount(info.amount, account.currency)
-            budget = Budget(account, amount)
-            budget.notes = nonone(info.notes, '')
-            self.budgets.append(budget)
         self._post_load()
         self.oven.cook(datetime.date.min, until_date=None)
-
-        # Fetch rates if needed
-        start_date = min((t.date for t in self.transactions), default=datetime.date.max)
-        currencies = {a.currency for a in self.accounts}
-        for txn in self.transactions:
-            for split in txn.splits:
-                if split.amount:
-                    currencies.add(split.amount.currency_code)
-        Currencies.get_rates_db().ensure_rates(start_date, list(currencies))
+        self._fetch_currencies()
 
 
 class AccountInfo:
@@ -426,31 +367,3 @@ class SplitInfo:
 
     def is_valid(self):
         return self.amount is not None
-
-
-class RecurrenceInfo:
-    def __init__(self):
-        self.repeat_type = None
-        self.repeat_every = 1
-        self.stop_date = None
-        self.date2exception = {}
-        self.date2globalchange = {}
-        self.transaction_info = TransactionInfo()
-
-    def is_valid(self):
-        return self.transaction_info.is_valid()
-
-
-class BudgetInfo:
-    def __init__(self, account=None, target=None, amount=None):
-        self.account = account
-        self.target = target
-        self.amount = amount
-        self.notes = None
-        self.repeat_type = None
-        self.repeat_every = None
-        self.start_date = None
-
-    def is_valid(self):
-        return self.account and self.amount
-

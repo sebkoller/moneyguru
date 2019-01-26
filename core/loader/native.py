@@ -4,19 +4,58 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-from datetime import datetime
+import datetime
 import xml.etree.cElementTree as ET
 
-from core.util import tryint
+from core.util import tryint, stripfalse, nonone
 
 from ..exception import FileFormatError
+from ..model.budget import Budget, BudgetList
+from ..model.oven import Oven
+from ..model.recurrence import Recurrence, Spawn
 from .base import SplitInfo, TransactionInfo
 from . import base
+
+class RecurrenceInfo:
+    def __init__(self):
+        self.repeat_type = None
+        self.repeat_every = 1
+        self.stop_date = None
+        self.date2exception = {}
+        self.date2globalchange = {}
+        self.transaction_info = TransactionInfo()
+
+    def is_valid(self):
+        return self.transaction_info.is_valid()
+
+
+class BudgetInfo:
+    def __init__(self, account=None, target=None, amount=None):
+        self.account = account
+        self.target = target
+        self.amount = amount
+        self.notes = None
+        self.repeat_type = None
+        self.repeat_every = None
+        self.start_date = None
+
+    def is_valid(self):
+        return self.account and self.amount
 
 class Loader(base.Loader):
     FILE_OPEN_MODE = 'rb'
     NATIVE_DATE_FORMAT = '%Y-%m-%d'
     STRICT_CURRENCY = True
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # I did not manage to create a repeatable test for it, but self.schedules has to be ordered
+        # because the order in which the spawns are created must stay the same
+        self.schedules = []
+        self.budgets = BudgetList()
+        self.recurrence_info = RecurrenceInfo()
+        self.budget_info = BudgetInfo()
+        self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
 
     def _parse(self, infile):
         try:
@@ -28,7 +67,7 @@ class Loader(base.Loader):
         self.root = root
 
     def _load(self):
-        TODAY = datetime.now().date()
+        TODAY = datetime.date.today()
 
         def str2date(s, default=None):
             try:
@@ -135,4 +174,67 @@ class Loader(base.Loader):
             self.budget_info.notes = attrib.get('notes')
             self.budget_info.start_date = str2date(attrib.get('start_date'))
             self.flush_budget()
+
+    def load(self):
+        self._load()
+        self.flush_account() # Implicit
+        # Scheduled
+        for info in self.recurrence_infos:
+            all_txn = [info.transaction_info] +\
+                list(stripfalse(info.date2exception.values())) +\
+                list(info.date2globalchange.values())
+            for txn_info in all_txn:
+                for split_info in txn_info.splits:
+                    self._process_split_info(split_info)
+            ref = info.transaction_info.load()
+            recurrence = Recurrence(ref, info.repeat_type, info.repeat_every)
+            recurrence.stop_date = info.stop_date
+            for date, transaction_info in info.date2exception.items():
+                if transaction_info is not None:
+                    exception = transaction_info.load()
+                    spawn = Spawn(recurrence, exception, date, exception.date)
+                    recurrence.date2exception[date] = spawn
+                else:
+                    recurrence.delete_at(date)
+            for date, transaction_info in info.date2globalchange.items():
+                change = transaction_info.load()
+                spawn = Spawn(recurrence, change, date, change.date)
+                recurrence.date2globalchange[date] = spawn
+            self.schedules.append(recurrence)
+
+        # Budgets
+        if self.budget_infos:
+            info = self.budget_infos[0]
+            if info.start_date:
+                self.budgets.start_date = info.start_date
+            self.budgets.repeat_type = info.repeat_type
+            if info.repeat_every:
+                self.budgets.repeat_every = info.repeat_every
+        for info in self.budget_infos:
+            account = self.accounts.find(info.account)
+            if account is None:
+                continue
+            amount = self.parse_amount(info.amount, account.currency)
+            budget = Budget(account, amount)
+            budget.notes = nonone(info.notes, '')
+            self.budgets.append(budget)
+        self._post_load()
+        self.oven.cook(datetime.date.min, until_date=None)
+        self._fetch_currencies()
+
+    def flush_account(self):
+        if self.account_info.is_valid() and self.account_info.budget:
+            info = self.account_info
+            self.budget_infos.append(BudgetInfo(info.name, info.budget))
+        super().flush_account()
+
+    def flush_recurrence(self):
+        if self.recurrence_info.is_valid():
+            self.recurrence_infos.append(self.recurrence_info)
+        self.recurrence_info = RecurrenceInfo()
+
+    def flush_budget(self):
+        if self.budget_info.is_valid():
+            self.budget_infos.append(self.budget_info)
+        self.budget_info = BudgetInfo()
 

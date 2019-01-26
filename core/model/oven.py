@@ -89,13 +89,16 @@ class Oven:
         else:
             self.transactions = [t for t in self.transactions if t.date < from_date]
         # Cook
-        spawns = flatten(recurrence.get_spawns(until_date) for recurrence in self._scheduled)
-        spawns += self._budget_spawns(until_date, spawns)
-        # To ensure that our sort order stay correct and consistent, we assign position values
-        # to our spawns. To ensure that there's no overlap, we start our position counter at
-        # len(transactions)
-        for counter, spawn in enumerate(spawns, start=len(self._transactions)):
-            spawn.position = counter
+        if self._scheduled is not None:
+            spawns = flatten(recurrence.get_spawns(until_date) for recurrence in self._scheduled)
+            spawns += self._budget_spawns(until_date, spawns)
+            # To ensure that our sort order stay correct and consistent, we assign position values
+            # to our spawns. To ensure that there's no overlap, we start our position counter at
+            # len(transactions)
+            for counter, spawn in enumerate(spawns, start=len(self._transactions)):
+                spawn.position = counter
+        else:
+            spawns = []
         txns = list(self._transactions) + spawns
         # we don't filter out txns > until_date because they might be budgets affecting current data
         # XXX now that budget's base date is the start date, isn't this untrue?

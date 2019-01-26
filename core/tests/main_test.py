@@ -16,7 +16,7 @@ from ..app import Application
 from ..document import Document, AUTOSAVE_BUFFER_COUNT
 from ..exception import FileFormatError
 from ..gui.entry_table import EntryTable
-from ..loader import base
+from ..loader import base, native
 from ..const import AccountType
 from ..model.date import MonthRange, QuarterRange, YearRange
 
@@ -102,7 +102,7 @@ def test_load_empty(monkeypatch):
     # When loading an empty file (we mock it here), make sure no exception occur.
     app = TestApp()
     monkeypatch.setattr(base.Loader, 'parse', lambda self, filename: None)
-    monkeypatch.setattr(base.Loader, 'load', lambda self: None)
+    monkeypatch.setattr(native.Loader, 'load', lambda self: None)
     app.mw.load_from_xml('filename does not matter here')
 
 def test_modified_flag():
