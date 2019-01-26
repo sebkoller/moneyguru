@@ -7,7 +7,7 @@
 import datetime
 import xml.etree.cElementTree as ET
 
-from core.util import tryint, stripfalse, nonone
+from core.util import tryint, nonone
 
 from ..exception import FileFormatError
 from ..model.budget import Budget, BudgetList
@@ -15,32 +15,6 @@ from ..model.oven import Oven
 from ..model.recurrence import Recurrence, Spawn
 from .base import SplitInfo, TransactionInfo
 from . import base
-
-class RecurrenceInfo:
-    def __init__(self):
-        self.repeat_type = None
-        self.repeat_every = 1
-        self.stop_date = None
-        self.date2exception = {}
-        self.date2globalchange = {}
-        self.transaction_info = TransactionInfo()
-
-    def is_valid(self):
-        return self.transaction_info.is_valid()
-
-
-class BudgetInfo:
-    def __init__(self, account=None, target=None, amount=None):
-        self.account = account
-        self.target = target
-        self.amount = amount
-        self.notes = None
-        self.repeat_type = None
-        self.repeat_every = None
-        self.start_date = None
-
-    def is_valid(self):
-        return self.account and self.amount
 
 class Loader(base.Loader):
     FILE_OPEN_MODE = 'rb'
@@ -53,8 +27,6 @@ class Loader(base.Loader):
         # because the order in which the spawns are created must stay the same
         self.schedules = []
         self.budgets = BudgetList()
-        self.recurrence_info = RecurrenceInfo()
-        self.budget_info = BudgetInfo()
         self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
 
     def _parse(self, infile):
@@ -144,16 +116,28 @@ class Loader(base.Loader):
             self.flush_transaction()
         for recurrence_element in root.iter('recurrence'):
             attrib = recurrence_element.attrib
-            self.recurrence_info.repeat_type = attrib.get('type')
-            self.recurrence_info.repeat_every = int(attrib.get('every', '1'))
-            self.recurrence_info.stop_date = str2date(attrib.get('stop_date'))
-            read_transaction_element(recurrence_element.find('transaction'), self.recurrence_info.transaction_info)
+            txn_info = read_transaction_element(
+                recurrence_element.find('transaction'), TransactionInfo())
+            for split_info in txn_info.splits:
+                self._process_split_info(split_info)
+            ref = txn_info.load()
+            repeat_type = attrib.get('type')
+            repeat_every = int(attrib.get('every', '1'))
+            recurrence = Recurrence(ref, repeat_type, repeat_every)
+            recurrence.stop_date = str2date(attrib.get('stop_date'))
             for exception_element in recurrence_element.iter('exception'):
                 try:
                     date = str2date(exception_element.attrib['date'])
                     txn_element = exception_element.find('transaction')
                     txn = read_transaction_element(txn_element, TransactionInfo()) if txn_element is not None else None
-                    self.recurrence_info.date2exception[date] = txn
+                    if txn:
+                        for split_info in txn.splits:
+                            self._process_split_info(split_info)
+                        exception = txn.load()
+                        spawn = Spawn(recurrence, exception, date, exception.date)
+                        recurrence.date2exception[date] = spawn
+                    else:
+                        recurrence.delete_at(date)
                 except KeyError:
                     continue
             for change_element in recurrence_element.iter('change'):
@@ -161,80 +145,35 @@ class Loader(base.Loader):
                     date = str2date(change_element.attrib['date'])
                     txn_element = change_element.find('transaction')
                     txn = read_transaction_element(txn_element, TransactionInfo()) if txn_element is not None else None
-                    self.recurrence_info.date2globalchange[date] = txn
+                    for split_info in txn.splits:
+                        self._process_split_info(split_info)
+                    change = txn.load()
+                    spawn = Spawn(recurrence, change, date, change.date)
+                    recurrence.date2globalchange[date] = spawn
                 except KeyError:
                     continue
-            self.flush_recurrence()
-        for budget_element in root.iter('budget'):
-            attrib = budget_element.attrib
-            self.budget_info.account = attrib.get('account')
-            self.budget_info.repeat_type = attrib.get('type')
-            self.budget_info.repeat_every = tryint(attrib.get('every'), default=None)
-            self.budget_info.amount = attrib.get('amount')
-            self.budget_info.notes = attrib.get('notes')
-            self.budget_info.start_date = str2date(attrib.get('start_date'))
-            self.flush_budget()
-
-    def load(self):
-        self._load()
-        self.flush_account() # Implicit
-        # Scheduled
-        for info in self.recurrence_infos:
-            all_txn = [info.transaction_info] +\
-                list(stripfalse(info.date2exception.values())) +\
-                list(info.date2globalchange.values())
-            for txn_info in all_txn:
-                for split_info in txn_info.splits:
-                    self._process_split_info(split_info)
-            ref = info.transaction_info.load()
-            recurrence = Recurrence(ref, info.repeat_type, info.repeat_every)
-            recurrence.stop_date = info.stop_date
-            for date, transaction_info in info.date2exception.items():
-                if transaction_info is not None:
-                    exception = transaction_info.load()
-                    spawn = Spawn(recurrence, exception, date, exception.date)
-                    recurrence.date2exception[date] = spawn
-                else:
-                    recurrence.delete_at(date)
-            for date, transaction_info in info.date2globalchange.items():
-                change = transaction_info.load()
-                spawn = Spawn(recurrence, change, date, change.date)
-                recurrence.date2globalchange[date] = spawn
             self.schedules.append(recurrence)
-
-        # Budgets
-        if self.budget_infos:
-            info = self.budget_infos[0]
-            if info.start_date:
-                self.budgets.start_date = info.start_date
-            self.budgets.repeat_type = info.repeat_type
-            if info.repeat_every:
-                self.budgets.repeat_every = info.repeat_every
-        for info in self.budget_infos:
-            account = self.accounts.find(info.account)
+        budgets = list(root.iter('budget'))
+        if budgets:
+            attrib = budgets[0].attrib
+            start_date = str2date(attrib.get('start_date'))
+            if start_date:
+                self.budgets.start_date = start_date
+            self.budgets.repeat_type = attrib.get('type')
+            repeat_every = tryint(attrib.get('every'), default=None)
+            if repeat_every:
+                self.budgets.repeat_every = repeat_every
+        for budget_element in budgets:
+            attrib = budget_element.attrib
+            account_name = attrib.get('account')
+            amount = attrib.get('amount')
+            notes = attrib.get('notes')
+            if not (account_name and amount):
+                continue
+            account = self.accounts.find(account_name)
             if account is None:
                 continue
-            amount = self.parse_amount(info.amount, account.currency)
+            amount = self.parse_amount(amount, account.currency)
             budget = Budget(account, amount)
-            budget.notes = nonone(info.notes, '')
+            budget.notes = nonone(notes, '')
             self.budgets.append(budget)
-        self._post_load()
-        self.oven.cook(datetime.date.min, until_date=None)
-        self._fetch_currencies()
-
-    def flush_account(self):
-        if self.account_info.is_valid() and self.account_info.budget:
-            info = self.account_info
-            self.budget_infos.append(BudgetInfo(info.name, info.budget))
-        super().flush_account()
-
-    def flush_recurrence(self):
-        if self.recurrence_info.is_valid():
-            self.recurrence_infos.append(self.recurrence_info)
-        self.recurrence_info = RecurrenceInfo()
-
-    def flush_budget(self):
-        if self.budget_info.is_valid():
-            self.budget_infos.append(self.budget_info)
-        self.budget_info = BudgetInfo()
-
