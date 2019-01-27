@@ -10,10 +10,10 @@ import xml.etree.cElementTree as ET
 from core.util import tryint, nonone
 
 from ..exception import FileFormatError
+from ..model._ccore import Transaction
 from ..model.budget import Budget, BudgetList
 from ..model.oven import Oven
 from ..model.recurrence import Recurrence, Spawn
-from .base import SplitInfo, TransactionInfo
 from . import base
 
 class Loader(base.Loader):
@@ -56,33 +56,40 @@ class Loader(base.Loader):
                 return s
             return s.replace('\\n', '\n')
 
-        def read_transaction_element(element, info):
+        def read_transaction_element(element):
             attrib = element.attrib
-            info.account = attrib.get('account')
-            info.date = str2date(attrib.get('date'), TODAY)
-            info.description = attrib.get('description')
-            info.payee = attrib.get('payee')
-            info.checkno = attrib.get('checkno')
-            info.notes = handle_newlines(attrib.get('notes'))
-            info.transfer = attrib.get('transfer')
+            date = str2date(attrib.get('date'), TODAY)
+            description = attrib.get('description')
+            payee = attrib.get('payee')
+            checkno = attrib.get('checkno')
+            txn = Transaction(1, date, description, payee, checkno, None, None)
+            txn.notes = handle_newlines(attrib.get('notes')) or ''
             try:
-                info.mtime = int(attrib.get('mtime', 0))
+                txn.mtime = int(attrib.get('mtime', 0))
             except ValueError:
-                info.mtime = 0
-            info.reference = attrib.get('reference')
+                txn.mtime = 0
+            reference = attrib.get('reference')
             for split_element in element.iter('split'):
                 attrib = split_element.attrib
-                split_info = SplitInfo()
-                split_info.account = split_element.attrib.get('account')
-                split_info.amount = split_element.attrib.get('amount')
-                split_info.memo = split_element.attrib.get('memo')
-                split_info.reference = split_element.attrib.get('reference')
-                if 'reconciled' in split_element.attrib: # legacy
-                    split_info.reconciled = split_element.attrib['reconciled'] == 'y'
-                if 'reconciliation_date' in split_element.attrib:
-                    split_info.reconciliation_date = str2date(split_element.attrib['reconciliation_date'])
-                info.splits.append(split_info)
-            return info
+                accountname = attrib.get('account')
+                str_amount = attrib.get('amount')
+                account, amount = self._process_split(accountname, str_amount)
+                split = txn.new_split()
+                split.account = account
+                split.amount = amount
+                split.memo = attrib.get('memo') or ''
+                split.reference = attrib.get('reference') or reference
+                if attrib.get('reconciled') == 'y':
+                    split.reconciliation_date = date
+                elif account is None or not (not amount or amount.currency_code == account.currency):
+                    # fix #442: off-currency transactions shouldn't be reconciled
+                    split.reconciliation_date = None
+                elif 'reconciliation_date' in attrib:
+                    split.reconciliation_date = str2date(attrib['reconciliation_date'])
+            txn.balance()
+            while len(txn.splits) < 2:
+                txn.new_split()
+            return txn
 
         root = self.root
         self.document_id = root.attrib.get('document_id')
@@ -99,28 +106,27 @@ class Loader(base.Loader):
         for account_element in root.iter('account'):
             self.start_account()
             attrib = account_element.attrib
-            self.account_info.name = attrib.get('name')
-            self.account_info.currency = attrib.get('currency')
-            self.account_info.type = attrib.get('type')
-            self.account_info.group = attrib.get('group')
-            self.account_info.budget = attrib.get('budget')
-            self.account_info.reference = attrib.get('reference')
-            self.account_info.account_number = attrib.get('account_number', '')
-            self.account_info.inactive = attrib.get('inactive') == 'y'
-            self.account_info.notes = handle_newlines(attrib.get('notes', ''))
-            self.flush_account()
+            name = attrib.get('name')
+            if not name:
+                continue
+            currency = self.get_currency(attrib.get('currency'))
+            type = self.get_account_type(attrib.get('type'))
+            account = self.accounts.create(name, currency, type)
+            group = attrib.get('group')
+            reference = attrib.get('reference')
+            account_number = attrib.get('account_number', '')
+            inactive = attrib.get('inactive') == 'y'
+            notes = handle_newlines(attrib.get('notes', ''))
+            account.change(
+                groupname=group, reference=reference,
+                account_number=account_number, inactive=inactive, notes=notes)
         elements = [e for e in root if e.tag == 'transaction'] # we only want transaction element *at the root*
         for transaction_element in elements:
-            self.start_transaction()
-            read_transaction_element(transaction_element, self.transaction_info)
-            self.flush_transaction()
+            txn = read_transaction_element(transaction_element)
+            self.transactions.add(txn)
         for recurrence_element in root.iter('recurrence'):
             attrib = recurrence_element.attrib
-            txn_info = read_transaction_element(
-                recurrence_element.find('transaction'), TransactionInfo())
-            for split_info in txn_info.splits:
-                self._process_split_info(split_info)
-            ref = txn_info.load()
+            ref = read_transaction_element(recurrence_element.find('transaction'))
             repeat_type = attrib.get('type')
             repeat_every = int(attrib.get('every', '1'))
             recurrence = Recurrence(ref, repeat_type, repeat_every)
@@ -129,11 +135,8 @@ class Loader(base.Loader):
                 try:
                     date = str2date(exception_element.attrib['date'])
                     txn_element = exception_element.find('transaction')
-                    txn = read_transaction_element(txn_element, TransactionInfo()) if txn_element is not None else None
-                    if txn:
-                        for split_info in txn.splits:
-                            self._process_split_info(split_info)
-                        exception = txn.load()
+                    exception = read_transaction_element(txn_element) if txn_element is not None else None
+                    if exception:
                         spawn = Spawn(recurrence, exception, date, exception.date)
                         recurrence.date2exception[date] = spawn
                     else:
@@ -144,10 +147,7 @@ class Loader(base.Loader):
                 try:
                     date = str2date(change_element.attrib['date'])
                     txn_element = change_element.find('transaction')
-                    txn = read_transaction_element(txn_element, TransactionInfo()) if txn_element is not None else None
-                    for split_info in txn.splits:
-                        self._process_split_info(split_info)
-                    change = txn.load()
+                    change = read_transaction_element(txn_element) if txn_element is not None else None
                     spawn = Spawn(recurrence, change, date, change.date)
                     recurrence.date2globalchange[date] = spawn
                 except KeyError:

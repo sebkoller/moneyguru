@@ -94,23 +94,28 @@ class Loader:
                     currencies.add(split.amount.currency_code)
         Currencies.get_rates_db().ensure_rates(start_date, list(currencies))
 
-    def _process_split_info(self, split_info):
+    def _process_split(self, accountname, str_amount, currency=None):
         # this amount is just to determine the auto_create_type
-        str_amount = split_info.amount
-        if split_info.currency:
-            str_amount += split_info.currency
+        if currency:
+            str_amount += currency
         amount = self.parse_amount(str_amount, self.default_currency)
         auto_create_type = AccountType.Income if amount >= 0 else AccountType.Expense
-        aname = split_info.account
-        if aname:
-            split_info.account = self.accounts.find(aname)
-            if split_info.account is None:
-                split_info.account = self.accounts.create(
-                    aname, self.default_currency, auto_create_type)
+        if accountname:
+            account = self.accounts.find(accountname)
+            if account is None:
+                account = self.accounts.create(
+                    accountname, self.default_currency, auto_create_type)
         else:
-            split_info.account = None
-        currency = split_info.account.currency if split_info.account is not None else self.default_currency
-        split_info.amount = self.parse_amount(str_amount, currency)
+            account = None
+        currency = account.currency if account is not None else self.default_currency
+        amount = self.parse_amount(str_amount, currency)
+        return account, amount
+
+    def _process_split_info(self, split_info):
+        account, amount = self._process_split(
+            split_info.account, split_info.amount, split_info.currency)
+        split_info.account = account
+        split_info.amount = amount
 
     # --- Virtual
     def _parse(self, infile):
@@ -172,6 +177,20 @@ class Loader:
             result = result.replace(year=year)
         return result
 
+    def get_account_type(self, type):
+        if type in AccountType.All:
+            return type
+        else:
+            return AccountType.Asset
+
+    def get_currency(self, code):
+        try:
+            if code and Currencies.has(code):
+                return code
+        except ValueError:
+            pass
+        return self.default_currency
+
     def start_account(self):
         self.flush_account() # Implicit
 
@@ -179,15 +198,8 @@ class Loader:
         self.flush_transaction()
         if self.account_info.is_valid():
             info = self.account_info
-            account_type = info.type
-            if account_type not in AccountType.All:
-                account_type = AccountType.Asset
-            account_currency = self.default_currency
-            try:
-                if info.currency and Currencies.has(info.currency):
-                    account_currency = info.currency
-            except ValueError:
-                pass # keep account_currency as self.default_currency
+            account_type = self.get_account_type(info.type)
+            account_currency = self.get_currency(info.currency)
             account = self.accounts.find(info.name)
             if account is None:
                 account = self.accounts.create(
@@ -332,13 +344,6 @@ class TransactionInfo:
             split.account = account
             split.amount = amount
             split.memo = memo
-            if account is None or not (not amount or amount.currency_code == account.currency):
-                # fix #442: off-currency transactions shouldn't be reconciled
-                split.reconciliation_date = None
-            elif split_info.reconciliation_date is not None:
-                split.reconciliation_date = split_info.reconciliation_date
-            elif split_info.reconciled: # legacy
-                split.reconciliation_date = transaction.date
             split.reference = split_info.reference
         while len(transaction.splits) < 2:
             transaction.new_split()
@@ -357,7 +362,6 @@ class SplitInfo:
         self.amount = amount
         self.currency = currency
         self.memo = None
-        self.reconciled = False
         self.reconciliation_date = None
         self.reference = None
         self.amount_reversed = amount_reversed
