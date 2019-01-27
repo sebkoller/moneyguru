@@ -4,7 +4,6 @@
 # which should be included with this package. The terms are also available at
 # http://www.gnu.org/licenses/gpl-3.0.html
 
-import sys
 import os.path as op
 import xml.etree.cElementTree as ET
 
@@ -108,8 +107,4 @@ def save(filename, document_id, properties, accounts, transactions, schedules, b
     ensure_folder(op.dirname(filename))
     fp = open(filename, 'wt', encoding='utf-8')
     fp.write('<?xml version="1.0" encoding="utf-8"?>\n')
-    # This 'unicode' encoding thing is only available (and necessary) from Python 3.2
-    if sys.version_info[1] >= 2:
-        tree.write(fp, encoding='unicode')
-    else:
-        tree.write(fp)
+    tree.write(fp, encoding='unicode')
