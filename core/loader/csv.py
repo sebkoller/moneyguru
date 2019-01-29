@@ -10,6 +10,7 @@ import logging
 from core.util import stripfalse
 from core.trans import tr
 
+from ..const import AccountType
 from ..exception import FileFormatError, FileLoadError
 from . import base
 
@@ -147,11 +148,13 @@ class Loader(base.Loader):
         hasamount = (CsvField.Amount in ci) or (CsvField.Increase in ci and CsvField.Decrease in ci)
         if not (hasdate and hasamount):
             raise FileLoadError(tr("The Date and Amount columns must be set."))
-        self.account_info.name = 'CSV Import'
+        target_account = self.accounts.create(
+            'CSV Import', self.default_currency, AccountType.Asset)
         self.parsing_date_format, lines_to_load = self._parse_date_format(lines, ci)
         self._check_amount_values(lines_to_load, ci)
         for line in lines_to_load:
-            self.start_transaction()
+            info = base.TransactionInfo()
+            info.account = target_account.name
             for attr, index in ci.items():
                 value = line[index]
                 if attr == CsvField.Date:
@@ -165,7 +168,10 @@ class Loader(base.Loader):
                 if isinstance(value, str):
                     value = value.strip()
                 if value:
-                    setattr(self.transaction_info, attr, value)
+                    setattr(info, attr, value)
+            if info.is_valid():
+                txn = info.load(self.accounts)
+                self.transactions.add(txn)
 
     # --- Public
     def rescan(self, encoding=None):
