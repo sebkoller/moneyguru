@@ -16,10 +16,13 @@ from ..model.oven import Oven
 from ..model.recurrence import Recurrence, Spawn
 from . import base
 
+
+def parse_amount(string, currency):
+    return base.parse_amount(string, currency, strict_currency=True)
+
 class Loader(base.Loader):
     FILE_OPEN_MODE = 'rb'
     NATIVE_DATE_FORMAT = '%Y-%m-%d'
-    STRICT_CURRENCY = True
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -73,7 +76,8 @@ class Loader(base.Loader):
                 attrib = split_element.attrib
                 accountname = attrib.get('account')
                 str_amount = attrib.get('amount')
-                account, amount = self._process_split(accountname, str_amount)
+                account, amount = base.process_split(
+                    self.accounts, accountname, str_amount, strict_currency=True)
                 split = txn.new_split()
                 split.account = account
                 split.amount = amount
@@ -173,7 +177,7 @@ class Loader(base.Loader):
             account = self.accounts.find(account_name)
             if account is None:
                 continue
-            amount = self.parse_amount(amount, account.currency)
+            amount = parse_amount(amount, account.currency)
             budget = Budget(account, amount)
             budget.notes = nonone(notes, '')
             self.budgets.append(budget)

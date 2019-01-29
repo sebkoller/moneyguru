@@ -1,4 +1,4 @@
-# Copyright 2017 Virgil Dupras
+# Copyright 2019 Virgil Dupras
 #
 # This software is licensed under the "GPLv3" License as described in the "LICENSE" file,
 # which should be included with this package. The terms are also available at
@@ -125,7 +125,7 @@ class Loader(base.Loader):
                 index = ci[attr]
                 value = line[index]
                 try:
-                    self.parse_amount(value, self.default_currency)
+                    base.parse_amount(value, self.default_currency)
                 except ValueError:
                     raise FileLoadError(tr("The Amount column has been set on a column that doesn't contain amounts."))
 

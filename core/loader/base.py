@@ -44,6 +44,33 @@ POSSIBLE_PATTERNS = [
 ]
 re_possibly_a_date = re.compile('|'.join(POSSIBLE_PATTERNS))
 
+def parse_amount(string, currency, **kwargs):
+    try:
+        return amount_parse(
+            string, currency, with_expression=False, **kwargs)
+    except UnsupportedCurrencyError:
+        msg = tr(
+            "Unsupported currency: {}. Aborting load. Did you disable a currency plugin?"
+        ).format(currency)
+        raise FileFormatError(msg)
+
+def process_split(accounts, accountname, str_amount, currency=None, strict_currency=False):
+    # this amount is just to determine the auto_create_type
+    if currency:
+        str_amount += currency
+    amount = parse_amount(str_amount, accounts.default_currency, strict_currency=strict_currency)
+    auto_create_type = AccountType.Income if amount >= 0 else AccountType.Expense
+    if accountname:
+        account = accounts.find(accountname)
+        if account is None:
+            account = accounts.create(
+                accountname, accounts.default_currency, auto_create_type)
+    else:
+        account = None
+    currency = account.currency if account is not None else accounts.default_currency
+    amount = parse_amount(str_amount, currency, strict_currency=strict_currency)
+    return account, amount
+
 class Loader:
     """Base interface for loading files containing financial information to load into moneyGuru.
 
@@ -59,9 +86,6 @@ class Loader:
     NATIVE_DATE_FORMAT = None
     # Some extra date formats to try before standard date guessing order
     EXTRA_DATE_FORMATS = None
-    # Whether we fail with a ``FileFormatError`` when encountering an unsupported currency or we
-    # fall back to the default currency
-    STRICT_CURRENCY = False
 
     def __init__(self, default_currency, default_date_format=None):
         self.default_currency = default_currency
@@ -93,29 +117,6 @@ class Loader:
                 if split.amount:
                     currencies.add(split.amount.currency_code)
         Currencies.get_rates_db().ensure_rates(start_date, list(currencies))
-
-    def _process_split(self, accountname, str_amount, currency=None):
-        # this amount is just to determine the auto_create_type
-        if currency:
-            str_amount += currency
-        amount = self.parse_amount(str_amount, self.default_currency)
-        auto_create_type = AccountType.Income if amount >= 0 else AccountType.Expense
-        if accountname:
-            account = self.accounts.find(accountname)
-            if account is None:
-                account = self.accounts.create(
-                    accountname, self.default_currency, auto_create_type)
-        else:
-            account = None
-        currency = account.currency if account is not None else self.default_currency
-        amount = self.parse_amount(str_amount, currency)
-        return account, amount
-
-    def _process_split_info(self, split_info):
-        account, amount = self._process_split(
-            split_info.account, split_info.amount, split_info.currency)
-        split_info.account = account
-        split_info.amount = amount
 
     # --- Virtual
     def _parse(self, infile):
@@ -231,14 +232,7 @@ class Loader:
             if info.account is None and self.account_info and self.account_info.name:
                 info.account = self.account_info.name
             if info.is_valid():
-                split_accounts = [s.account for s in info.splits]
-                if info.account and info.account not in split_accounts:
-                    info.splits.insert(0, SplitInfo(info.account, info.amount, info.currency, False))
-                if info.transfer and info.transfer not in split_accounts:
-                    info.splits.append(SplitInfo(info.transfer, info.amount, info.currency, True))
-                for split_info in info.splits:
-                    self._process_split_info(split_info)
-                transaction = info.load()
+                transaction = info.load(self.accounts)
                 self.transactions.add(transaction)
         self.transaction_cancelled = False
         self.transaction_info = TransactionInfo()
@@ -263,19 +257,6 @@ class Loader:
                 self._parse(infile)
         except IOError:
             raise FileFormatError()
-
-    @classmethod
-    def parse_amount(cls, string, currency):
-        try:
-            return amount_parse(
-                string, currency, with_expression=False,
-                strict_currency=cls.STRICT_CURRENCY
-            )
-        except UnsupportedCurrencyError:
-            msg = tr(
-                "Unsupported currency: {}. Aborting load. Did you disable a currency plugin?"
-            ).format(currency)
-            raise FileFormatError(msg)
 
     def load(self):
         """Loads the parsed info into self.accounts and self.transactions.
@@ -327,7 +308,14 @@ class TransactionInfo:
     def is_valid(self):
         return bool(self.date and ((self.account and self.amount) or self.splits))
 
-    def load(self):
+    def load(self, accounts):
+        split_accounts = [s.account for s in self.splits]
+        if self.account and self.account not in split_accounts:
+            self.splits.insert(0, SplitInfo(self.account, self.amount, self.currency, False))
+        if self.transfer and self.transfer not in split_accounts:
+            self.splits.append(SplitInfo(self.transfer, self.amount, self.currency, True))
+        for split_info in self.splits:
+            split_info.load(accounts)
         description = self.description
         payee = self.payee
         checkno = self.checkno
@@ -371,3 +359,10 @@ class SplitInfo:
 
     def is_valid(self):
         return self.amount is not None
+
+    def load(self, accounts):
+        account, amount = process_split(
+            accounts, self.account, self.amount, self.currency)
+        self.account = account
+        self.amount = amount
+
