@@ -59,9 +59,6 @@ class Loader(base.Loader):
     NATIVE_DATE_FORMAT = '%m/%d/%y'
     EXTRA_DATE_FORMATS = ['%m/%d/%Y'] # Also try the YYYY version of the date format in priority
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.split_info = base.SplitInfo()
 
     def _parse(self, infile):
         content = infile.read()
@@ -134,37 +131,6 @@ class Loader(base.Loader):
             if header == 'T' and data in ('Oth L', 'CCard'):
                 self.account_info.type = AccountType.Liability
 
-        def parse_split_line(header, data):
-            if header == 'S':
-                data = remove_brackets(data)
-                self.split_info.account = data
-            elif header == 'E':
-                self.split_info.memo = data
-            elif header == '$':
-                self.split_info.amount = re_not_amount.sub('', data)
-                self.split_info.amount_reversed = True # Split amounts in QIF are REVERSED
-
-        def parse_entry_line(header, data):
-            if header == 'D':
-                try:
-                    self.transaction_info.date = base.parse_date_str(data, self.parsing_date_format)
-                except ValueError:
-                    pass
-            elif header == 'M':
-                self.transaction_info.description = data
-            elif header == 'P':
-                self.transaction_info.payee = data
-            elif header == 'N':
-                self.transaction_info.checkno = data
-            elif header == 'L':
-                data = remove_brackets(data)
-                self.transaction_info.transfer = data
-            elif header == 'T':
-                self.transaction_info.amount = re_not_amount.sub('', data)
-            elif header == '!': # yeah, this thing is in the entry data...
-                if data in ('Type:CCard', 'Type:Oth L'):
-                    self.account_info.type = AccountType.Liability
-
         self.seen_account_names = set()
         # Send "empty" accounts to the autoswitch_blocks list
         for block, nextblock in zip(self.blocks[:], self.blocks[1:]+[None]):
@@ -181,6 +147,8 @@ class Loader(base.Loader):
                 if self.account_info.name:
                     self.seen_account_names.add(self.account_info.name)
             elif block_type == BlockType.Entry:
+                account = amount = memo = None
+                info = base.TransactionInfo()
                 if not self.seen_account_names:
                     # If no account has been seen yet, add the txn to a default 'Account' one
                     self.account_info.name = 'Account'
@@ -188,13 +156,48 @@ class Loader(base.Loader):
                 for header, data in lines:
                     if header in {'S', 'E', '$'}: # splits field
                         if header in seen_split_fields: # must flush the split
-                            self.flush_split()
+                            if account is not None:
+                                # Split amounts in QIF are REVERSED
+                                info.add_split(
+                                    account, amount, memo)
+                            account = amount = memo = None
                             seen_split_fields.clear()
-                        parse_split_line(header, data)
+                        if header == 'S':
+                            data = remove_brackets(data)
+                            account = data
+                        elif header == 'E':
+                            memo = data
+                        elif header == '$':
+                            amount = re_not_amount.sub('', data)
                         seen_split_fields.add(header)
-                        continue
-                    parse_entry_line(header, data)
-                self.flush_transaction()
+                    elif header == 'D':
+                        try:
+                            info.date = base.parse_date_str(data, self.parsing_date_format)
+                        except ValueError:
+                            pass
+                    elif header == 'M':
+                        info.description = data
+                    elif header == 'P':
+                        info.payee = data
+                    elif header == 'N':
+                        info.checkno = data
+                    elif header == 'L':
+                        data = remove_brackets(data)
+                        info.transfer = data
+                    elif header == 'T':
+                        info.amount = re_not_amount.sub('', data)
+                    elif header == '!': # yeah, this thing is in the entry data...
+                        if data in ('Type:CCard', 'Type:Oth L'):
+                            self.account_info.type = AccountType.Liability
+                if account is not None:
+                    info.add_split(account, amount, memo)
+                info.account = self.account_info.name
+                if info.is_valid():
+                    if info.transfer and (len(info.splits) < 2):
+                        info.add_split(info.transfer, info.amount, None)
+                    txn = info.load(self.accounts)
+                    self.transactions.add(txn)
+                del info
         self.flush_account()
         # For accounts that haven't been added in normal blocks, we complete the list with autoswitch
         # blocks (so that we can have correct types for income/expense accounts)
@@ -267,14 +270,3 @@ class Loader(base.Loader):
     def cancel_account(self):
         self.account_info = base.AccountInfo()
         self.transaction_info = base.TransactionInfo()
-        self.split_info = base.SplitInfo()
-
-    def flush_split(self):
-        if self.split_info.is_valid():
-            self.transaction_info.splits.append(self.split_info)
-        self.split_info = base.SplitInfo()
-
-    def flush_transaction(self):
-        self.flush_split()
-        super().flush_transaction()
-

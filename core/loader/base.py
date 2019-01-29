@@ -54,12 +54,7 @@ def parse_amount(string, currency, **kwargs):
         ).format(currency)
         raise FileFormatError(msg)
 
-def process_split(accounts, accountname, str_amount, currency=None, strict_currency=False):
-    # this amount is just to determine the auto_create_type
-    if currency:
-        str_amount += currency
-    amount = parse_amount(str_amount, accounts.default_currency, strict_currency=strict_currency)
-    auto_create_type = AccountType.Income if amount >= 0 else AccountType.Expense
+def get_account(accounts, accountname, auto_create_type):
     if accountname:
         account = accounts.find(accountname)
         if account is None:
@@ -67,6 +62,15 @@ def process_split(accounts, accountname, str_amount, currency=None, strict_curre
                 accountname, accounts.default_currency, auto_create_type)
     else:
         account = None
+    return account
+
+def process_split(accounts, accountname, str_amount, currency=None, strict_currency=False):
+    # this amount is just to determine the auto_create_type
+    if currency:
+        str_amount += currency
+    amount = parse_amount(str_amount, accounts.default_currency, strict_currency=strict_currency)
+    auto_create_type = AccountType.Income if amount >= 0 else AccountType.Expense
+    account = get_account(accounts, accountname, auto_create_type)
     currency = account.currency if account is not None else accounts.default_currency
     amount = parse_amount(str_amount, currency, strict_currency=strict_currency)
     return account, amount
@@ -211,8 +215,7 @@ class Loader:
             if info.group:
                 account.change(groupname=info.group)
             account.change(
-                reference=info.reference, account_number=info.account_number,
-                inactive=info.inactive, notes=info.notes)
+                reference=info.reference, account_number=info.account_number)
         self.account_info = AccountInfo()
 
     def start_transaction(self):
@@ -263,8 +266,6 @@ class AccountInfo:
         self.budget_target = None
         self.reference = None
         self.account_number = ''
-        self.inactive = False
-        self.notes = ''
 
     def __repr__(self):
         return '<AccountInfo: %s>' % self.name
@@ -279,73 +280,43 @@ class TransactionInfo:
         self.description = None
         self.payee = None
         self.checkno = None
-        self.notes = None
         self.account = None
         self.transfer = None
         self.amount = None
         self.currency = None
         self.reference = None # will be applied to all splits
-        self.mtime = 0
         self.splits = []
 
     def is_valid(self):
         return bool(self.date and ((self.account and self.amount) or self.splits))
 
     def load(self, accounts):
-        split_accounts = [s.account for s in self.splits]
-        if self.account and self.account not in split_accounts:
-            self.splits.insert(0, SplitInfo(self.account, self.amount, self.currency, False))
-        if self.transfer and self.transfer not in split_accounts:
-            self.splits.append(SplitInfo(self.transfer, self.amount, self.currency, True))
-        for split_info in self.splits:
-            split_info.load(accounts)
         description = self.description
         payee = self.payee
         checkno = self.checkno
         date = self.date
-        transaction = Transaction(1, date, description, payee, checkno, None, None)
-        transaction.notes = nonone(self.notes, '')
-        for split_info in self.splits:
-            account = split_info.account
-            amount = split_info.amount
-            if split_info.amount_reversed:
-                amount = -amount
-            memo = nonone(split_info.memo, '')
+        account = amount = None
+        if self.account:
+            account, amount = process_split(accounts, self.account, self.amount, self.currency)
+        transaction = Transaction(1, date, description, payee, checkno, account, amount)
+        for str_account, str_amount, memo in self.splits:
+            account, amount = process_split(
+                accounts, str_account, str_amount, None)
+            # splits are only used for QIF and in QIF, amounts are reversed
+            amount *= -1
+            memo = nonone(memo, '')
             split = transaction.new_split()
             split.account = account
             split.amount = amount
             split.memo = memo
-            split.reference = split_info.reference
         while len(transaction.splits) < 2:
             transaction.new_split()
         transaction.balance()
-        transaction.mtime = self.mtime
         if self.reference is not None:
             for split in transaction.splits:
                 if split.reference is None:
                     split.reference = self.reference
         return transaction
 
-
-class SplitInfo:
-    def __init__(self, account=None, amount=None, currency=None, amount_reversed=False):
-        self.account = account
-        self.amount = amount
-        self.currency = currency
-        self.memo = None
-        self.reconciliation_date = None
-        self.reference = None
-        self.amount_reversed = amount_reversed
-
-    def __repr__(self):
-        return '<SplitInfo %r %r>' % (self.account, self.amount)
-
-    def is_valid(self):
-        return self.amount is not None
-
-    def load(self, accounts):
-        account, amount = process_split(
-            accounts, self.account, self.amount, self.currency)
-        self.account = account
-        self.amount = amount
-
+    def add_split(self, account, amount, memo):
+        self.splits.append((account, amount, memo))
