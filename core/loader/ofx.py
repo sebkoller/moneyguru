@@ -121,7 +121,8 @@ class OFXParser(SGMLParser):
     def handle_dtposted(self, data):
         if self.accounts_only:
             return
-        self.transaction_info.date = self.loader.parse_date_str(data[:8])
+        self.transaction_info.date = base.parse_date_str(
+            data[:8], Loader.NATIVE_DATE_FORMAT)
 
     def start_trnamt(self, attributes):
         self.data_handler = self.handle_trnamt

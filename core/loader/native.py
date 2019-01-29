@@ -46,7 +46,7 @@ class Loader(base.Loader):
 
         def str2date(s, default=None):
             try:
-                return self.parse_date_str(s)
+                return base.parse_date_str(s, self.parsing_date_format)
             except (ValueError, TypeError):
                 return default
 

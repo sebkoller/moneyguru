@@ -105,7 +105,7 @@ class Loader(base.Loader):
         lines_to_load = []
         for line in lines:
             line = line[:]
-            cleaned_str_date = self.clean_date(line[date_index])
+            cleaned_str_date = base.clean_date(line[date_index])
             if cleaned_str_date is None:
                 logging.warning('{0} is not a date. Ignoring line'.format(line[date_index]))
             else:
@@ -158,7 +158,7 @@ class Loader(base.Loader):
             for attr, index in ci.items():
                 value = line[index]
                 if attr == CsvField.Date:
-                    value = self.parse_date_str(value, self.parsing_date_format)
+                    value = base.parse_date_str(value, self.parsing_date_format)
                 elif attr == CsvField.Increase:
                     attr = CsvField.Amount
                 elif attr == CsvField.Decrease:

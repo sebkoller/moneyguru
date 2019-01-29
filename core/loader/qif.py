@@ -59,6 +59,10 @@ class Loader(base.Loader):
     NATIVE_DATE_FORMAT = '%m/%d/%y'
     EXTRA_DATE_FORMATS = ['%m/%d/%Y'] # Also try the YYYY version of the date format in priority
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.split_info = base.SplitInfo()
+
     def _parse(self, infile):
         content = infile.read()
         lines = stripfalse(content.split('\n'))
@@ -93,7 +97,7 @@ class Loader(base.Loader):
                         # Make sure we have a valid entry block (which has a valid date) and change
                         # the type if it's not the case.
                         date_line = block.get_line('D')
-                        if date_line is None or self.clean_date(date_line.data) is None:
+                        if date_line is None or base.clean_date(date_line.data) is None:
                             block.type = BlockType.Other
                     if autoswitch_mode:
                         autoswitch_blocks.append(block)
@@ -143,7 +147,7 @@ class Loader(base.Loader):
         def parse_entry_line(header, data):
             if header == 'D':
                 try:
-                    self.transaction_info.date = self.parse_date_str(data, self.parsing_date_format)
+                    self.transaction_info.date = base.parse_date_str(data, self.parsing_date_format)
                 except ValueError:
                     pass
             elif header == 'M':
@@ -259,4 +263,18 @@ class Loader(base.Loader):
             toremove |= set(matches[:len(txn.splits)-1])
         for txn in toremove:
             self.transactions.remove(txn)
+
+    def cancel_account(self):
+        self.account_info = base.AccountInfo()
+        self.transaction_info = base.TransactionInfo()
+        self.split_info = base.SplitInfo()
+
+    def flush_split(self):
+        if self.split_info.is_valid():
+            self.transaction_info.splits.append(self.split_info)
+        self.split_info = base.SplitInfo()
+
+    def flush_transaction(self):
+        self.flush_split()
+        super().flush_transaction()
 

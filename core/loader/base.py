@@ -14,10 +14,10 @@ from core.trans import tr
 from ..const import AccountType
 from ..exception import FileFormatError
 from ..model._ccore import (
-    AccountList, TransactionList, UnsupportedCurrencyError, amount_parse)
+    AccountList, TransactionList, UnsupportedCurrencyError, amount_parse,
+    Transaction)
 from ..model.currency import Currencies
 from ..model.oven import Oven
-from ..model.transaction import Transaction
 
 # date formats to use for format guessing
 # there is not one test for each single format
@@ -71,6 +71,37 @@ def process_split(accounts, accountname, str_amount, currency=None, strict_curre
     amount = parse_amount(str_amount, currency, strict_currency=strict_currency)
     return account, amount
 
+def clean_date(str_date):
+    # return str_date without garbage around (such as timestamps) or None if impossible
+    match = re_possibly_a_date.search(str_date)
+    return match.group() if match is not None else None
+
+def guess_date_format(str_dates, formats_to_try):
+    for format in dedupe(formats_to_try):
+        found_at_least_one = False
+        for str_date in str_dates:
+            try:
+                datetime.datetime.strptime(str_date, format)
+                found_at_least_one = True
+            except ValueError:
+                logging.debug("Failed try to read the date %s with the format %s", str_date, format)
+                break
+        else:
+            if found_at_least_one:
+                logging.debug("Correct date format: %s", format)
+                return format
+    return None
+
+def parse_date_str(date_str, date_format):
+    """Parses date_str using date_format and perform heuristic fixes if needed.
+    """
+    result = datetime.datetime.strptime(date_str, date_format).date()
+    if result.year < 1900:
+        # we have a typo in the house. Just use 2000 + last-two-digits
+        year = (result.year % 100) + 2000
+        result = result.replace(year=year)
+    return result
+
 class Loader:
     """Base interface for loading files containing financial information to load into moneyGuru.
 
@@ -99,8 +130,6 @@ class Loader:
         self.budget_infos = []
         self.account_info = AccountInfo()
         self.transaction_info = TransactionInfo()
-        self.transaction_cancelled = False
-        self.split_info = SplitInfo()
         self.document_id = None
         # The Loader subclass should set parsing_date_format to the format used (system-type) when
         # parsing dates. This format is used in the ImportWindow. It is also used in
@@ -137,13 +166,8 @@ class Loader:
         pass
 
     # --- Protected
-    def clean_date(self, str_date):
-        # return str_date without garbage around (such as timestamps) or None if impossible
-        match = re_possibly_a_date.search(str_date)
-        return match.group() if match is not None else None
-
     def guess_date_format(self, str_dates):
-        totry = DATE_FORMATS[:]
+        totry = DATE_FORMATS
         extra = []
         if self.NATIVE_DATE_FORMAT:
             extra.append(self.NATIVE_DATE_FORMAT)
@@ -151,32 +175,7 @@ class Loader:
             extra += self.EXTRA_DATE_FORMATS
         if self.default_date_format:
             extra.append(self.default_date_format)
-        for format in dedupe(extra + totry):
-            found_at_least_one = False
-            for str_date in str_dates:
-                try:
-                    datetime.datetime.strptime(str_date, format)
-                    found_at_least_one = True
-                except ValueError:
-                    logging.debug("Failed try to read the date %s with the format %s", str_date, format)
-                    break
-            else:
-                if found_at_least_one:
-                    logging.debug("Correct date format: %s", format)
-                    return format
-        return None
-
-    def parse_date_str(self, date_str, date_format=None):
-        """Parses date_str using date_format and perform heuristic fixes if needed.
-        """
-        if not date_format:
-            date_format = self.parsing_date_format
-        result = datetime.datetime.strptime(date_str, date_format).date()
-        if result.year < 1900:
-            # we have a typo in the house. Just use 2000 + last-two-digits
-            year = (result.year % 100) + 2000
-            result = result.replace(year=year)
-        return result
+        return guess_date_format(str_dates, extra + totry)
 
     def get_account_type(self, type):
         if type in AccountType.All:
@@ -216,34 +215,18 @@ class Loader:
                 inactive=info.inactive, notes=info.notes)
         self.account_info = AccountInfo()
 
-    def cancel_account(self):
-        self.account_info = AccountInfo()
-        self.transaction_info = TransactionInfo()
-        self.split_info = SplitInfo()
-
     def start_transaction(self):
         self.flush_transaction() # Implicit
 
     def flush_transaction(self):
         """If called between a start_account and flush_account call, ACCOUNT is automatically set"""
-        self.flush_split()
-        if not self.transaction_cancelled:
-            info = self.transaction_info
-            if info.account is None and self.account_info and self.account_info.name:
-                info.account = self.account_info.name
-            if info.is_valid():
-                transaction = info.load(self.accounts)
-                self.transactions.add(transaction)
-        self.transaction_cancelled = False
+        info = self.transaction_info
+        if info.account is None and self.account_info and self.account_info.name:
+            info.account = self.account_info.name
+        if info.is_valid():
+            transaction = info.load(self.accounts)
+            self.transactions.add(transaction)
         self.transaction_info = TransactionInfo()
-
-    def cancel_transaction(self):
-        self.transaction_cancelled = True
-
-    def flush_split(self):
-        if self.split_info.is_valid():
-            self.transaction_info.splits.append(self.split_info)
-        self.split_info = SplitInfo()
 
     # --- Public
     def parse(self, filename):
@@ -320,7 +303,7 @@ class TransactionInfo:
         payee = self.payee
         checkno = self.checkno
         date = self.date
-        transaction = Transaction(date, description, payee, checkno)
+        transaction = Transaction(1, date, description, payee, checkno, None, None)
         transaction.notes = nonone(self.notes, '')
         for split_info in self.splits:
             account = split_info.account

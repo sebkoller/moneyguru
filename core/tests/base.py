@@ -151,7 +151,7 @@ class DictLoader(base.Loader):
                 self.start_transaction()
                 for attr, value in txn.items():
                     if attr == 'date':
-                        value = self.parse_date_str(value)
+                        value = base.parse_date_str(value, self.parsing_date_format)
                     setattr(self.transaction_info, attr, value)
             self.flush_account()
 
