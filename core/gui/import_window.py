@@ -161,7 +161,7 @@ class ImportWindow(GUIObject):
     # show()
     #
 
-    def __init__(self, mainwindow):
+    def __init__(self, mainwindow, target_account=None):
         super().__init__()
         if not hasattr(mainwindow, 'loader'):
             raise ValueError("Nothing to import!")
@@ -199,15 +199,13 @@ class ImportWindow(GUIObject):
                     accounts.append(account)
         parsing_date_format = DateFormat.from_sysformat(self.loader.parsing_date_format)
         for account in accounts:
-            target_account = None
-            if self.loader.target_account is not None:
-                target_account = self.loader.target_account
-            elif account.reference:
-                target_account = getfirst(
+            target = target_account
+            if target is None and account.reference:
+                target = getfirst(
                     t for t in self.target_accounts if t.reference == account.reference
                 )
             self.panes.append(
-                AccountPane(self, account, target_account, parsing_date_format))
+                AccountPane(self, account, target, parsing_date_format))
 
     # --- Private
     def _can_swap_date_fields(self, first, second): # 'day', 'month', 'year'

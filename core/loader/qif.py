@@ -125,11 +125,14 @@ class Loader(base.Loader):
             else:
                 return name
 
-        def parse_account_line(header, data):
-            if header == 'N':
-                self.account_info.name = data.strip()
-            if header == 'T' and data in ('Oth L', 'CCard'):
-                self.account_info.type = AccountType.Liability
+        def parse_account_lines(lines):
+            name = type = None
+            for header, data in lines:
+                if header == 'N':
+                    name = data.strip()
+                if header == 'T' and data in ('Oth L', 'CCard'):
+                    type = AccountType.Liability
+            return name, type
 
         self.seen_account_names = set()
         # Send "empty" accounts to the autoswitch_blocks list
@@ -141,25 +144,37 @@ class Loader(base.Loader):
             block_type = block.type
             lines = block.lines
             if block_type == BlockType.Account:
-                self.start_account()
-                for header, data in lines:
-                    parse_account_line(header, data)
-                if self.account_info.name:
-                    self.seen_account_names.add(self.account_info.name)
+                account_name, account_type = parse_account_lines(lines)
+                if account_name:
+                    self.seen_account_names.add(account_name)
+                    account_type = base.get_account_type(account_type)
+                    current_account = self.accounts.find(account_name)
+                    if current_account is None:
+                        current_account = self.accounts.create(
+                            account_name, self.accounts.default_currency, account_type)
+                    else:
+                        # Already auto-created by a transaction. override type and
+                        # currency
+                        current_account.change(type=account_type)
+                else:
+                    current_account = None
             elif block_type == BlockType.Entry:
                 account = amount = memo = None
                 info = base.TransactionInfo()
                 if not self.seen_account_names:
                     # If no account has been seen yet, add the txn to a default 'Account' one
-                    self.account_info.name = 'Account'
+                    current_account = base.get_account(
+                        self.accounts, 'Account', None)
+                if not current_account:
+                    # malformed account block, skip entry
+                    continue
+                info.account = current_account.name
                 seen_split_fields = set()
                 for header, data in lines:
                     if header in {'S', 'E', '$'}: # splits field
                         if header in seen_split_fields: # must flush the split
                             if account is not None:
-                                # Split amounts in QIF are REVERSED
-                                info.add_split(
-                                    account, amount, memo)
+                                info.add_split(account, amount, memo)
                             account = amount = memo = None
                             seen_split_fields.clear()
                         if header == 'S':
@@ -188,31 +203,23 @@ class Loader(base.Loader):
                         info.amount = re_not_amount.sub('', data)
                     elif header == '!': # yeah, this thing is in the entry data...
                         if data in ('Type:CCard', 'Type:Oth L'):
-                            self.account_info.type = AccountType.Liability
+                            current_account.change(type=AccountType.Liability)
                 if account is not None:
                     info.add_split(account, amount, memo)
-                info.account = self.account_info.name
                 if info.is_valid():
                     if info.transfer and (len(info.splits) < 2):
                         info.add_split(info.transfer, info.amount, None)
                     txn = info.load(self.accounts)
                     self.transactions.add(txn)
                 del info
-        self.flush_account()
         # For accounts that haven't been added in normal blocks, we complete the list with autoswitch
         # blocks (so that we can have correct types for income/expense accounts)
         for block in self.autoswitch_blocks:
-            block_type = block.type
-            lines = block.lines
-            if block_type == BlockType.Account:
-                self.start_account()
-                for header, data in lines:
-                    parse_account_line(header, data)
-                if self.account_info.name in self.seen_account_names:
-                    self.cancel_account()
-                else:
-                    self.seen_account_names.add(self.account_info.name)
-                    self.flush_account()
+            if block.type == BlockType.Account:
+                name, type = parse_account_lines(block.lines)
+                if name not in self.seen_account_names:
+                    self.seen_account_names.add(name)
+                    base.get_account(self.accounts, name, type)
 
     def _post_load(self):
         # The reader of this piece of code has to understand that QIF duplicate transaction matching
@@ -266,7 +273,3 @@ class Loader(base.Loader):
             toremove |= set(matches[:len(txn.splits)-1])
         for txn in toremove:
             self.transactions.remove(txn)
-
-    def cancel_account(self):
-        self.account_info = base.AccountInfo()
-        self.transaction_info = base.TransactionInfo()

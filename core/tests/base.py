@@ -145,15 +145,16 @@ class DictLoader(base.Loader):
 
     def _load(self):
         for info in self.infos:
-            self.account_info.name = info['name']
-            self.account_info.reference = info.get('reference')
+            account = base.get_account(self.accounts, info['name'], None)
+            account.change(reference=info.get('reference'))
             for txn in info['txns']:
-                self.start_transaction()
+                info = base.TransactionInfo()
+                info.account = account.name
                 for attr, value in txn.items():
                     if attr == 'date':
                         value = base.parse_date_str(value, self.parsing_date_format)
-                    setattr(self.transaction_info, attr, value)
-            self.flush_account()
+                    setattr(info, attr, value)
+                self.transactions.add(info.load(self.accounts))
 
 class TestApp(TestAppBase):
     __test__ = False

@@ -8,14 +8,13 @@ import datetime
 import logging
 import re
 
-from core.util import nonone, dedupe
+from core.util import dedupe, nonone
 from core.trans import tr
 
 from ..const import AccountType
 from ..exception import FileFormatError
 from ..model._ccore import (
-    AccountList, TransactionList, UnsupportedCurrencyError, amount_parse,
-    Transaction)
+    AccountList, TransactionList, UnsupportedCurrencyError, amount_parse, Transaction)
 from ..model.currency import Currencies
 from ..model.oven import Oven
 
@@ -54,10 +53,17 @@ def parse_amount(string, currency, **kwargs):
         ).format(currency)
         raise FileFormatError(msg)
 
+def get_account_type(type):
+    if type in AccountType.All:
+        return type
+    else:
+        return AccountType.Asset
+
 def get_account(accounts, accountname, auto_create_type):
     if accountname:
         account = accounts.find(accountname)
         if account is None:
+            auto_create_type = get_account_type(auto_create_type)
             account = accounts.create(
                 accountname, accounts.default_currency, auto_create_type)
     else:
@@ -128,13 +134,6 @@ class Loader:
         self.accounts = AccountList(default_currency)
         self.transactions = TransactionList()
         self.oven = Oven(self.accounts, self.transactions, None, None)
-        self.properties = {}
-        self.target_account = None # when set, overrides the reference matching system
-        self.recurrence_infos = []
-        self.budget_infos = []
-        self.account_info = AccountInfo()
-        self.transaction_info = TransactionInfo()
-        self.document_id = None
         # The Loader subclass should set parsing_date_format to the format used (system-type) when
         # parsing dates. This format is used in the ImportWindow. It is also used in
         # self.parse_date_str as a default value
@@ -181,12 +180,6 @@ class Loader:
             extra.append(self.default_date_format)
         return guess_date_format(str_dates, extra + totry)
 
-    def get_account_type(self, type):
-        if type in AccountType.All:
-            return type
-        else:
-            return AccountType.Asset
-
     def get_currency(self, code):
         try:
             if code and Currencies.has(code):
@@ -194,42 +187,6 @@ class Loader:
         except ValueError:
             pass
         return self.default_currency
-
-    def start_account(self):
-        self.flush_account() # Implicit
-
-    def flush_account(self):
-        self.flush_transaction()
-        if self.account_info.is_valid():
-            info = self.account_info
-            account_type = self.get_account_type(info.type)
-            account_currency = self.get_currency(info.currency)
-            account = self.accounts.find(info.name)
-            if account is None:
-                account = self.accounts.create(
-                    info.name, account_currency, account_type)
-            else:
-                # Already auto-created by a transaction. override type and
-                # currency
-                account.change(type=account_type, currency=account_currency)
-            if info.group:
-                account.change(groupname=info.group)
-            account.change(
-                reference=info.reference, account_number=info.account_number)
-        self.account_info = AccountInfo()
-
-    def start_transaction(self):
-        self.flush_transaction() # Implicit
-
-    def flush_transaction(self):
-        """If called between a start_account and flush_account call, ACCOUNT is automatically set"""
-        info = self.transaction_info
-        if info.account is None and self.account_info and self.account_info.name:
-            info.account = self.account_info.name
-        if info.is_valid():
-            transaction = info.load(self.accounts)
-            self.transactions.add(transaction)
-        self.transaction_info = TransactionInfo()
 
     # --- Public
     def parse(self, filename):
@@ -250,29 +207,9 @@ class Loader:
         You must have called parse() before calling this.
         """
         self._load()
-        self.flush_account() # Implicit
         self._post_load()
         self.oven.cook(datetime.date.min, until_date=None)
         self._fetch_currencies()
-
-
-class AccountInfo:
-    def __init__(self):
-        self.name = None
-        self.currency = None
-        self.type = AccountType.Asset
-        self.group = None
-        self.budget = None
-        self.budget_target = None
-        self.reference = None
-        self.account_number = ''
-
-    def __repr__(self):
-        return '<AccountInfo: %s>' % self.name
-
-    def is_valid(self):
-        return bool(self.name)
-
 
 class TransactionInfo:
     def __init__(self):

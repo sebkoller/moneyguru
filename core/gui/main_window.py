@@ -402,7 +402,7 @@ class MainWindow(DocumentGUIObject):
         self.restore_view()
         self.revalidate()
 
-    def load_parsed_file_for_import(self):
+    def load_parsed_file_for_import(self, target_account=None):
         """Load a parsed file for import and trigger the opening of the Import window.
 
         When the document's ``loader`` has finished parsing (either after having done CSV
@@ -411,7 +411,7 @@ class MainWindow(DocumentGUIObject):
         """
         self.loader.load()
         if any(a.is_balance_sheet_account() for a in self.loader.accounts) and self.loader.transactions:
-            panel = ImportWindow(self)
+            panel = ImportWindow(self, target_account)
             panel.view = weakref.proxy(self.view.get_panel_view(panel))
             panel.view.show()
             return panel

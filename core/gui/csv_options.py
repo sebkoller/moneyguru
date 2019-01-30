@@ -139,9 +139,9 @@ class CSVOptions(GUIObject):
         lines = [line for index, line in enumerate(self.lines) if not self.line_is_excluded(index)]
         loader.lines = lines
         target_name = self.layout.target_account_name
-        loader.target_account = first(t for t in self._target_accounts if t.name == target_name)
+        target_account = first(t for t in self._target_accounts if t.name == target_name)
         try:
-            return self.mainwindow.load_parsed_file_for_import()
+            return self.mainwindow.load_parsed_file_for_import(target_account)
         except FileLoadError as e:
             self.view.show_message(str(e))
             return None

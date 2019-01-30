@@ -31,6 +31,8 @@ class Loader(base.Loader):
         self.schedules = []
         self.budgets = BudgetList()
         self.oven = Oven(self.accounts, self.transactions, self.schedules, self.budgets)
+        self.properties = {}
+        self.document_id = None
 
     def _parse(self, infile):
         try:
@@ -108,13 +110,12 @@ class Loader(base.Loader):
                 if name and value is not None:
                     self.properties[name] = value
         for account_element in root.iter('account'):
-            self.start_account()
             attrib = account_element.attrib
             name = attrib.get('name')
             if not name:
                 continue
             currency = self.get_currency(attrib.get('currency'))
-            type = self.get_account_type(attrib.get('type'))
+            type = base.get_account_type(attrib.get('type'))
             account = self.accounts.create(name, currency, type)
             group = attrib.get('group')
             reference = attrib.get('reference')

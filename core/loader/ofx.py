@@ -8,6 +8,7 @@
 
 from itertools import dropwhile
 
+from ..const import AccountType
 from ..exception import FileFormatError
 from .sgmllib import SGMLParser
 from . import base
@@ -138,6 +139,11 @@ class Loader(base.Loader):
     NATIVE_DATE_FORMAT = '%Y%m%d'
 
     # --- Override
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.account_info = AccountInfo()
+        self.transaction_info = base.TransactionInfo()
+
     def _parse(self, infile):
         # First line is OFXHEADER (section 2.2.1)
         line = '\n'
@@ -159,3 +165,55 @@ class Loader(base.Loader):
             parser.feed(line)
         parser.close()
 
+    def start_account(self):
+        self.flush_account() # Implicit
+
+    def flush_account(self):
+        self.flush_transaction()
+        if self.account_info.is_valid():
+            info = self.account_info
+            account_type = base.get_account_type(info.type)
+            account_currency = self.get_currency(info.currency)
+            account = self.accounts.find(info.name)
+            if account is None:
+                account = self.accounts.create(
+                    info.name, account_currency, account_type)
+            else:
+                # Already auto-created by a transaction. override type and
+                # currency
+                account.change(type=account_type, currency=account_currency)
+            if info.group:
+                account.change(groupname=info.group)
+            account.change(
+                reference=info.reference, account_number=info.account_number)
+        self.account_info = AccountInfo()
+
+    def start_transaction(self):
+        self.flush_transaction() # Implicit
+
+    def flush_transaction(self):
+        """If called between a start_account and flush_account call, ACCOUNT is automatically set"""
+        info = self.transaction_info
+        if info.account is None and self.account_info and self.account_info.name:
+            info.account = self.account_info.name
+        if info.is_valid():
+            transaction = info.load(self.accounts)
+            self.transactions.add(transaction)
+        self.transaction_info = base.TransactionInfo()
+
+class AccountInfo:
+    def __init__(self):
+        self.name = None
+        self.currency = None
+        self.type = AccountType.Asset
+        self.group = None
+        self.budget = None
+        self.budget_target = None
+        self.reference = None
+        self.account_number = ''
+
+    def __repr__(self):
+        return '<AccountInfo: %s>' % self.name
+
+    def is_valid(self):
+        return bool(self.name)
