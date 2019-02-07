@@ -23,7 +23,7 @@ cp -rf core/{model,gui,plugin,saver,loader,__pycache__} "${D}${DESTLIB}/core"
 mkdir -p "${D}${PREFIX}/share/applications"
 install -D -m644 support/moneyguru.desktop \
     "${D}${PREFIX}/share/applications/moneyguru.desktop"
-sed -i -e 's#@ICON@#${PIXMAP}#' \
+sed -i -e "s#@ICON@#${PIXMAP}#" \
     "${D}${PREFIX}/share/applications/moneyguru.desktop"
 install -D -m644 images/logo_big.png "${D}${PIXMAP}"
 find locale -name *.mo -exec install -D {} "${D}${DESTSHARE}/{}" \;
